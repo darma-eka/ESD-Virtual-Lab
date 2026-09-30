@@ -37,6 +37,38 @@
   --header-height: 64px;
 }
 
+/* Dark Theme Variables */
+html.dark {
+  --bg-app: #0b1120;
+  --bg-card: #151e2e;
+  --border-color: #273549;
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-light: #64748b;
+
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --primary-light: rgba(59, 130, 246, 0.16);
+  --primary-50: #172554;
+
+  --secondary: #8b5cf6;
+  --secondary-light: #2e1065;
+
+  --success: #10b981;
+  --success-light: rgba(16, 185, 129, 0.16);
+  --success-border: #059669;
+
+  --warning: #f59e0b;
+  --warning-light: rgba(245, 158, 11, 0.16);
+  --warning-border: #d97706;
+
+  --error: #ef4444;
+  --error-light: rgba(239, 68, 68, 0.16);
+  --error-border: #dc2626;
+
+  color-scheme: dark;
+}
+
 * {
   box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
@@ -49,15 +81,16 @@ body {
   min-height: 100vh;
   margin: 0;
   padding: 0;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Material Card Surface */
 .mat-card {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .mat-card:hover {
@@ -66,10 +99,11 @@ body {
 
 .mat-card-header {
   padding: 16px 20px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  transition: border-color 0.2s ease;
 }
 
 .mat-card-body {
@@ -78,14 +112,15 @@ body {
 
 /* Metric / Stat Card */
 .stat-card {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   padding: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .stat-icon-wrapper {
@@ -100,8 +135,8 @@ body {
 /* Sidebar Styling */
 .mat-sidebar {
   width: var(--sidebar-width);
-  background: #ffffff;
-  border-right: 1px solid #e2e8f0;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border-color);
   position: fixed;
   top: 0;
   bottom: 0;
@@ -109,7 +144,7 @@ body {
   z-index: 50;
   display: flex;
   flex-direction: column;
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .sidebar-nav-item {
@@ -121,14 +156,14 @@ body {
   border-radius: 8px;
   font-size: 13.5px;
   font-weight: 500;
-  color: #475569;
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .sidebar-nav-item:hover {
   background-color: #f1f5f9;
-  color: #1e293b;
+  color: var(--text-main);
 }
 
 .sidebar-nav-item.active {
@@ -147,14 +182,14 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #94a3b8;
+  color: var(--text-light);
 }
 
 /* Header Navbar */
 .mat-header {
   height: var(--header-height);
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
   position: sticky;
   top: 0;
   z-index: 40;
@@ -162,6 +197,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 /* Material Buttons */
@@ -371,4 +407,386 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color: #ffffff !important;
   box-shadow: 0 1px 3px rgba(37, 99, 235, 0.4);
 }
+
+/* Floating Jog Pendant Overlay Styling */
+#sim-floating-jog {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#jog-pendant-panel {
+  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.7), 0 4px 12px -2px rgba(0, 0, 0, 0.5);
+}
+
+/* ==================== MOBILE & TOUCHSCREEN OPTIMIZATIONS ==================== */
+
+/* Prevent page scrolling/pinching when interacting with 3D and 2D canvas viewports */
+#sim-viewport-wrapper canvas,
+#sim-3d-container canvas,
+#anatomy-3d-container canvas,
+#lathe-canvas {
+  touch-action: none;
+}
+
+/* Touch-friendly range sliders for smartphones */
+@media (max-width: 640px) {
+  input[type="range"] {
+    height: 8px;
+    margin: 12px 0;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Mobile Bottom Navigation Bar Safe Area */
+#mobile-bottom-nav {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 6px);
+}
+
+/* Smooth Touch Ripple / Active State for Mobile Nav */
+.mobile-nav-item:active {
+  transform: scale(0.92);
+}
+
+/* Generous Bottom Spacing for Smartphones so fixed bottom navigation bar never covers any text or controls */
+@media (max-width: 767px) {
+  main {
+    padding-bottom: calc(8rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .app-screen {
+    padding-bottom: 3rem;
+  }
+}
+
+/* ==================== COMPREHENSIVE DARK MODE THEME ==================== */
+
+html.dark body {
+  background-color: #0b1120;
+  color: #f1f5f9;
+}
+
+/* Base Surfaces in Dark Mode */
+html.dark .bg-white {
+  background-color: #151e2e !important;
+}
+
+html.dark .bg-slate-50,
+html.dark .bg-slate-50\/60,
+html.dark .bg-slate-50\/70,
+html.dark .bg-slate-50\/80,
+html.dark .bg-slate-50\/90 {
+  background-color: #0f172a !important;
+}
+
+html.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+
+html.dark .bg-slate-200,
+html.dark .bg-slate-200\/60,
+html.dark .bg-slate-200\/90 {
+  background-color: #1e293b !important;
+}
+
+/* Hero card banner in Dark Mode */
+html.dark .mat-card.bg-gradient-to-r {
+  background: linear-gradient(to right, rgba(30, 58, 138, 0.32), #151e2e, #151e2e) !important;
+  border-color: #273549 !important;
+}
+
+/* High-contrast Typography */
+html.dark .text-slate-800,
+html.dark .text-slate-900,
+html.dark .text-blue-950 {
+  color: #f8fafc !important;
+}
+
+html.dark .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+html.dark .text-slate-400 {
+  color: #64748b !important;
+}
+
+/* Dark Mode Borders */
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-slate-200\/60,
+html.dark .border-slate-200\/90 {
+  border-color: #273549 !important;
+}
+
+html.dark .border-slate-300 {
+  border-color: #334155 !important;
+}
+
+/* Header Action Buttons */
+html.dark #btn-sound-toggle,
+html.dark #btn-theme-toggle {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+html.dark #btn-sound-toggle:hover,
+html.dark #btn-theme-toggle:hover {
+  background-color: #334155;
+  color: #ffffff;
+}
+
+html.dark .mat-btn-outline {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+html.dark .mat-btn-outline:hover {
+  background-color: #273549;
+  border-color: #475569;
+  color: #ffffff;
+}
+
+/* Sidebar Navigation Items in Dark Mode */
+html.dark .sidebar-nav-item {
+  color: #94a3b8;
+}
+
+html.dark .sidebar-nav-item:hover {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+html.dark .sidebar-nav-item.active {
+  background-color: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+}
+
+html.dark .sidebar-nav-item.active .nav-icon {
+  color: #60a5fa;
+}
+
+html.dark .sidebar-section-title {
+  color: #64748b;
+}
+
+/* Badges & Category Tags in Dark Mode */
+html.dark .bg-blue-100 {
+  background-color: rgba(37, 99, 235, 0.22) !important;
+}
+html.dark .text-blue-800,
+html.dark .text-blue-700,
+html.dark .text-blue-900 {
+  color: #93c5fd !important;
+}
+
+html.dark .bg-emerald-100 {
+  background-color: rgba(16, 185, 129, 0.22) !important;
+}
+html.dark .text-emerald-800,
+html.dark .text-emerald-700 {
+  color: #6ee7b7 !important;
+}
+
+html.dark .bg-amber-100 {
+  background-color: rgba(245, 158, 11, 0.22) !important;
+}
+html.dark .text-amber-800,
+html.dark .text-amber-700 {
+  color: #fcd34d !important;
+}
+
+html.dark .bg-purple-100 {
+  background-color: rgba(139, 92, 246, 0.22) !important;
+}
+html.dark .text-purple-800,
+html.dark .text-purple-700 {
+  color: #d8b4fe !important;
+}
+
+html.dark .bg-cyan-50 {
+  background-color: rgba(6, 182, 212, 0.15) !important;
+}
+html.dark .text-cyan-700 {
+  color: #67e8f9 !important;
+}
+html.dark .border-cyan-200 {
+  border-color: rgba(6, 182, 212, 0.35) !important;
+}
+
+/* Stat Cards & Icon Boxes */
+html.dark .stat-icon-wrapper.bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+  color: #34d399 !important;
+}
+html.dark .stat-icon-wrapper.bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  color: #60a5fa !important;
+}
+html.dark .stat-icon-wrapper.bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+}
+html.dark .stat-icon-wrapper.bg-purple-50 {
+  background-color: rgba(139, 92, 246, 0.15) !important;
+  color: #c084fc !important;
+}
+
+/* Simulation Status Evaluation Box */
+html.dark #sim-status-box.bg-emerald-50\/80 {
+  background-color: rgba(6, 78, 59, 0.35) !important;
+  border-color: #047857 !important;
+}
+html.dark #sim-status-box.bg-amber-50\/80 {
+  background-color: rgba(120, 53, 15, 0.35) !important;
+  border-color: #b45309 !important;
+}
+html.dark #sim-status-box.bg-red-50\/80 {
+  background-color: rgba(127, 29, 29, 0.35) !important;
+  border-color: #b91c1c !important;
+}
+html.dark #sim-status-box.bg-blue-50\/80 {
+  background-color: rgba(30, 58, 138, 0.35) !important;
+  border-color: #1d4ed8 !important;
+}
+
+/* Range Sliders */
+html.dark input[type="range"] {
+  background: #273549;
+}
+html.dark input[type="range"]::-webkit-slider-thumb {
+  border-color: #0f172a;
+}
+
+/* Modal Dialogs in Dark Mode */
+html.dark #curriculum-modal > div,
+html.dark #table-modal > div,
+html.dark #part-detail-modal > div,
+html.dark #profile-modal > div {
+  background-color: #151e2e !important;
+  border-color: #273549 !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+html.dark #curriculum-modal .border-b,
+html.dark #table-modal .border-b,
+html.dark #part-detail-modal .border-b,
+html.dark #profile-modal .border-b {
+  border-bottom-color: #273549 !important;
+}
+
+/* Tables inside modals */
+html.dark table thead tr {
+  background-color: #1e293b !important;
+}
+html.dark table th {
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+html.dark table td {
+  border-color: #273549 !important;
+  color: #cbd5e1 !important;
+}
+html.dark table tbody tr:hover {
+  background-color: rgba(30, 41, 59, 0.6) !important;
+}
+
+/* Inputs & Form Fields */
+html.dark input[type="text"],
+html.dark input[type="number"],
+html.dark select {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+html.dark input[type="text"]:focus,
+html.dark input[type="number"]:focus,
+html.dark select:focus {
+  border-color: #3b82f6 !important;
+  background-color: #1e293b !important;
+}
+
+/* Mobile Bottom Navigation Bar */
+html.dark #mobile-bottom-nav {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  border-top-color: #1e293b !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+html.dark .mobile-nav-item {
+  color: #94a3b8;
+}
+html.dark .mobile-nav-item.text-blue-600 {
+  color: #38bdf8 !important;
+}
+html.dark .mobile-nav-item.text-blue-600 .mobile-nav-dot {
+  background-color: #38bdf8 !important;
+}
+
+/* Mobile Simulation Navigation Segmented Switcher */
+html.dark #mob-sim-tab-params {
+  color: #cbd5e1 !important;
+}
+html.dark #mob-sim-tab-all {
+  color: #94a3b8 !important;
+}
+
+/* Endmill Diameter Selector Buttons */
+html.dark .btn-endmill-dia {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+html.dark .btn-endmill-dia:hover {
+  background-color: #273549 !important;
+}
+html.dark .btn-endmill-dia.active {
+  background-color: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+/* Blue Banners & Callouts */
+html.dark .bg-blue-50\/80,
+html.dark .bg-blue-50\/70,
+html.dark .bg-blue-50\/60 {
+  background-color: rgba(30, 58, 138, 0.25) !important;
+  border-color: #1e40af !important;
+  color: #bfdbfe !important;
+}
+
+/* Quiz Option Cards in Dark Mode */
+html.dark .options-group > div {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+html.dark .options-group > div:hover {
+  background-color: #273549 !important;
+  border-color: #3b82f6 !important;
+}
+html.dark .options-group > div.bg-emerald-50 {
+  background-color: rgba(6, 78, 59, 0.45) !important;
+  border-color: #059669 !important;
+  color: #a7f3d0 !important;
+}
+html.dark .options-group > div.bg-red-50 {
+  background-color: rgba(69, 10, 10, 0.45) !important;
+  border-color: #dc2626 !important;
+  color: #fecaca !important;
+}
+html.dark .options-group > div.bg-slate-50 {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  border-color: #1e293b !important;
+  color: #64748b !important;
+}
+
 

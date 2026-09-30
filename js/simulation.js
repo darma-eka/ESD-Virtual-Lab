@@ -384,14 +384,7 @@ const SimEngine = (function () {
     const scalePx = rawRadiusPx / rawRadiusMm;
     const N = state.contour.length;
 
-    // A. Initial raw stock ghost boundary (dashed reference line)
-    ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
-    ctx.strokeRect(wpStartX, centerY - rawRadiusPx, wpTotalLength, rawRadiusPx * 2);
-    ctx.setLineDash([]);
-
-    // B. Build and fill solid turned workpiece contour path
+    // Build and fill solid turned workpiece contour path
     ctx.beginPath();
     ctx.moveTo(wpStartX, centerY - state.contour[0] * scalePx);
     for (let i = 1; i < N; i++) {
@@ -879,6 +872,16 @@ const SimEngine = (function () {
       milledMatColor = "#312e81"; // Burnt heat-tempered blue
     } else if (state.evaluation.status === "CHATTER") {
       milledMatColor = "#64748b"; // Dull rough gray
+    } else {
+      if (state.materialId === "brass") {
+        milledMatColor = "#fef08a"; // Fresh gleaming machined brass
+      } else if (state.materialId === "cast_iron") {
+        milledMatColor = "#64748b"; // Fresh cut iron gray
+      } else if (state.materialId === "aluminum") {
+        milledMatColor = "#f8fafc"; // Polished aluminum
+      } else {
+        milledMatColor = "#f1f5f9"; // Polished steel
+      }
     }
 
     // Render persistent 2D profile using millingGrid (column-by-column along X)

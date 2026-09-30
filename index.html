@@ -6,12 +6,31 @@
   <title>ESD V-Lab — Laboratorium Pemesinan Bubut & Frais SMK</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    };
+  </script>
+  <!-- Immediate Theme Initialization (prevents FOUC flicker on page load) -->
+  <script>
+    (function () {
+      try {
+        var savedTheme = localStorage.getItem('vmachining_theme');
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Custom Materially Theme -->
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="bg-[#f4f6f8] text-slate-800 antialiased flex flex-col min-h-screen">
+<body class="bg-[#f4f6f8] dark:bg-[#0b1120] text-slate-800 dark:text-slate-100 antialiased flex flex-col min-h-screen transition-colors duration-200">
 
   <!-- Toast Notification Alert -->
   <div id="game-toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-lg text-sm shadow-lg pointer-events-none opacity-0 -translate-y-6 flex items-center gap-2"></div>
@@ -94,6 +113,10 @@
         <i data-lucide="printer" class="w-4 h-4 nav-icon"></i>
         <span>Cetak LKPD Siswa (PDF)</span>
       </div>
+      <div class="sidebar-nav-item" onclick="App.toggleTheme()" title="Beralih Tema Gelap / Terang">
+        <i data-lucide="moon" id="sidebar-theme-icon" class="w-4 h-4 nav-icon"></i>
+        <span id="sidebar-theme-label">Tema Gelap</span>
+      </div>
 
     </div>
 
@@ -123,13 +146,13 @@
           <i data-lucide="menu" class="w-5 h-5"></i>
         </button>
         <!-- Breadcrumbs -->
-        <div class="flex items-center space-x-2 text-xs text-slate-500 font-medium">
-          <span class="text-blue-600 font-semibold" id="breadcrumb-text">Dashboard / Ringkasan & Lobi Utama</span>
+        <div class="flex items-center space-x-2 text-xs text-slate-500 font-medium overflow-hidden">
+          <span class="text-blue-600 font-semibold truncate max-w-[170px] sm:max-w-none" id="breadcrumb-text">Dashboard / Ringkasan & Lobi Utama</span>
         </div>
       </div>
 
       <!-- Header Right Action Tools -->
-      <div class="flex items-center space-x-3">
+      <div class="flex items-center space-x-2 sm:space-x-3">
         
         <!-- Safety Score Pill -->
         <div class="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
@@ -148,8 +171,13 @@
         </div>
 
         <!-- Audio Toggle Button -->
-        <button id="btn-sound-toggle" class="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs flex items-center justify-center" title="Efek Suara">
+        <button id="btn-sound-toggle" class="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs flex items-center justify-center transition-colors" title="Efek Suara">
           <i data-lucide="volume-2" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Theme Toggle Button (Dark / Light Mode) -->
+        <button id="btn-theme-toggle" onclick="App.toggleTheme()" class="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs flex items-center justify-center transition-colors cursor-pointer" title="Beralih Mode Gelap/Terang" aria-label="Beralih Mode Gelap/Terang">
+          <i data-lucide="moon" class="w-4 h-4"></i>
         </button>
 
         <!-- LKPD Quick Print Action -->
@@ -162,7 +190,7 @@
     </header>
 
     <!-- Main Content Area -->
-    <main class="flex-1 p-4 md:p-6 lg:p-8 no-print">
+    <main class="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 pb-36 sm:pb-32 md:pb-6 no-print">
 
       <!-- ==================== SCREEN 0: DASHBOARD ==================== -->
       <section id="screen-home" class="app-screen space-y-6">
@@ -571,23 +599,39 @@
       </section>
 
       <!-- ==================== SCREEN 3: LAB SIMULASI ==================== -->
-      <section id="screen-simulation" class="app-screen hidden space-y-6">
+      <section id="screen-simulation" class="app-screen hidden space-y-3.5">
         
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div>
-            <h2 class="text-xl font-bold text-slate-800">Laboratorium Simulasi Kecepatan Potong</h2>
+            <h2 class="text-lg md:text-xl font-bold text-slate-800 tracking-tight">Laboratorium Simulasi Kecepatan Potong</h2>
             <p class="text-xs text-slate-500">Atur parameter pemotongan dan amati dampaknya terhadap keausan pahat serta kehalusan permukaan ($Ra$).</p>
           </div>
-          <button onclick="document.getElementById('table-modal').classList.remove('hidden')" class="mat-btn mat-btn-outline self-start">
-            <i data-lucide="table" class="w-4 h-4"></i>
+          <button onclick="document.getElementById('table-modal').classList.remove('hidden')" class="mat-btn mat-btn-outline self-start py-1.5 px-3 text-xs">
+            <i data-lucide="table" class="w-3.5 h-3.5"></i>
             <span>Tabel Standar Kecepatan Potong (Cs)</span>
           </button>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Mobile Segmented Navigation Tabs (Hanya Muncul di Smartphone / Layar < lg) -->
+        <div class="lg:hidden flex items-center p-1 bg-slate-200/90 backdrop-blur-sm rounded-xl shadow-inner gap-1 text-xs font-semibold select-none sticky top-14 sm:top-16 z-30">
+          <button id="mob-sim-tab-viewport" type="button" onclick="App.setMobileSimTab('viewport')" class="mob-sim-tab flex-1 py-2 px-1 rounded-lg bg-blue-600 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer font-bold">
+            <i data-lucide="play-circle" class="w-3.5 h-3.5"></i>
+            <span>1. Layar 3D & Mesin</span>
+          </button>
+          <button id="mob-sim-tab-params" type="button" onclick="App.setMobileSimTab('params')" class="mob-sim-tab flex-1 py-2 px-1 rounded-lg text-slate-700 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all cursor-pointer font-medium">
+            <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+            <span>2. Parameter</span>
+          </button>
+          <button id="mob-sim-tab-all" type="button" onclick="App.setMobileSimTab('all')" class="mob-sim-tab px-2.5 py-2 rounded-lg text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1 transition-all cursor-pointer text-[11px] font-medium" title="Tampilkan semua panel secara berurutan">
+            <i data-lucide="layout-list" class="w-3.5 h-3.5"></i>
+            <span class="hidden xs:inline">Semua</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
           
-          <!-- Control Console (5 Cols) -->
-          <div class="lg:col-span-5 mat-card">
+          <!-- Control Console (5 Cols on Desktop) -->
+          <div id="sim-panel-params" class="lg:col-span-5 mat-card">
             <div class="mat-card-header">
               <span class="font-semibold text-xs text-slate-800 uppercase tracking-wider">Panel Kontrol Parameter Mesin</span>
               <span class="text-xs text-blue-600 font-medium">Input Operasional</span>
@@ -749,15 +793,23 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Mobile Switch to 3D Viewport Action Button -->
+              <div class="lg:hidden pt-3 border-t border-slate-100">
+                <button type="button" onclick="App.setMobileSimTab('viewport')" class="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-900/20 flex items-center justify-center gap-2 cursor-pointer transition-all">
+                  <i data-lucide="play-circle" class="w-4 h-4"></i>
+                  <span>Terapkan & Buka Layar 3D ➔</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- Canvas & Evaluator (7 Cols) -->
-          <div class="lg:col-span-7 space-y-4">
+          <!-- Canvas, Controls & Evaluator (7 Cols on Desktop) -->
+          <div id="sim-panel-viewport" class="lg:col-span-7 space-y-3">
             
             <!-- 3D Turning Simulation Window -->
             <div class="mat-card overflow-hidden">
-              <div class="mat-card-header">
+              <div class="mat-card-header py-2.5 px-4">
                 <div class="flex items-center space-x-2">
                   <i data-lucide="play-circle" class="w-4 h-4 text-blue-600"></i>
                   <span id="lbl-sim-viewport-title" class="font-semibold text-xs text-slate-800">Visualisasi Proses Penyayatan Mesin Bubut 3D</span>
@@ -767,12 +819,12 @@
                     <button id="btn-sim-mode-3d" onclick="App.setSimViewMode('3d')" class="px-2.5 py-1 rounded-md bg-blue-600 text-white font-semibold shadow-xs transition-all">3D View</button>
                     <button id="btn-sim-mode-2d" onclick="App.setSimViewMode('2d')" class="px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 font-medium transition-all">2D CAD</button>
                   </div>
-                  <span id="lbl-sim-viewport-feed" class="text-xs text-blue-600 font-medium">Feeding ke Arah Cekam</span>
+                  <span id="lbl-sim-viewport-feed" class="text-xs text-blue-600 font-medium hidden sm:inline-block">Feeding ke Arah Cekam</span>
                 </div>
               </div>
 
-              <!-- Viewport Wrapper -->
-              <div class="relative w-full aspect-[16/10] bg-slate-950 border-b border-slate-200 select-none overflow-hidden">
+              <!-- Viewport Wrapper (Aspect 16/9 with floating jog controller) -->
+              <div id="sim-viewport-wrapper" class="relative w-full aspect-[16/10] sm:aspect-[16/9] lg:aspect-[16/9.2] max-h-[440px] bg-slate-950 border-b border-slate-200 select-none overflow-hidden">
                 <!-- 3D Sim Container -->
                 <div id="sim-3d-container" class="w-full h-full relative"></div>
 
@@ -780,15 +832,151 @@
                 <div id="sim-2d-container" class="w-full h-full absolute inset-0 hidden">
                   <canvas id="lathe-canvas" class="w-full h-full block"></canvas>
                 </div>
+
+                <!-- ==================== FLOATING ON-SCREEN JOG PENDANT OVERLAY ==================== -->
+                <div id="sim-floating-jog" class="absolute top-2 right-2 z-30 pointer-events-auto flex flex-col items-end transition-all">
+                  
+                  <!-- Minimized Pill Button (Shown when user collapses pendant) -->
+                  <button id="btn-jog-expand" type="button" class="hidden items-center gap-1 px-2.5 py-1 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white text-[11px] font-bold shadow-xl border border-slate-700/80 backdrop-blur-md transition-all cursor-pointer" title="Buka Kontrol Sumbu XYZ">
+                    <i data-lucide="crosshair" class="w-3 h-3 text-blue-400"></i>
+                    <span>Sumbu XYZ</span>
+                    <span id="jog-mini-dro" class="font-mono text-[9.5px] text-emerald-400 font-semibold ml-0.5">X:+1.50</span>
+                    <i data-lucide="chevron-left" class="w-3 h-3 text-slate-400"></i>
+                  </button>
+
+                  <!-- Expanded Jog Pendant Box -->
+                  <div id="jog-pendant-panel" class="w-[146px] sm:w-[154px] rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 shadow-2xl p-2 text-white flex flex-col gap-1.5">
+                    <!-- Title Bar & Minimize Button -->
+                    <div class="flex items-center justify-between pb-1 border-b border-slate-800">
+                      <div class="flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Sumbu XYZ</span>
+                      </div>
+                      <div class="flex items-center gap-1">
+                        <!-- Step Selector Toggle -->
+                        <button id="btn-overlay-step" type="button" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[9px] font-mono font-bold text-blue-400 cursor-pointer" title="Ubah langkah jog (0.1, 0.5, 1.0 mm)">
+                          <span id="txt-overlay-step">0.5</span>mm
+                        </button>
+                        <!-- Minimize Button -->
+                        <button id="btn-jog-collapse" type="button" class="p-0.5 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer" title="Kecilkan panel kontrol">
+                          <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Live Mini DRO Display -->
+                    <div class="grid grid-cols-2 gap-0.5 bg-black/65 p-1 rounded-md border border-slate-800 font-mono text-[9.5px] text-center" id="overlay-dro-grid">
+                      <div title="Posisi Sumbu X">
+                        <span class="text-blue-400 font-bold block text-[8.5px]">X</span>
+                        <span id="overlay-dro-x" class="text-emerald-400 font-bold">+1.50</span>
+                      </div>
+                      <div id="overlay-dro-box-y" class="hidden" title="Posisi Sumbu Y">
+                        <span class="text-cyan-400 font-bold block text-[8.5px]">Y</span>
+                        <span id="overlay-dro-y" class="text-emerald-400 font-bold">0.00</span>
+                      </div>
+                      <div id="overlay-dro-box-z" title="Posisi Sumbu Z">
+                        <span class="text-amber-400 font-bold block text-[8.5px]">Z</span>
+                        <span id="overlay-dro-z" class="text-emerald-400 font-bold">0.00</span>
+                      </div>
+                    </div>
+
+                    <!-- Sumbu X Row -->
+                    <div class="flex flex-col gap-0.5">
+                      <div class="flex justify-between items-center text-[9.5px] leading-tight">
+                        <span class="font-bold text-blue-400 flex items-center gap-1">
+                          <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                          <span id="overlay-axis-x-title">Sumbu X</span>
+                        </span>
+                        <span id="overlay-axis-x-subtitle" class="text-slate-400 text-[8.5px] font-mono">Melintang</span>
+                      </div>
+                      <div class="grid grid-cols-2 gap-1">
+                        <button id="btn-overlay-axis-x-minus" type="button" class="axis-jog-btn py-1 px-1 rounded-md bg-blue-700 hover:bg-blue-600 active:scale-95 text-white font-mono font-bold text-[11px] flex items-center justify-center gap-0.5 shadow-xs transition-all cursor-pointer" title="Sumbu X- : Maju / Meja Kiri">
+                          <span id="overlay-axis-x-minus-label">◀ X-</span>
+                        </button>
+                        <button id="btn-overlay-axis-x-plus" type="button" class="axis-jog-btn py-1 px-1 rounded-md bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-mono font-bold text-[11px] flex items-center justify-center gap-0.5 border border-slate-700 shadow-xs transition-all cursor-pointer" title="Sumbu X+ : Mundur / Meja Kanan">
+                          <span id="overlay-axis-x-plus-label">X+ ▶</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Sumbu Y Row (Khusus Mesin Frais) -->
+                    <div id="overlay-axis-group-y" class="hidden flex-col gap-0.5">
+                      <div class="flex justify-between items-center text-[9.5px] leading-tight">
+                        <span class="font-bold text-cyan-400 flex items-center gap-1">
+                          <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                          <span>Sumbu Y</span>
+                        </span>
+                        <span class="text-slate-400 text-[8.5px] font-mono">Sadel</span>
+                      </div>
+                      <div class="grid grid-cols-2 gap-1">
+                        <button id="btn-overlay-axis-y-minus" type="button" class="axis-jog-btn py-1 px-1 rounded-md bg-cyan-700 hover:bg-cyan-600 active:scale-95 text-white font-mono font-bold text-[11px] flex items-center justify-center gap-0.5 shadow-xs transition-all cursor-pointer" title="Sumbu Y- : Sadel Mundur">
+                          <span>▼ Y-</span>
+                        </button>
+                        <button id="btn-overlay-axis-y-plus" type="button" class="axis-jog-btn py-1 px-1 rounded-md bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-mono font-bold text-[11px] flex items-center justify-center gap-0.5 border border-slate-700 shadow-xs transition-all cursor-pointer" title="Sumbu Y+ : Sadel Maju">
+                          <span>Y+ ▲</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Sumbu Z Row -->
+                    <div class="flex flex-col gap-0.5">
+                      <div class="flex justify-between items-center text-[9.5px] leading-tight">
+                        <span class="font-bold text-amber-400 flex items-center gap-1">
+                          <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                          <span id="overlay-axis-z-title">Sumbu Z</span>
+                        </span>
+                        <span id="overlay-axis-z-subtitle" class="text-slate-400 text-[8.5px] font-mono">Memanjang</span>
+                      </div>
+                      <div class="grid grid-cols-2 gap-1">
+                        <button id="btn-overlay-axis-z-minus" type="button" class="axis-jog-btn py-1 px-1 rounded-md bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-mono font-bold text-[11px] flex items-center justify-center gap-0.5 shadow-xs transition-all cursor-pointer" title="Sumbu Z- : Kiri / Turun">
+                          <span id="overlay-axis-z-minus-label">◀ Z-</span>
+                        </button>
+                        <button id="btn-overlay-axis-z-plus" type="button" class="axis-jog-btn py-1 px-1 rounded-md bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-mono font-bold text-[11px] flex items-center justify-center gap-0.5 border border-slate-700 shadow-xs transition-all cursor-pointer" title="Sumbu Z+ : Kanan / Naik">
+                          <span id="overlay-axis-z-plus-label">Z+ ▶</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Quick Spindle Start/Pause & Auto Action -->
+                    <div class="pt-1 border-t border-slate-800/80 flex items-center gap-1">
+                      <button id="btn-overlay-sim-start" type="button" class="flex-1 py-1 px-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-[10.5px] flex items-center justify-center gap-1 shadow transition-all cursor-pointer" title="Mulai / Jeda Putaran Spindel">
+                        <i data-lucide="play" class="w-3 h-3 fill-current"></i>
+                        <span id="txt-overlay-sim-start">Mulai</span>
+                      </button>
+                      <button id="btn-overlay-autofeed" type="button" class="py-1 px-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-[9.5px] flex items-center justify-center gap-0.5 transition-all cursor-pointer" title="Toggle Pemakanan Otomatis">
+                        <i data-lucide="cog" class="w-3 h-3 text-amber-400"></i>
+                        <span id="txt-overlay-autofeed">Auto</span>
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+
               </div>
 
-              <div id="lbl-sim-viewport-hint" class="p-2.5 bg-slate-50 text-[11px] text-slate-500 text-center border-t border-slate-100">
+              <div id="lbl-sim-viewport-hint" class="p-2 bg-slate-50 text-[11px] text-slate-500 text-center border-t border-slate-100">
                 🔄 <strong>Kamera 3D Bebas:</strong> Putar 360° dengan klik & geser, scroll untuk zoom titik sayat. Pahat Rata Kanan (ISO 6) menyayat dari Kanan ➔ Kiri.
               </div>
             </div>
 
+            <!-- Mobile Quick Parameter Strip (Shows current machine settings with 1-tap slider shortcut) -->
+            <div class="lg:hidden flex items-center justify-between p-2.5 rounded-xl bg-slate-800 text-white border border-slate-700/80 text-xs shadow-sm">
+              <div class="flex items-center gap-1.5 text-[11px] truncate">
+                <span class="text-slate-400 font-medium">Bahan:</span>
+                <span id="mob-strip-mat" class="font-bold text-blue-300">ST37</span>
+                <span class="text-slate-500">•</span>
+                <span id="mob-strip-tool" class="text-slate-200">Pahat HSS</span>
+                <span class="text-slate-500">•</span>
+                <span id="mob-strip-rpm" class="font-mono text-emerald-400 font-bold">600 RPM</span>
+              </div>
+              <button type="button" onclick="App.setMobileSimTab('params')" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all">
+                <i data-lucide="sliders" class="w-3 h-3"></i>
+                <span>Ubah</span>
+              </button>
+            </div>
+
             <!-- ==================== PANEL KONTROL OPERASIONAL & PEMAKANAN MANUAL ==================== -->
-            <div class="mat-card p-4 bg-slate-900 text-white border-slate-800 shadow-md">
+            <div class="mat-card p-3 sm:p-3.5 bg-slate-900 text-white border-slate-800 shadow-md">
               <!-- Top Bar: Panel Title & Live Digital Readout (DRO) -->
               <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
                 <div class="flex items-center gap-2">
@@ -965,33 +1153,33 @@
             </div>
 
             <!-- 3 Gauges / Real-Time Data -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div class="mat-card p-4">
-                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Kecepatan Potong (Cs)</div>
-                <div id="display-calculated-cs" class="text-xl font-bold text-blue-600 font-mono mt-1">102 m/min</div>
-                <div class="text-[11px] text-slate-400 mt-0.5">Cs = (π · d · n) / 1000</div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div class="mat-card p-2.5 sm:p-3">
+                <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Kecepatan Potong (Cs)</div>
+                <div id="display-calculated-cs" class="text-lg sm:text-xl font-bold text-blue-600 font-mono mt-0.5">102 m/min</div>
+                <div class="text-[10px] text-slate-400">Cs = (π · d · n) / 1000</div>
               </div>
 
-              <div class="mat-card p-4">
-                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Durasi Sayat (tc)</div>
-                <div id="display-machining-time" class="text-xl font-bold text-amber-600 font-mono mt-1">1m 01s</div>
-                <div class="text-[11px] text-slate-400 mt-0.5">tc = L / (f · n)</div>
+              <div class="mat-card p-2.5 sm:p-3">
+                <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Durasi Sayat (tc)</div>
+                <div id="display-machining-time" class="text-lg sm:text-xl font-bold text-amber-600 font-mono mt-0.5">1m 01s</div>
+                <div class="text-[10px] text-slate-400">tc = L / (f · n)</div>
               </div>
 
-              <div class="mat-card p-4">
-                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Kekasaran Permukaan (Ra)</div>
-                <div id="display-surface-ra" class="text-xl font-bold text-emerald-600 font-mono mt-1">1.6 µm Ra</div>
-                <div class="text-[11px] text-slate-400 mt-0.5">Standar ISO N6</div>
+              <div class="mat-card p-2.5 sm:p-3">
+                <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Kekasaran Permukaan (Ra)</div>
+                <div id="display-surface-ra" class="text-lg sm:text-xl font-bold text-emerald-600 font-mono mt-0.5">1.6 µm Ra</div>
+                <div class="text-[10px] text-slate-400">Standar ISO N6</div>
               </div>
             </div>
 
             <!-- Dynamic Result Card -->
-            <div id="sim-status-box" class="p-4 rounded-xl border border-emerald-300 bg-emerald-50/80 transition-all">
+            <div id="sim-status-box" class="p-3 rounded-xl border border-emerald-300 bg-emerald-50/80 transition-all">
               <div class="flex items-center space-x-2">
                 <i data-lucide="sparkles" class="w-4 h-4 text-emerald-700"></i>
                 <h4 id="sim-status-title" class="font-bold text-sm text-emerald-800">Sayatan Optimal (Halus Mengkilap)</h4>
               </div>
-              <p id="sim-status-desc" class="text-xs text-slate-600 mt-1 leading-relaxed">
+              <p id="sim-status-desc" class="text-xs text-slate-600 mt-0.5 leading-relaxed">
                 Parameter putaran spindle ideal. Menghasilkan sayatan halus berkilap dan keawetan pahat terjaga.
               </p>
             </div>
@@ -1021,7 +1209,38 @@
 
       </section>
 
+      <!-- Extra visual clearance space on mobile devices so fixed bottom navigation bar never covers anything -->
+      <div class="h-16 md:hidden pointer-events-none" aria-hidden="true"></div>
     </main>
+
+    <!-- ==================== MOBILE BOTTOM NAVIGATION BAR ==================== -->
+    <nav id="mobile-bottom-nav" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/90 dark:border-slate-800 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_16px_rgba(0,0,0,0.35)] px-2 py-1 flex items-center justify-around select-none transition-colors duration-200">
+      <button type="button" data-target="screen-home" onclick="App.navigateTo('screen-home')" class="mobile-nav-item flex-1 py-1.5 flex flex-col items-center justify-center text-blue-600 font-bold transition-all cursor-pointer">
+        <i data-lucide="layout-dashboard" class="w-4 h-4 mb-0.5"></i>
+        <span class="text-[10px] leading-tight">Beranda</span>
+        <span class="mobile-nav-dot w-1 h-1 rounded-full bg-blue-600 mt-0.5 transition-opacity"></span>
+      </button>
+      <button type="button" data-target="screen-k3" onclick="App.navigateTo('screen-k3')" class="mobile-nav-item flex-1 py-1.5 flex flex-col items-center justify-center text-slate-500 font-medium transition-all cursor-pointer">
+        <i data-lucide="shield-check" class="w-4 h-4 mb-0.5"></i>
+        <span class="text-[10px] leading-tight">K3 APD</span>
+        <span class="mobile-nav-dot w-1 h-1 rounded-full bg-blue-600 mt-0.5 opacity-0 transition-opacity"></span>
+      </button>
+      <button type="button" data-target="screen-anatomy" onclick="App.navigateTo('screen-anatomy')" class="mobile-nav-item flex-1 py-1.5 flex flex-col items-center justify-center text-slate-500 font-medium transition-all cursor-pointer">
+        <i data-lucide="wrench" class="w-4 h-4 mb-0.5"></i>
+        <span class="text-[10px] leading-tight">Anatomi</span>
+        <span class="mobile-nav-dot w-1 h-1 rounded-full bg-blue-600 mt-0.5 opacity-0 transition-opacity"></span>
+      </button>
+      <button type="button" data-target="screen-simulation" onclick="App.navigateTo('screen-simulation')" class="mobile-nav-item flex-1 py-1.5 flex flex-col items-center justify-center text-slate-500 font-medium transition-all cursor-pointer">
+        <i data-lucide="gauge" class="w-4 h-4 mb-0.5"></i>
+        <span class="text-[10px] leading-tight">Simulasi</span>
+        <span class="mobile-nav-dot w-1 h-1 rounded-full bg-blue-600 mt-0.5 opacity-0 transition-opacity"></span>
+      </button>
+      <button type="button" data-target="screen-quiz" onclick="App.navigateTo('screen-quiz')" class="mobile-nav-item flex-1 py-1.5 flex flex-col items-center justify-center text-slate-500 font-medium transition-all cursor-pointer">
+        <i data-lucide="help-circle" class="w-4 h-4 mb-0.5"></i>
+        <span class="text-[10px] leading-tight">Kuis</span>
+        <span class="mobile-nav-dot w-1 h-1 rounded-full bg-blue-600 mt-0.5 opacity-0 transition-opacity"></span>
+      </button>
+    </nav>
 
   </div>
 

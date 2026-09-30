@@ -30,6 +30,79 @@ const App = (function () {
     "screen-quiz": "Evaluasi Mandiri / Uji Kompetensi & LKPD Digital"
   };
 
+  // ==================== THEME MANAGEMENT (DARK / LIGHT MODE) ====================
+  let currentTheme = "light";
+
+  function initTheme() {
+    try {
+      const savedTheme = localStorage.getItem("vmachining_theme");
+      if (savedTheme === "dark" || savedTheme === "light") {
+        currentTheme = savedTheme;
+      } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        currentTheme = "dark";
+      } else {
+        currentTheme = "light";
+      }
+    } catch (e) {
+      currentTheme = "light";
+    }
+    applyTheme(currentTheme, false);
+  }
+
+  function applyTheme(theme, notify = false) {
+    currentTheme = theme;
+    const root = document.documentElement;
+    const themeBtn = document.getElementById("btn-theme-toggle");
+    const sidebarThemeIcon = document.getElementById("sidebar-theme-icon");
+    const sidebarThemeLabel = document.getElementById("sidebar-theme-label");
+
+    if (theme === "dark") {
+      root.classList.add("dark");
+      if (themeBtn) {
+        themeBtn.innerHTML = '<i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>';
+        themeBtn.title = "Beralih ke Mode Terang";
+        themeBtn.setAttribute("aria-label", "Beralih ke Mode Terang");
+      }
+      if (sidebarThemeIcon) {
+        sidebarThemeIcon.setAttribute("data-lucide", "sun");
+      }
+      if (sidebarThemeLabel) {
+        sidebarThemeLabel.textContent = "Tema Terang";
+      }
+    } else {
+      root.classList.remove("dark");
+      if (themeBtn) {
+        themeBtn.innerHTML = '<i data-lucide="moon" class="w-4 h-4 text-slate-600"></i>';
+        themeBtn.title = "Beralih ke Mode Gelap";
+        themeBtn.setAttribute("aria-label", "Beralih ke Mode Gelap");
+      }
+      if (sidebarThemeIcon) {
+        sidebarThemeIcon.setAttribute("data-lucide", "moon");
+      }
+      if (sidebarThemeLabel) {
+        sidebarThemeLabel.textContent = "Tema Gelap";
+      }
+    }
+
+    try {
+      localStorage.setItem("vmachining_theme", theme);
+    } catch (e) {}
+
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+
+    if (notify) {
+      showToast(theme === "dark" ? "Mode Gelap diaktifkan" : "Mode Terang diaktifkan", "info");
+    }
+  }
+
+  function toggleTheme() {
+    SoundEngine.playClick();
+    const newTheme = currentTheme === "dark" ? "light" : "dark";
+    applyTheme(newTheme, true);
+  }
+
   function loadUserData() {
     try {
       const saved = localStorage.getItem("vmachining_user");
@@ -142,6 +215,20 @@ const App = (function () {
       }
     });
 
+    // Update Mobile Bottom Navigation Active State
+    document.querySelectorAll(".mobile-nav-item").forEach((btn) => {
+      const dot = btn.querySelector(".mobile-nav-dot");
+      if (btn.dataset.target === screenId) {
+        btn.classList.add("text-blue-600", "font-bold");
+        btn.classList.remove("text-slate-500", "font-medium");
+        if (dot) dot.classList.remove("opacity-0");
+      } else {
+        btn.classList.remove("text-blue-600", "font-bold");
+        btn.classList.add("text-slate-500", "font-medium");
+        if (dot) dot.classList.add("opacity-0");
+      }
+    });
+
     // Close mobile drawer if open
     const sidebar = document.getElementById("main-sidebar");
     const overlay = document.getElementById("sidebar-overlay");
@@ -167,6 +254,7 @@ const App = (function () {
     }
 
     if (screenId === "screen-simulation") {
+      setMobileSimTab(activeMobileSimTab);
       setTimeout(() => {
         const c = document.getElementById("lathe-canvas");
         if (c) SimEngine.init(c);
@@ -552,6 +640,72 @@ const App = (function () {
     renderAnatomyScreen();
   }
 
+  // Mobile Simulation View Switcher (1. Layar 3D & Mesin, 2. Parameter, 3. Semua)
+  let activeMobileSimTab = "viewport";
+
+  function setMobileSimTab(tab) {
+    activeMobileSimTab = tab;
+    const panelParams = document.getElementById("sim-panel-params");
+    const panelViewport = document.getElementById("sim-panel-viewport");
+
+    const tabs = [
+      { id: "mob-sim-tab-viewport", key: "viewport" },
+      { id: "mob-sim-tab-params", key: "params" },
+      { id: "mob-sim-tab-all", key: "all" }
+    ];
+
+    tabs.forEach(({ id, key }) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      if (key === tab) {
+        btn.className = "mob-sim-tab flex-1 py-2 px-1 rounded-lg bg-blue-600 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer font-bold";
+      } else {
+        btn.className = "mob-sim-tab flex-1 py-2 px-1 rounded-lg text-slate-700 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all cursor-pointer font-medium";
+      }
+    });
+
+    if (window.innerWidth < 1024) {
+      if (tab === "viewport") {
+        if (panelViewport) {
+          panelViewport.classList.remove("hidden");
+          panelViewport.classList.remove("order-first");
+        }
+        if (panelParams) panelParams.classList.add("hidden");
+        setTimeout(() => {
+          if (typeof Lathe3D !== "undefined" && Lathe3D.Sim3DLab) {
+            Lathe3D.Sim3DLab.onResize();
+          }
+          if (simViewMode === "2d" && typeof SimEngine !== "undefined") {
+            SimEngine.resize();
+          }
+        }, 60);
+      } else if (tab === "params") {
+        if (panelParams) panelParams.classList.remove("hidden");
+        if (panelViewport) panelViewport.classList.add("hidden");
+      } else if (tab === "all") {
+        if (panelViewport) {
+          panelViewport.classList.remove("hidden");
+          panelViewport.classList.add("order-first");
+        }
+        if (panelParams) panelParams.classList.remove("hidden");
+        setTimeout(() => {
+          if (typeof Lathe3D !== "undefined" && Lathe3D.Sim3DLab) {
+            Lathe3D.Sim3DLab.onResize();
+          }
+          if (simViewMode === "2d" && typeof SimEngine !== "undefined") {
+            SimEngine.resize();
+          }
+        }, 60);
+      }
+    } else {
+      if (panelParams) panelParams.classList.remove("hidden");
+      if (panelViewport) {
+        panelViewport.classList.remove("hidden");
+        panelViewport.classList.remove("order-first");
+      }
+    }
+  }
+
   // Toggle 3D vs 2D View in Simulation Lab
   function setSimViewMode(mode) {
     simViewMode = mode;
@@ -664,6 +818,19 @@ const App = (function () {
     const simViewportFeed = document.getElementById("lbl-sim-viewport-feed");
     const simViewportHint = document.getElementById("lbl-sim-viewport-hint");
 
+    // Floating Jog Overlay elements
+    const overlayGroupY = document.getElementById("overlay-axis-group-y");
+    const overlayDroBoxY = document.getElementById("overlay-dro-box-y");
+    const overlayDroGrid = document.getElementById("overlay-dro-grid");
+    const overlayLblX = document.getElementById("overlay-axis-x-title");
+    const overlaySubX = document.getElementById("overlay-axis-x-subtitle");
+    const overlayLblXMinus = document.getElementById("overlay-axis-x-minus-label");
+    const overlayLblXPlus = document.getElementById("overlay-axis-x-plus-label");
+    const overlayLblZ = document.getElementById("overlay-axis-z-title");
+    const overlaySubZ = document.getElementById("overlay-axis-z-subtitle");
+    const overlayLblZMinus = document.getElementById("overlay-axis-z-minus-label");
+    const overlayLblZPlus = document.getElementById("overlay-axis-z-plus-label");
+
     if (isMilling) {
       if (axisXTitle) axisXTitle.textContent = "Sumbu X";
       if (axisXSubtitle) axisXSubtitle.textContent = "Meja (Kiri/Kanan)";
@@ -674,6 +841,21 @@ const App = (function () {
       if (axisZSubtitle) axisZSubtitle.textContent = "Lutut (Vertikal)";
       if (axisZMinusLabel) axisZMinusLabel.textContent = "⬇ Turun";
       if (axisZPlusLabel) axisZPlusLabel.textContent = "Naik ⬆";
+
+      // Sync Floating Jog Overlay to Milling
+      if (overlayGroupY) { overlayGroupY.classList.remove("hidden"); overlayGroupY.classList.add("flex"); }
+      if (overlayDroBoxY) overlayDroBoxY.classList.remove("hidden");
+      if (overlayDroGrid) overlayDroGrid.className = "grid grid-cols-3 gap-1 bg-black/60 p-1.5 rounded-lg border border-slate-800/80 font-mono text-[10.5px] text-center";
+
+      if (overlayLblX) overlayLblX.textContent = "Sumbu X";
+      if (overlaySubX) overlaySubX.textContent = "Meja";
+      if (overlayLblXMinus) overlayLblXMinus.textContent = "◀ Kiri";
+      if (overlayLblXPlus) overlayLblXPlus.textContent = "Kanan ▶";
+
+      if (overlayLblZ) overlayLblZ.textContent = "Sumbu Z";
+      if (overlaySubZ) overlaySubZ.textContent = "Lutut";
+      if (overlayLblZMinus) overlayLblZMinus.textContent = "▼ Turun";
+      if (overlayLblZPlus) overlayLblZPlus.textContent = "Naik ▲";
 
       if (simViewportTitle) simViewportTitle.textContent = "Visualisasi Proses Penyayatan Mesin Frais 3D (Vertical Milling)";
       if (simViewportFeed) simViewportFeed.textContent = "Penyayatan Benda di Ragum";
@@ -690,6 +872,21 @@ const App = (function () {
       if (axisZSubtitle) axisZSubtitle.textContent = "Memanjang";
       if (axisZMinusLabel) axisZMinusLabel.textContent = "Ke Kiri (Makan)";
       if (axisZPlusLabel) axisZPlusLabel.textContent = "Ke Kanan (Ekor)";
+
+      // Sync Floating Jog Overlay to Lathe
+      if (overlayGroupY) { overlayGroupY.classList.add("hidden"); overlayGroupY.classList.remove("flex"); }
+      if (overlayDroBoxY) overlayDroBoxY.classList.add("hidden");
+      if (overlayDroGrid) overlayDroGrid.className = "grid grid-cols-2 gap-1 bg-black/60 p-1.5 rounded-lg border border-slate-800/80 font-mono text-[10.5px] text-center";
+
+      if (overlayLblX) overlayLblX.textContent = "Sumbu X";
+      if (overlaySubX) overlaySubX.textContent = "Melintang";
+      if (overlayLblXMinus) overlayLblXMinus.textContent = "◀ Maju";
+      if (overlayLblXPlus) overlayLblXPlus.textContent = "Mundur ▶";
+
+      if (overlayLblZ) overlayLblZ.textContent = "Sumbu Z";
+      if (overlaySubZ) overlaySubZ.textContent = "Memanjang";
+      if (overlayLblZMinus) overlayLblZMinus.textContent = "◀ Makan";
+      if (overlayLblZPlus) overlayLblZPlus.textContent = "Ekor ▶";
 
       if (simViewportTitle) simViewportTitle.textContent = "Visualisasi Proses Penyayatan Mesin Bubut 3D";
       if (simViewportFeed) simViewportFeed.textContent = "Feeding ke Arah Cekam";
@@ -1033,18 +1230,44 @@ const App = (function () {
     // Step Size Selector for Manual Axis Feed
     let jogStep = 0.5;
     const stepBtns = document.querySelectorAll(".btn-step-size");
+    const txtOverlayStep = document.getElementById("txt-overlay-step");
+    const btnOverlayStep = document.getElementById("btn-overlay-step");
+
+    function setJogStep(step) {
+      jogStep = step;
+      stepBtns.forEach((b) => {
+        if (Math.abs(parseFloat(b.dataset.step) - step) < 0.05) {
+          b.classList.add("active", "bg-blue-600", "text-white");
+          b.classList.remove("text-slate-300");
+        } else {
+          b.classList.remove("active", "bg-blue-600", "text-white");
+          b.classList.add("text-slate-300");
+        }
+      });
+      if (txtOverlayStep) {
+        txtOverlayStep.textContent = `${step.toFixed(1)}`;
+      }
+    }
+
     stepBtns.forEach((btn) => {
       btn.onclick = () => {
         SoundEngine.playClick();
-        stepBtns.forEach((b) => {
-          b.classList.remove("active", "bg-blue-600", "text-white");
-          b.classList.add("text-slate-300");
-        });
-        btn.classList.add("active", "bg-blue-600", "text-white");
-        btn.classList.remove("text-slate-300");
-        jogStep = parseFloat(btn.dataset.step) || 0.5;
+        const s = parseFloat(btn.dataset.step) || 0.5;
+        setJogStep(s);
       };
     });
+
+    if (btnOverlayStep) {
+      const stepOptions = [0.1, 0.5, 1.0];
+      btnOverlayStep.onclick = () => {
+        SoundEngine.playClick();
+        let curIdx = stepOptions.findIndex((val) => Math.abs(val - jogStep) < 0.05);
+        if (curIdx === -1) curIdx = 1;
+        const nextIdx = (curIdx + 1) % stepOptions.length;
+        setJogStep(stepOptions[nextIdx]);
+        showToast(`⚡ Langkah Axis Jog diatur ke ${stepOptions[nextIdx]} mm`, "info");
+      };
+    }
 
     // Helper for Manual Axis Feed (Jog)
     function executeAxisJog(axis, dir) {
@@ -1100,12 +1323,84 @@ const App = (function () {
       btn.ontouchcancel = end;
     }
 
+    // Bottom panel axis buttons
     bindAxisJogBtn("btn-axis-x-minus", "X", -1); // X- Maju (Potong) / Kiri
     bindAxisJogBtn("btn-axis-x-plus", "X", 1);   // X+ Mundur (Bebas) / Kanan
     bindAxisJogBtn("btn-axis-y-minus", "Y", -1); // Y- Sadel Mundur
     bindAxisJogBtn("btn-axis-y-plus", "Y", 1);   // Y+ Sadel Maju
     bindAxisJogBtn("btn-axis-z-minus", "Z", -1); // Z- Ke Kiri (Makan) / Turun
     bindAxisJogBtn("btn-axis-z-plus", "Z", 1);   // Z+ Ke Kanan (Ekor) / Naik
+
+    // Floating On-Screen Jog Pendant Overlay buttons
+    bindAxisJogBtn("btn-overlay-axis-x-minus", "X", -1);
+    bindAxisJogBtn("btn-overlay-axis-x-plus", "X", 1);
+    bindAxisJogBtn("btn-overlay-axis-y-minus", "Y", -1);
+    bindAxisJogBtn("btn-overlay-axis-y-plus", "Y", 1);
+    bindAxisJogBtn("btn-overlay-axis-z-minus", "Z", -1);
+    bindAxisJogBtn("btn-overlay-axis-z-plus", "Z", 1);
+
+    // Floating Jog Overlay: Collapse & Expand Toggle
+    const btnJogCollapse = document.getElementById("btn-jog-collapse");
+    const btnJogExpand = document.getElementById("btn-jog-expand");
+    const jogPendantPanel = document.getElementById("jog-pendant-panel");
+
+    if (btnJogCollapse && btnJogExpand && jogPendantPanel) {
+      // Auto-collapse jog pendant on mobile smartphone screens (< 640px) so 3D viewport is completely unobstructed
+      if (window.innerWidth < 640) {
+        jogPendantPanel.classList.add("hidden");
+        btnJogExpand.classList.remove("hidden");
+        btnJogExpand.classList.add("flex");
+      }
+
+      btnJogCollapse.onclick = (e) => {
+        e.stopPropagation();
+        SoundEngine.playClick();
+        jogPendantPanel.classList.add("hidden");
+        btnJogExpand.classList.remove("hidden");
+        btnJogExpand.classList.add("flex");
+      };
+      btnJogExpand.onclick = (e) => {
+        e.stopPropagation();
+        SoundEngine.playClick();
+        jogPendantPanel.classList.remove("hidden");
+        btnJogExpand.classList.add("hidden");
+        btnJogExpand.classList.remove("flex");
+      };
+    }
+
+    // Floating Jog Overlay: Quick Spindle Start/Pause & Auto-Feed Toggle
+    const btnOverlayStart = document.getElementById("btn-overlay-sim-start");
+    const btnOverlayAutoFeed = document.getElementById("btn-overlay-autofeed");
+
+    if (btnOverlayStart) {
+      btnOverlayStart.onclick = () => {
+        SoundEngine.playClick();
+        const isRun = SimEngine.isRunning();
+        if (isRun) {
+          SimEngine.stop();
+          updateSimOutputs();
+          showToast("⏸ Pemotongan Dijeda", "info");
+        } else {
+          SimEngine.start(true);
+          updateSimOutputs();
+          showToast("▶ Siklus Pemotongan Dimulai", "success");
+        }
+      };
+    }
+
+    if (btnOverlayAutoFeed) {
+      btnOverlayAutoFeed.onclick = () => {
+        SoundEngine.playClick();
+        const active = SimEngine.toggleAutoFeed();
+        updateSimOutputs();
+        if (typeof lucide !== "undefined") lucide.createIcons();
+        if (active) {
+          showToast("⚙ Pemakanan Otomatis DIAKTIFKAN", "success");
+        } else {
+          showToast("✋ Pemakanan Otomatis DINONAKTIFKAN (Mode Manual)", "info");
+        }
+      };
+    }
 
     // Keyboard Shortcuts for Manual Feed
     window.addEventListener("keydown", (e) => {
@@ -1174,11 +1469,17 @@ const App = (function () {
             b.classList.add("is-active");
             setTimeout(() => b.classList.remove("is-active"), 120);
           }
+          const ovBtn = document.getElementById(targetBtnId.replace("btn-axis-", "btn-overlay-axis-"));
+          if (ovBtn) {
+            ovBtn.classList.add("ring-2", "ring-white", "scale-95");
+            setTimeout(() => ovBtn.classList.remove("ring-2", "ring-white", "scale-95"), 120);
+          }
         }
       }
     });
 
     updateSimOutputs();
+    if (window.lucide) lucide.createIcons();
   }
 
   // Periodic DRO updater when cutting
@@ -1212,46 +1513,97 @@ const App = (function () {
       raDisplay.textContent = `${evalData.ra} µm Ra`;
     }
 
+    // Update Mobile Quick Parameter Strip in Viewport
+    const mobStripMat = document.getElementById("mob-strip-mat");
+    const mobStripTool = document.getElementById("mob-strip-tool");
+    const mobStripRpm = document.getElementById("mob-strip-rpm");
+    if (mobStripMat) {
+      const mat = (typeof AppData !== "undefined" && AppData.materials)
+        ? AppData.materials.find((m) => m.id === state.materialId)
+        : null;
+      mobStripMat.textContent = mat ? mat.name.split(" ")[0] : "Baja";
+    }
+    if (mobStripTool) {
+      mobStripTool.textContent = state.toolId === "carbide" ? "Karbida" : "HSS";
+    }
+    if (mobStripRpm) {
+      mobStripRpm.textContent = `${state.rpm} RPM`;
+    }
+
     // Update DRO (Digital Readout) Displays
     const droX = document.getElementById("dro-axis-x");
     const droY = document.getElementById("dro-axis-y");
     const droZ = document.getElementById("dro-axis-z");
     const droSpindle = document.getElementById("dro-spindle-state");
 
-    const isMilling = state.machineType === "milling";
+    // Floating Overlay DRO Displays
+    const overlayDroX = document.getElementById("overlay-dro-x");
+    const overlayDroY = document.getElementById("overlay-dro-y");
+    const overlayDroZ = document.getElementById("overlay-dro-z");
+    const jogMiniDro = document.getElementById("jog-mini-dro");
 
-    if (droX) {
+    const isMilling = state.machineType === "milling";
+    let displayX = "0.00";
+    let displayY = "0.00";
+    let displayZ = "0.00";
+
+    if (droX || overlayDroX) {
       if (isMilling) {
         const valX = (typeof state.axisX === "number" ? state.axisX : 0).toFixed(2);
-        droX.textContent = (state.axisX >= 0 ? "+" : "") + valX;
-        droX.parentElement.setAttribute("title", `Sumbu X: Posisi Memanjang Meja ${valX} mm`);
+        displayX = (state.axisX >= 0 ? "+" : "") + valX;
+        if (droX) {
+          droX.textContent = displayX;
+          droX.parentElement.setAttribute("title", `Sumbu X: Posisi Memanjang Meja ${valX} mm`);
+        }
+        if (overlayDroX) overlayDroX.textContent = displayX;
       } else {
         const depth = state.depthOfCut || 1.5;
         const turnedDia = Math.max(0, state.diameter - (depth * 2));
-        droX.textContent = `+${depth.toFixed(2)}`;
-        droX.parentElement.setAttribute("title", `Sumbu X: Kedalaman Potong ${depth.toFixed(2)} mm (Diameter hasil: Ø ${turnedDia.toFixed(2)} mm)`);
+        displayX = `+${depth.toFixed(2)}`;
+        if (droX) {
+          droX.textContent = displayX;
+          droX.parentElement.setAttribute("title", `Sumbu X: Kedalaman Potong ${depth.toFixed(2)} mm (Diameter hasil: Ø ${turnedDia.toFixed(2)} mm)`);
+        }
+        if (overlayDroX) overlayDroX.textContent = displayX;
       }
     }
 
-    if (droY) {
+    if (droY || overlayDroY) {
       const valY = (typeof state.axisY === "number" ? state.axisY : 0).toFixed(2);
-      droY.textContent = (state.axisY >= 0 ? "+" : "") + valY;
-      droY.parentElement.setAttribute("title", `Sumbu Y: Posisi Melintang Sadel ${valY} mm`);
+      displayY = (state.axisY >= 0 ? "+" : "") + valY;
+      if (droY) {
+        droY.textContent = displayY;
+        droY.parentElement.setAttribute("title", `Sumbu Y: Posisi Melintang Sadel ${valY} mm`);
+      }
+      if (overlayDroY) overlayDroY.textContent = displayY;
     }
 
-    if (droZ) {
+    if (droZ || overlayDroZ) {
       if (isMilling) {
         const valZ = (typeof state.axisZ === "number" ? state.axisZ : 0).toFixed(2);
-        droZ.textContent = (state.axisZ >= 0 ? "+" : "") + valZ;
-        droZ.parentElement.setAttribute("title", `Sumbu Z: Posisi Vertikal Lutut ${valZ} mm`);
+        displayZ = (state.axisZ >= 0 ? "+" : "") + valZ;
+        if (droZ) {
+          droZ.textContent = displayZ;
+          droZ.parentElement.setAttribute("title", `Sumbu Z: Posisi Vertikal Lutut ${valZ} mm`);
+        }
+        if (overlayDroZ) overlayDroZ.textContent = displayZ;
       } else {
         const currentZmm = (state.cutProgress * (state.length || 120)).toFixed(1);
-        droZ.textContent = `${currentZmm}`;
-        droZ.parentElement.setAttribute("title", `Sumbu Z: Panjang Pemotongan ${currentZmm} mm dari total ${state.length || 120} mm`);
+        displayZ = `${currentZmm}`;
+        if (droZ) {
+          droZ.textContent = displayZ;
+          droZ.parentElement.setAttribute("title", `Sumbu Z: Panjang Pemotongan ${currentZmm} mm dari total ${state.length || 120} mm`);
+        }
+        if (overlayDroZ) overlayDroZ.textContent = displayZ;
       }
     }
 
-    // Update Auto-Feed Button State
+    // Minimized Floating Pill Mini-DRO summary
+    if (jogMiniDro) {
+      jogMiniDro.textContent = isMilling ? `X:${displayX} Y:${displayY} Z:${displayZ}` : `X:${displayX} Z:${displayZ}`;
+    }
+
+    // Update Auto-Feed Button State (Bottom Panel)
     const btnAutoFeed = document.getElementById("btn-toggle-autofeed");
     const txtAutoFeed = document.getElementById("txt-autofeed-status");
     if (btnAutoFeed && txtAutoFeed) {
@@ -1263,6 +1615,44 @@ const App = (function () {
         btnAutoFeed.className = "py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-300 border border-slate-700 font-extrabold text-xs shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer";
         txtAutoFeed.innerHTML = `<span>Pemakanan Otomatis</span> <span class="bg-slate-700/80 px-1.5 py-0.5 rounded text-[10px] text-slate-400 font-mono tracking-wider font-black">OFF</span>`;
         btnAutoFeed.title = "Pemakanan Otomatis NONAKTIF (Mode Manual Pahat) - Klik untuk mengaktifkan pemakanan otomatis";
+      }
+    }
+
+    // Update Floating Overlay Auto-Feed Button
+    const btnOverlayAutoFeed = document.getElementById("btn-overlay-autofeed");
+    const txtOverlayAutoFeed = document.getElementById("txt-overlay-autofeed");
+    if (btnOverlayAutoFeed && txtOverlayAutoFeed) {
+      const isAutoStr = String(state.isAutoFeed);
+      if (btnOverlayAutoFeed.dataset.autofeed !== isAutoStr) {
+        btnOverlayAutoFeed.dataset.autofeed = isAutoStr;
+        if (state.isAutoFeed) {
+          btnOverlayAutoFeed.className = "py-1.5 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400 font-bold text-[10px] flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs";
+          txtOverlayAutoFeed.textContent = "Auto ON";
+          btnOverlayAutoFeed.title = "Pemakanan Otomatis AKTIF - Klik untuk mematikan";
+        } else {
+          btnOverlayAutoFeed.className = "py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-[10px] flex items-center justify-center gap-1 transition-all cursor-pointer";
+          txtOverlayAutoFeed.textContent = "Auto OFF";
+          btnOverlayAutoFeed.title = "Pemakanan Otomatis NONAKTIF - Klik untuk mengaktifkan";
+        }
+      }
+    }
+
+    // Update Floating Overlay Spindle Start / Pause Button
+    const btnOverlayStart = document.getElementById("btn-overlay-sim-start");
+    if (btnOverlayStart) {
+      const isRunStr = String(state.isRunning);
+      if (btnOverlayStart.dataset.running !== isRunStr) {
+        btnOverlayStart.dataset.running = isRunStr;
+        if (state.isRunning) {
+          btnOverlayStart.className = "flex-1 py-1.5 px-2 rounded-lg bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white font-bold text-[11px] flex items-center justify-center gap-1 shadow transition-all cursor-pointer";
+          btnOverlayStart.innerHTML = `<i data-lucide="pause" class="w-3 h-3 fill-current"></i><span>Jeda</span>`;
+          btnOverlayStart.title = "Jeda Putaran Spindel (Klik untuk menghentikan putaran)";
+        } else {
+          btnOverlayStart.className = "flex-1 py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-[11px] flex items-center justify-center gap-1 shadow transition-all cursor-pointer";
+          btnOverlayStart.innerHTML = `<i data-lucide="play" class="w-3 h-3 fill-current"></i><span>Mulai</span>`;
+          btnOverlayStart.title = "Mulai Putaran Spindel & Siklus Pemotongan";
+        }
+        if (typeof lucide !== "undefined") lucide.createIcons();
       }
     }
 
@@ -1567,6 +1957,7 @@ const App = (function () {
   return {
     init: () => {
       loadUserData();
+      initTheme();
       updateHUD();
       renderK3Screen();
       renderAnatomyScreen();
@@ -1584,15 +1975,38 @@ const App = (function () {
         };
       }
 
-      // Profile edit button
-      const profBtn = document.getElementById("btn-edit-profile");
-      if (profBtn) profBtn.onclick = showProfileModal;
+      // Theme toggle button
+      const themeBtn = document.getElementById("btn-theme-toggle");
+      if (themeBtn) {
+        themeBtn.onclick = () => {
+          toggleTheme();
+        };
+      }
+
+      // Responsive window resize listener (orientation changes & screen adaptation)
+      window.addEventListener("resize", () => {
+        if (userData.activeScreen === "screen-simulation") {
+          if (window.innerWidth >= 1024) {
+            const panelParams = document.getElementById("sim-panel-params");
+            const panelViewport = document.getElementById("sim-panel-viewport");
+            if (panelParams) panelParams.classList.remove("hidden");
+            if (panelViewport) {
+              panelViewport.classList.remove("hidden");
+              panelViewport.classList.remove("order-first");
+            }
+          } else {
+            setMobileSimTab(activeMobileSimTab);
+          }
+        }
+      });
 
       if (window.lucide) lucide.createIcons();
     },
 
     navigateTo,
     toggleSidebar,
+    toggleTheme,
+    getTheme: () => currentTheme,
     verifyK3,
     setMachine: (mach) => {
       userData.activeMachine = mach;
@@ -1604,6 +2018,7 @@ const App = (function () {
     },
     setAnatomyViewMode,
     setSimViewMode,
+    setMobileSimTab,
     showPartModal,
     printLKPD,
     showProfileModal,

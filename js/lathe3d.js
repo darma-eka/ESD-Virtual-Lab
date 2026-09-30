@@ -1917,92 +1917,231 @@ const Lathe3D = (function () {
     ragumGroup.add(jawMovableGroup);
     parts.jawMovableGroup = jawMovableGroup;
 
-    // Workpiece Assembly with Real-Time Dynamic Milling Slot (Alur Pemakanan Mengikuti Diameter End Mill)
+    // Helper: Create a single unified, 100% solid watertight workpiece geometry
+    // Combines top heightfield (NX*NY), 4 dynamic edge-lowering side walls, and bottom face
+    function createUnifiedSolidWorkpieceGeo(NX, NY, defaultT) {
+      const geo = new THREE.BufferGeometry();
+      const totalVerts = (NX * NY) + (NY * 2) + (NY * 2) + (NX * 2) + (NX * 2) + 4;
+      const positions = new Float32Array(totalVerts * 3);
+      const colors = new Float32Array(totalVerts * 3);
+      const indices = [];
+
+      const baseIdxLeft = NX * NY;
+      const baseIdxRight = baseIdxLeft + (NY * 2);
+      const baseIdxRear = baseIdxRight + (NY * 2);
+      const baseIdxFront = baseIdxRear + (NX * 2);
+      const baseIdxBottom = baseIdxFront + (NX * 2);
+
+      const rawR = 0.68, rawG = 0.72, rawB = 0.80;
+
+      // 1. Top Heightfield Surface
+      for (let iy = 0; iy < NY; iy++) {
+        const v = (iy / (NY - 1)) - 0.5;
+        for (let ix = 0; ix < NX; ix++) {
+          const u = (ix / (NX - 1)) - 0.5;
+          const vIdx = ix + iy * NX;
+          const p3 = vIdx * 3;
+          positions[p3] = u;
+          positions[p3 + 1] = defaultT;
+          positions[p3 + 2] = v;
+
+          colors[p3] = rawR;
+          colors[p3 + 1] = rawG;
+          colors[p3 + 2] = rawB;
+        }
+      }
+      for (let iy = 0; iy < NY - 1; iy++) {
+        for (let ix = 0; ix < NX - 1; ix++) {
+          const a = ix + iy * NX;
+          const b = (ix + 1) + iy * NX;
+          const c = ix + (iy + 1) * NX;
+          const d = (ix + 1) + (iy + 1) * NX;
+          indices.push(a, c, b);
+          indices.push(b, c, d);
+        }
+      }
+
+      // 2. Left Wall (-X side at x = -0.5)
+      for (let iy = 0; iy < NY; iy++) {
+        const v = (iy / (NY - 1)) - 0.5;
+        const idxBot = baseIdxLeft + iy * 2;
+        const idxTop = baseIdxLeft + iy * 2 + 1;
+
+        positions[idxBot * 3] = -0.5;
+        positions[idxBot * 3 + 1] = 0;
+        positions[idxBot * 3 + 2] = v;
+        colors[idxBot * 3] = rawR * 0.95;
+        colors[idxBot * 3 + 1] = rawG * 0.95;
+        colors[idxBot * 3 + 2] = rawB * 0.95;
+
+        positions[idxTop * 3] = -0.5;
+        positions[idxTop * 3 + 1] = defaultT;
+        positions[idxTop * 3 + 2] = v;
+        colors[idxTop * 3] = rawR;
+        colors[idxTop * 3 + 1] = rawG;
+        colors[idxTop * 3 + 2] = rawB;
+      }
+      for (let iy = 0; iy < NY - 1; iy++) {
+        const b0 = baseIdxLeft + iy * 2;
+        const t0 = baseIdxLeft + iy * 2 + 1;
+        const b1 = baseIdxLeft + (iy + 1) * 2;
+        const t1 = baseIdxLeft + (iy + 1) * 2 + 1;
+        indices.push(b0, b1, t0);
+        indices.push(t0, b1, t1);
+      }
+
+      // 3. Right Wall (+X side at x = 0.5)
+      for (let iy = 0; iy < NY; iy++) {
+        const v = (iy / (NY - 1)) - 0.5;
+        const idxBot = baseIdxRight + iy * 2;
+        const idxTop = baseIdxRight + iy * 2 + 1;
+
+        positions[idxBot * 3] = 0.5;
+        positions[idxBot * 3 + 1] = 0;
+        positions[idxBot * 3 + 2] = v;
+        colors[idxBot * 3] = rawR * 0.95;
+        colors[idxBot * 3 + 1] = rawG * 0.95;
+        colors[idxBot * 3 + 2] = rawB * 0.95;
+
+        positions[idxTop * 3] = 0.5;
+        positions[idxTop * 3 + 1] = defaultT;
+        positions[idxTop * 3 + 2] = v;
+        colors[idxTop * 3] = rawR;
+        colors[idxTop * 3 + 1] = rawG;
+        colors[idxTop * 3 + 2] = rawB;
+      }
+      for (let iy = 0; iy < NY - 1; iy++) {
+        const b0 = baseIdxRight + iy * 2;
+        const t0 = baseIdxRight + iy * 2 + 1;
+        const b1 = baseIdxRight + (iy + 1) * 2;
+        const t1 = baseIdxRight + (iy + 1) * 2 + 1;
+        indices.push(b0, t0, b1);
+        indices.push(t0, t1, b1);
+      }
+
+      // 4. Rear Wall (-Z side at z = -0.5, facing fixed jaw)
+      for (let ix = 0; ix < NX; ix++) {
+        const u = (ix / (NX - 1)) - 0.5;
+        const idxBot = baseIdxRear + ix * 2;
+        const idxTop = baseIdxRear + ix * 2 + 1;
+
+        positions[idxBot * 3] = u;
+        positions[idxBot * 3 + 1] = 0;
+        positions[idxBot * 3 + 2] = -0.5;
+        colors[idxBot * 3] = rawR * 0.95;
+        colors[idxBot * 3 + 1] = rawG * 0.95;
+        colors[idxBot * 3 + 2] = rawB * 0.95;
+
+        positions[idxTop * 3] = u;
+        positions[idxTop * 3 + 1] = defaultT;
+        positions[idxTop * 3 + 2] = -0.5;
+        colors[idxTop * 3] = rawR;
+        colors[idxTop * 3 + 1] = rawG;
+        colors[idxTop * 3 + 2] = rawB;
+      }
+      for (let ix = 0; ix < NX - 1; ix++) {
+        const b0 = baseIdxRear + ix * 2;
+        const t0 = baseIdxRear + ix * 2 + 1;
+        const b1 = baseIdxRear + (ix + 1) * 2;
+        const t1 = baseIdxRear + (ix + 1) * 2 + 1;
+        indices.push(b0, t0, b1);
+        indices.push(t0, t1, b1);
+      }
+
+      // 5. Front Wall (+Z side at z = 0.5, facing movable jaw)
+      for (let ix = 0; ix < NX; ix++) {
+        const u = (ix / (NX - 1)) - 0.5;
+        const idxBot = baseIdxFront + ix * 2;
+        const idxTop = baseIdxFront + ix * 2 + 1;
+
+        positions[idxBot * 3] = u;
+        positions[idxBot * 3 + 1] = 0;
+        positions[idxBot * 3 + 2] = 0.5;
+        colors[idxBot * 3] = rawR * 0.95;
+        colors[idxBot * 3 + 1] = rawG * 0.95;
+        colors[idxBot * 3 + 2] = rawB * 0.95;
+
+        positions[idxTop * 3] = u;
+        positions[idxTop * 3 + 1] = defaultT;
+        positions[idxTop * 3 + 2] = 0.5;
+        colors[idxTop * 3] = rawR;
+        colors[idxTop * 3 + 1] = rawG;
+        colors[idxTop * 3 + 2] = rawB;
+      }
+      for (let ix = 0; ix < NX - 1; ix++) {
+        const b0 = baseIdxFront + ix * 2;
+        const t0 = baseIdxFront + ix * 2 + 1;
+        const b1 = baseIdxFront + (ix + 1) * 2;
+        const t1 = baseIdxFront + (ix + 1) * 2 + 1;
+        indices.push(b0, b1, t0);
+        indices.push(t0, b1, t1);
+      }
+
+      // 6. Bottom Face (-Y side at y = 0, resting on parallel bars)
+      const v0 = baseIdxBottom;
+      const v1 = baseIdxBottom + 1;
+      const v2 = baseIdxBottom + 2;
+      const v3 = baseIdxBottom + 3;
+
+      const bCoords = [
+        [-0.5, 0, -0.5],
+        [0.5, 0, -0.5],
+        [0.5, 0, 0.5],
+        [-0.5, 0, 0.5]
+      ];
+      for (let i = 0; i < 4; i++) {
+        const p3 = (baseIdxBottom + i) * 3;
+        positions[p3] = bCoords[i][0];
+        positions[p3 + 1] = bCoords[i][1];
+        positions[p3 + 2] = bCoords[i][2];
+        colors[p3] = rawR * 0.85;
+        colors[p3 + 1] = rawG * 0.85;
+        colors[p3 + 2] = rawB * 0.85;
+      }
+      indices.push(v0, v1, v2);
+      indices.push(v0, v2, v3);
+
+      geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+
+      geo.userData = {
+        NX: NX,
+        NY: NY,
+        baseIdxLeft: baseIdxLeft,
+        baseIdxRight: baseIdxRight,
+        baseIdxRear: baseIdxRear,
+        baseIdxFront: baseIdxFront,
+        baseIdxBottom: baseIdxBottom
+      };
+
+      return geo;
+    }
+
+    // Workpiece Assembly: 100% Watertight Solid Monolithic Workpiece with Adaptive Heightfield
     const workpieceGroup = new THREE.Group();
     workpieceGroup.name = "Milling_Workpiece_Assembly";
 
-    // Base unit geometry for skirts and bottom plate
-    const wpUnitGeo = new THREE.BoxGeometry(1, 1, 1);
-
-    // 1. Top Deformable Workpiece Heightfield Surface (High-Res Mesh 96x48 Plane)
     const NX_3D = 96;
     const NY_3D = 48;
-    const wpTopGeo = new THREE.PlaneGeometry(1, 1, NX_3D - 1, NY_3D - 1);
-    wpTopGeo.rotateX(-Math.PI / 2);
+    const wpSolidGeo = createUnifiedSolidWorkpieceGeo(NX_3D, NY_3D, 0.45);
 
-    // Initial vertex colors (raw ST37 mild steel)
-    const wpColorArr = new Float32Array(NX_3D * NY_3D * 3);
-    for (let i = 0; i < NX_3D * NY_3D; i++) {
-      wpColorArr[i * 3] = 0.68;
-      wpColorArr[i * 3 + 1] = 0.72;
-      wpColorArr[i * 3 + 2] = 0.80;
-    }
-    wpTopGeo.setAttribute("color", new THREE.BufferAttribute(wpColorArr, 3));
-
-    const wpTopMat = new THREE.MeshStandardMaterial({
+    const wpSolidMat = new THREE.MeshStandardMaterial({
       vertexColors: true,
       roughness: 0.35,
       metalness: 0.75,
       side: THREE.DoubleSide
     });
-    const wpTopMesh = new THREE.Mesh(wpTopGeo, wpTopMat);
-    wpTopMesh.name = "Workpiece_Top_Heightfield";
-    workpieceGroup.add(wpTopMesh);
-
-    // 2. Solid Enclosed Workpiece Body (Solid Steel rectangular prism: Bottom, Left, Right, Rear, Front)
-    // Ensures workpiece is 100% solid, fully enclosed and non-hollow from all angles
-    function createOpenWorkpieceBodyGeo() {
-      const geo = new THREE.BufferGeometry();
-      const positions = [
-        // Face 0: Bottom (-Y) at Y = 0
-        -0.5, 0, -0.5,   0.5, 0, -0.5,   0.5, 0,  0.5,  -0.5, 0,  0.5,
-        // Face 1: Left (-X) at X = -0.5
-        -0.5, 0, -0.5,  -0.5, 0,  0.5,  -0.5, 1,  0.5,  -0.5, 1, -0.5,
-        // Face 2: Right (+X) at X = +0.5
-         0.5, 0,  0.5,   0.5, 0, -0.5,   0.5, 1, -0.5,   0.5, 1,  0.5,
-        // Face 3: Rear (-Z) at Z = -0.5
-         0.5, 0, -0.5,  -0.5, 0, -0.5,  -0.5, 1, -0.5,   0.5, 1, -0.5,
-        // Face 4: Front (+Z) at Z = +0.5
-        -0.5, 0,  0.5,   0.5, 0,  0.5,   0.5, 1,  0.5,  -0.5, 1,  0.5
-      ];
-      const normals = [
-        // Bottom (-Y)
-         0, -1,  0,   0, -1,  0,   0, -1,  0,   0, -1,  0,
-        // Left (-X)
-        -1,  0,  0,  -1,  0,  0,  -1,  0,  0,  -1,  0,  0,
-        // Right (+X)
-         1,  0,  0,   1,  0,  0,   1,  0,  0,   1,  0,  0,
-        // Rear (-Z)
-         0,  0, -1,   0,  0, -1,   0,  0, -1,   0,  0, -1,
-        // Front (+Z)
-         0,  0,  1,   0,  0,  1,   0,  0,  1,   0,  0,  1
-      ];
-      const indices = [];
-      for (let f = 0; f < 5; f++) {
-        const o = f * 4;
-        indices.push(o, o + 1, o + 2, o, o + 2, o + 3);
-      }
-      geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-      geo.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
-      geo.setIndex(indices);
-      return geo;
-    }
-
-    const wpBodyGeo = createOpenWorkpieceBodyGeo();
-    const wpBodyMat = new THREE.MeshStandardMaterial({
-      color: 0x94a3b8, // ST37 structural mild steel
-      roughness: 0.35,
-      metalness: 0.75,
-      side: THREE.DoubleSide
-    });
-    const wpBodyMesh = new THREE.Mesh(wpBodyGeo, wpBodyMat);
-    wpBodyMesh.name = "Workpiece_Solid_Body";
-    workpieceGroup.add(wpBodyMesh);
+    const wpSolidMesh = new THREE.Mesh(wpSolidGeo, wpSolidMat);
+    wpSolidMesh.name = "Workpiece_Solid_Watertight";
+    workpieceGroup.add(wpSolidMesh);
 
     ragumGroup.add(workpieceGroup);
     parts.workpieceGroup = workpieceGroup;
-    parts.wpTopMesh = wpTopMesh;
-    parts.wpBodyMesh = wpBodyMesh;
+    parts.wpSolidMesh = wpSolidMesh;
+    parts.wpTopMesh = wpSolidMesh; // Keep reference for backward compatibility
+    parts.wpBodyMesh = null;
     parts.wpBottomMesh = null;
     parts.wpLeftMesh = null;
     parts.wpRightMesh = null;
@@ -2011,6 +2150,7 @@ const Lathe3D = (function () {
     parts.lastMillingGridVersion = -1;
     parts.lastDimensionsKey = "";
     parts.lastEvalStatus = "";
+    parts.lastMaterialKey = "";
 
     // Clamping Acme Lead Screw
     const viseScrewGeo = new THREE.CylinderGeometry(0.075, 0.075, 0.46, 16);
@@ -2437,9 +2577,22 @@ const Lathe3D = (function () {
     };
 
     // Update Workpiece Dimensions (Panjang P, Lebar L, Tinggi T) & Real-Time Milling Cut Deformation
+    // Update Workpiece Dimensions (Panjang P, Lebar L, Tinggi T) & Real-Time Milling Cut Deformation
     // Movable jaw automatically adjusts to tightly clamp workpiece width L
     // 3D Heightfield dynamically deforms according to persistent millingGrid (irreversible material removal)
-    parts.updateWorkpieceAndVise = function (pMm, lMm, tMm, cutProgress, depthOfCut, evalStatus, millingGrid, millingGridVersion) {
+    // Dynamic material adaptation: sets physical metal color, roughness & metalness based on selected material
+    parts.updateWorkpieceAndVise = function (
+      pMm,
+      lMm,
+      tMm,
+      cutProgress,
+      depthOfCut,
+      evalStatus,
+      millingGrid,
+      millingGridVersion,
+      materialId,
+      matColorHex
+    ) {
       const p = typeof pMm === "number" ? pMm : 100;
       const l = typeof lMm === "number" ? lMm : 40;
       const t = typeof tMm === "number" ? tMm : 40;
@@ -2480,53 +2633,206 @@ const Lathe3D = (function () {
       const Z_center = 0.87 + (L_3D / 2);
       const X_center = 0;
 
-      // 4. Update Solid Enclosed Workpiece Body (Ensures complete solid block clamped in vise)
-      if (parts.wpBodyMesh) {
-        parts.wpBodyMesh.position.set(X_center, Y_base, Z_center);
-        parts.wpBodyMesh.scale.set(P_3D, T_3D, L_3D);
-      }
+      // Workpiece Unified Solid Mesh (Top Heightfield + Adaptive Seamless Side Walls + Bottom)
+      if (parts.wpSolidMesh) {
+        // Base of solid workpiece rests directly on parallel bars (Y_base = 1.42)
+        parts.wpSolidMesh.position.set(X_center, Y_base, Z_center);
+        parts.wpSolidMesh.scale.set(P_3D, 1.0, L_3D);
 
-      // 5. Deform Top Workpiece Heightfield Surface from Persistent millingGrid
-      if (parts.wpTopMesh) {
-        parts.wpTopMesh.position.set(X_center, Y_base + T_3D, Z_center);
-        parts.wpTopMesh.scale.set(P_3D, 1.0, L_3D);
-
-        const geo = parts.wpTopMesh.geometry;
+        const geo = parts.wpSolidMesh.geometry;
         const posAttr = geo.attributes.position;
         const colAttr = geo.attributes.color;
-        const NX = 96;
-        const NY = 48;
+        const uData = geo.userData;
+        const NX = uData.NX || 96;
+        const NY = uData.NY || 48;
 
         const curVersion = typeof millingGridVersion === "number" ? millingGridVersion : 0;
         const dimKey = `${p}-${l}-${t}`;
-        if (parts.lastMillingGridVersion !== curVersion || parts.lastDimensionsKey !== dimKey || parts.lastEvalStatus !== evalStatus) {
+        const matKey = `${materialId || "mild_steel"}-${matColorHex || ""}`;
+
+        if (
+          parts.lastMillingGridVersion !== curVersion ||
+          parts.lastDimensionsKey !== dimKey ||
+          parts.lastEvalStatus !== evalStatus ||
+          parts.lastMaterialKey !== matKey
+        ) {
           parts.lastMillingGridVersion = curVersion;
           parts.lastDimensionsKey = dimKey;
           parts.lastEvalStatus = evalStatus;
+          parts.lastMaterialKey = matKey;
+
+          // Parse physical material color
+          let rawColor;
+          try {
+            rawColor = new THREE.Color(
+              matColorHex ||
+                (materialId === "brass"
+                  ? "#eab308"
+                  : materialId === "aluminum"
+                  ? "#cbd5e1"
+                  : materialId === "cast_iron"
+                  ? "#475569"
+                  : materialId === "stainless_steel"
+                  ? "#e2e8f0"
+                  : "#94a3b8")
+            );
+          } catch (e) {
+            rawColor = new THREE.Color(0x94a3b8);
+          }
+
+          const rawR = rawColor.r;
+          const rawG = rawColor.g;
+          const rawB = rawColor.b;
 
           const depthScale = 0.065 / 5.0; // 3D units per mm of cut depth
+
+          // Cut surface highlights based on active material and evaluation status
+          let cutR = 0.96, cutG = 0.98, cutB = 1.00;
+          if (evalStatus === "BURNT") {
+            cutR = 0.22; cutG = 0.18; cutB = 0.50; // Heat-tempered blue/violet
+          } else if (evalStatus === "CHATTER") {
+            cutR = rawR * 0.82; cutG = rawG * 0.82; cutB = rawB * 0.82; // Rough dull chatter
+          } else {
+            if (materialId === "brass") {
+              cutR = 0.98; cutG = 0.88; cutB = 0.35; // Glistening golden brass mirror finish
+            } else if (materialId === "aluminum") {
+              cutR = 0.98; cutG = 0.99; cutB = 1.00; // Brilliant polished aluminum
+            } else if (materialId === "cast_iron") {
+              cutR = 0.50; cutG = 0.54; cutB = 0.60; // Fresh machined matte gray iron
+            } else if (materialId === "stainless_steel") {
+              cutR = 0.98; cutG = 0.99; cutB = 1.00; // Gleaming polished stainless steel
+            } else {
+              cutR = 0.96; cutG = 0.98; cutB = 1.00; // Shiny machined mild steel
+            }
+          }
+
+          // Dynamically adjust material roughness & metalness to match selected material
+          if (parts.wpSolidMesh.material) {
+            if (evalStatus === "BURNT") {
+              parts.wpSolidMesh.material.roughness = 0.75;
+              parts.wpSolidMesh.material.metalness = 0.65;
+            } else if (evalStatus === "CHATTER") {
+              parts.wpSolidMesh.material.roughness = 0.62;
+              parts.wpSolidMesh.material.metalness = 0.72;
+            } else {
+              if (materialId === "brass") {
+                parts.wpSolidMesh.material.roughness = 0.18;
+                parts.wpSolidMesh.material.metalness = 0.92;
+              } else if (materialId === "aluminum") {
+                parts.wpSolidMesh.material.roughness = 0.22;
+                parts.wpSolidMesh.material.metalness = 0.85;
+              } else if (materialId === "cast_iron") {
+                parts.wpSolidMesh.material.roughness = 0.60;
+                parts.wpSolidMesh.material.metalness = 0.50;
+              } else if (materialId === "stainless_steel") {
+                parts.wpSolidMesh.material.roughness = 0.14;
+                parts.wpSolidMesh.material.metalness = 0.95;
+              } else {
+                parts.wpSolidMesh.material.roughness = 0.28;
+                parts.wpSolidMesh.material.metalness = 0.88;
+              }
+            }
+          }
+
+          // 1. Update Top Heightfield Surface
           for (let iy = 0; iy < NY; iy++) {
             const rowOffset = iy * NX;
             for (let ix = 0; ix < NX; ix++) {
               const vIdx = rowOffset + ix;
               const depthMm = millingGrid ? millingGrid[vIdx] : 0;
               const depth3D = depthMm * depthScale;
+              const cutY = Math.max(0.01, T_3D - depth3D);
 
-              posAttr.setY(vIdx, -depth3D);
+              posAttr.setY(vIdx, cutY);
 
               if (depthMm > 0.02) {
-                if (evalStatus === "BURNT") {
-                  colAttr.setXYZ(vIdx, 0.22, 0.18, 0.50);
-                } else if (evalStatus === "CHATTER") {
-                  colAttr.setXYZ(vIdx, 0.55, 0.58, 0.65);
-                } else {
-                  colAttr.setXYZ(vIdx, 0.96, 0.98, 1.00);
-                }
+                colAttr.setXYZ(vIdx, cutR, cutG, cutB);
               } else {
-                colAttr.setXYZ(vIdx, 0.68, 0.72, 0.80);
+                colAttr.setXYZ(vIdx, rawR, rawG, rawB);
               }
             }
           }
+
+          // 2. Update Left Wall (-X side: ix = 0)
+          const baseLeft = uData.baseIdxLeft;
+          for (let iy = 0; iy < NY; iy++) {
+            const gridIdx = 0 + iy * NX;
+            const depthMm = millingGrid ? millingGrid[gridIdx] : 0;
+            const depth3D = depthMm * depthScale;
+            const cutY = Math.max(0.01, T_3D - depth3D);
+            const topIdx = baseLeft + iy * 2 + 1;
+            const botIdx = baseLeft + iy * 2;
+            posAttr.setY(topIdx, cutY);
+            colAttr.setXYZ(botIdx, rawR * 0.95, rawG * 0.95, rawB * 0.95);
+            if (depthMm > 0.02) {
+              colAttr.setXYZ(topIdx, cutR, cutG, cutB);
+            } else {
+              colAttr.setXYZ(topIdx, rawR, rawG, rawB);
+            }
+          }
+
+          // 3. Update Right Wall (+X side: ix = NX - 1)
+          const baseRight = uData.baseIdxRight;
+          for (let iy = 0; iy < NY; iy++) {
+            const gridIdx = (NX - 1) + iy * NX;
+            const depthMm = millingGrid ? millingGrid[gridIdx] : 0;
+            const depth3D = depthMm * depthScale;
+            const cutY = Math.max(0.01, T_3D - depth3D);
+            const topIdx = baseRight + iy * 2 + 1;
+            const botIdx = baseRight + iy * 2;
+            posAttr.setY(topIdx, cutY);
+            colAttr.setXYZ(botIdx, rawR * 0.95, rawG * 0.95, rawB * 0.95);
+            if (depthMm > 0.02) {
+              colAttr.setXYZ(topIdx, cutR, cutG, cutB);
+            } else {
+              colAttr.setXYZ(topIdx, rawR, rawG, rawB);
+            }
+          }
+
+          // 4. Update Rear Wall (-Z side: iy = 0)
+          const baseRear = uData.baseIdxRear;
+          for (let ix = 0; ix < NX; ix++) {
+            const gridIdx = ix + 0 * NX;
+            const depthMm = millingGrid ? millingGrid[gridIdx] : 0;
+            const depth3D = depthMm * depthScale;
+            const cutY = Math.max(0.01, T_3D - depth3D);
+            const topIdx = baseRear + ix * 2 + 1;
+            const botIdx = baseRear + ix * 2;
+            posAttr.setY(topIdx, cutY);
+            colAttr.setXYZ(botIdx, rawR * 0.95, rawG * 0.95, rawB * 0.95);
+            if (depthMm > 0.02) {
+              colAttr.setXYZ(topIdx, cutR, cutG, cutB);
+            } else {
+              colAttr.setXYZ(topIdx, rawR, rawG, rawB);
+            }
+          }
+
+          // 5. Update Front Wall (+Z side: iy = NY - 1)
+          const baseFront = uData.baseIdxFront;
+          for (let ix = 0; ix < NX; ix++) {
+            const gridIdx = ix + (NY - 1) * NX;
+            const depthMm = millingGrid ? millingGrid[gridIdx] : 0;
+            const depth3D = depthMm * depthScale;
+            const cutY = Math.max(0.01, T_3D - depth3D);
+            const topIdx = baseFront + ix * 2 + 1;
+            const botIdx = baseFront + ix * 2;
+            posAttr.setY(topIdx, cutY);
+            colAttr.setXYZ(botIdx, rawR * 0.95, rawG * 0.95, rawB * 0.95);
+            if (depthMm > 0.02) {
+              colAttr.setXYZ(topIdx, cutR, cutG, cutB);
+            } else {
+              colAttr.setXYZ(topIdx, rawR, rawG, rawB);
+            }
+          }
+
+          // 6. Update Bottom Face
+          const baseBottom = uData.baseIdxBottom;
+          if (typeof baseBottom === "number") {
+            for (let i = 0; i < 4; i++) {
+              colAttr.setXYZ(baseBottom + i, rawR * 0.85, rawG * 0.85, rawB * 0.85);
+            }
+          }
+
           posAttr.needsUpdate = true;
           colAttr.needsUpdate = true;
           geo.computeVertexNormals();
@@ -2542,7 +2848,7 @@ const Lathe3D = (function () {
     };
 
     // Initialize default workpiece & vise dimensions
-    parts.updateWorkpieceAndVise(100, 40, 40, 0, 0, "OPTIMAL");
+    parts.updateWorkpieceAndVise(100, 40, 40, 0, 0, "OPTIMAL", null, 0, "mild_steel", "#94a3b8");
 
     return parts;
   }
@@ -3137,6 +3443,7 @@ const Lathe3D = (function () {
 
     // Simulation Live State
     let chips = [];
+    let chipMat = null;
 
     function init(containerEl) {
       if (!containerEl) return;
@@ -3221,25 +3528,21 @@ const Lathe3D = (function () {
 
     function createSimOverlay() {
       const overlay = document.createElement("div");
-      overlay.className = "absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1.5 bg-slate-900/85 backdrop-blur-md p-1.5 rounded-xl border border-slate-700/60 shadow-xl text-xs select-none";
+      overlay.className = "absolute bottom-2.5 left-2.5 z-20 flex items-center gap-1 bg-slate-900/85 backdrop-blur-md p-1 rounded-lg border border-slate-700/60 shadow-lg text-[11px] select-none";
       overlay.innerHTML = `
-        <button id="btn-sim3d-focus" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all shadow-sm">
-          🔍 Fokus Titik Sayat
+        <button id="btn-sim3d-focus" class="px-2 py-1 rounded-md bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all shadow-xs flex items-center gap-1" title="Fokuskan sudut pandang ke titik penyayatan aktif">
+          <span>🔍 Fokus</span>
         </button>
-        <button id="btn-sim3d-front" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition-all">
-          Pandangan Depan
+        <button id="btn-sim3d-front" class="px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition-all" title="Pandangan Depan (Front View)">
+          Depan
         </button>
-        <button id="btn-sim3d-iso" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition-all">
+        <button id="btn-sim3d-iso" class="px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition-all" title="Pandangan Isometrik (Isometric View)">
           Isometrik
         </button>
-        <button id="btn-sim3d-autorotate" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium flex items-center gap-1.5 transition-all">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-          <span id="txt-sim3d-autorotate">Putar 360°</span>
+        <button id="btn-sim3d-autorotate" class="px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium flex items-center gap-1 transition-all" title="Putar Otomatis 360 Derajat">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+          <span id="txt-sim3d-autorotate">360°</span>
         </button>
-        <div class="h-4 w-px bg-slate-700 mx-0.5"></div>
-        <span class="text-[11px] text-slate-400 font-mono px-1 flex items-center gap-1">
-          Bebas Putar 360° & Zoom
-        </span>
       `;
       container.appendChild(overlay);
 
@@ -3290,9 +3593,13 @@ const Lathe3D = (function () {
 
     function initChipParticles() {
       chips = [];
-      const chipMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+      chipMat = new THREE.MeshStandardMaterial({
+        color: 0xcbd5e1, // Realistic machined steel silver chips
+        roughness: 0.35,
+        metalness: 0.85
+      });
       for (let i = 0; i < 40; i++) {
-        const geo = new THREE.BoxGeometry(0.03, 0.03, 0.08);
+        const geo = new THREE.BoxGeometry(0.02, 0.02, 0.05);
         const mesh = new THREE.Mesh(geo, chipMat);
         mesh.visible = false;
         scene.add(mesh);
@@ -3308,9 +3615,31 @@ const Lathe3D = (function () {
       }
     }
 
-    function emitChip(pos) {
+    function updateChipPhysics() {
+      chips.forEach((c) => {
+        if (c.life > 0) {
+          c.mesh.position.x += c.vx;
+          c.mesh.position.y += c.vy;
+          c.mesh.position.z += c.vz;
+          c.vy -= 0.005; // Gravity
+          c.mesh.rotation.x += c.rotX;
+          c.mesh.rotation.y += c.rotY;
+          c.life -= 0.025;
+          if (c.life <= 0 || c.mesh.position.y < -2.5) {
+            c.life = 0;
+            c.mesh.visible = false;
+          }
+        }
+      });
+    }
+
+    function emitChip(pos, customColorHex) {
       const chip = chips.find((c) => c.life <= 0);
       if (!chip) return;
+
+      if (typeof customColorHex === "number" && chipMat) {
+        chipMat.color.setHex(customColorHex);
+      }
 
       chip.mesh.position.copy(pos);
       chip.mesh.position.x += (Math.random() - 0.5) * 0.08;
@@ -3404,6 +3733,10 @@ const Lathe3D = (function () {
 
           // Dynamic workpiece dimensions (P, L, T), adaptive vise clamping, and material removal cut
           const evalStatus = simState.evaluation ? simState.evaluation.status : "OPTIMAL";
+          const matColorHex = (typeof AppData !== "undefined" && AppData.materials)
+            ? (AppData.materials.find((m) => m.id === simState.materialId)?.colorHex || "#94a3b8")
+            : "#94a3b8";
+
           if (typeof millingModel.updateWorkpieceAndVise === "function") {
             millingModel.updateWorkpieceAndVise(
               simState.workpieceP || 100,
@@ -3413,7 +3746,9 @@ const Lathe3D = (function () {
               simState.depthOfCut || 0,
               evalStatus,
               simState.millingGrid,
-              simState.millingGridVersion
+              simState.millingGridVersion,
+              simState.materialId,
+              matColorHex
             );
           }
 
@@ -3438,7 +3773,14 @@ const Lathe3D = (function () {
                                     ((simState.isAutoFeed && simState.cutProgress < 1.0) ||
                                      (simState.lastJogCutting && (Date.now() - simState.lastJogCutting < 350)));
           if (isActivelyCutting) {
-            emitChip(new THREE.Vector3((Math.random() - 0.5) * 0.08, 1.87 + axZ, 1.10 + (Math.random() - 0.5) * 0.08));
+            const chipColorHex = (evalStatus === "BURNT")
+              ? 0x312e81
+              : (simState.materialId === "brass"
+                ? 0xfacc15
+                : (simState.materialId === "cast_iron"
+                  ? 0x475569
+                  : (simState.materialId === "stainless_steel" ? 0xf8fafc : 0xcbd5e1)));
+            emitChip(new THREE.Vector3((Math.random() - 0.5) * 0.08, 1.87 + axZ, 1.10 + (Math.random() - 0.5) * 0.08), chipColorHex);
           }
         }
         return;
@@ -3517,25 +3859,15 @@ const Lathe3D = (function () {
       if (simState.isRunning && isActivelyCutting && (simState.depthOfCut > 0)) {
         const toolWorldPos = new THREE.Vector3();
         latheModel.toolTip.getWorldPosition(toolWorldPos);
-        emitChip(toolWorldPos);
+        const latheChipColor = (evalStatus === "BURNT")
+          ? 0x312e81
+          : (simState.materialId === "brass"
+            ? 0xfacc15
+            : (simState.materialId === "cast_iron"
+              ? 0x475569
+              : (simState.materialId === "stainless_steel" ? 0xf8fafc : 0xcbd5e1)));
+        emitChip(toolWorldPos, latheChipColor);
       }
-
-      // Update flying chips
-      chips.forEach((c) => {
-        if (c.life > 0) {
-          c.mesh.position.x += c.vx;
-          c.mesh.position.y += c.vy;
-          c.mesh.position.z += c.vz;
-          c.vy -= 0.005; // Gravity
-          c.mesh.rotation.x += c.rotX;
-          c.mesh.rotation.y += c.rotY;
-          c.life -= 0.025;
-          if (c.life <= 0 || c.mesh.position.y < -2.5) {
-            c.life = 0;
-            c.mesh.visible = false;
-          }
-        }
-      });
     }
 
     function onResize() {
@@ -3554,6 +3886,9 @@ const Lathe3D = (function () {
       if (typeof SimEngine !== "undefined" && SimEngine.getState) {
         updateSimulationFrame(SimEngine.getState());
       }
+
+      // Continuous chip physics animation across all machine modes (lathe & milling)
+      updateChipPhysics();
 
       controls.update();
       renderer.render(scene, camera);

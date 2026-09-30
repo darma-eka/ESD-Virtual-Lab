@@ -11,12 +11,21 @@ const SoundEngine = (function () {
   let cuttingGain = null;
 
   function initCtx() {
-    if (!ctx) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      ctx = new AudioContext();
-    }
-    if (ctx && ctx.state === 'suspended') {
-      ctx.resume();
+    try {
+      if (!ctx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          ctx = new AudioContext();
+        }
+      }
+      if (ctx && ctx.state === 'suspended') {
+        const p = ctx.resume();
+        if (p && typeof p.catch === 'function') {
+          p.catch(() => {});
+        }
+      }
+    } catch (e) {
+      ctx = null;
     }
   }
 

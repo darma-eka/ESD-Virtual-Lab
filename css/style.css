@@ -789,4 +789,143 @@ html.dark .options-group > div.bg-slate-50 {
   color: #64748b !important;
 }
 
+/* ==================== GLOBAL DARK MODE REINFORCEMENTS ==================== */
+html.dark,
+html.dark body {
+  background-color: #0b1120 !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .mat-header {
+  background-color: #151e2e !important;
+  border-bottom-color: #273549 !important;
+}
+
+html.dark .mat-sidebar {
+  background-color: #151e2e !important;
+  border-right-color: #273549 !important;
+}
+
+html.dark .mat-card {
+  background-color: #151e2e !important;
+  border-color: #273549 !important;
+}
+
+html.dark .mat-card-header {
+  border-bottom-color: #273549 !important;
+}
+
+html.dark .stat-card {
+  background-color: #151e2e !important;
+  border-color: #273549 !important;
+}
+
+/* Light Background Overrides */
+html.dark .bg-white {
+  background-color: #151e2e !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .bg-white\/95,
+html.dark .bg-white\/90,
+html.dark .bg-white\/80 {
+  background-color: rgba(21, 30, 46, 0.95) !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .bg-slate-50 {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .bg-slate-100:hover {
+  background-color: #273549 !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .bg-slate-200 {
+  background-color: #273549 !important;
+}
+
+html.dark .bg-slate-200\/90 {
+  background-color: rgba(30, 41, 59, 0.9) !important;
+}
+
+/* Borders */
+html.dark .border-slate-100,
+html.dark .border-slate-200 {
+  border-color: #273549 !important;
+}
+
+html.dark .border-slate-300 {
+  border-color: #334155 !important;
+}
+
+/* High Contrast Text */
+html.dark .text-slate-900,
+html.dark .text-slate-800 {
+  color: #f1f5f9 !important;
+}
+
+html.dark .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+/* Tint Overrides */
+html.dark .bg-blue-50 {
+  background-color: rgba(30, 58, 138, 0.35) !important;
+  color: #93c5fd !important;
+}
+
+html.dark .bg-emerald-50 {
+  background-color: rgba(6, 78, 59, 0.35) !important;
+  color: #6ee7b7 !important;
+}
+
+html.dark .bg-amber-50 {
+  background-color: rgba(120, 53, 15, 0.35) !important;
+  color: #fcd34d !important;
+}
+
+html.dark .bg-purple-50 {
+  background-color: rgba(88, 28, 135, 0.35) !important;
+  color: #d8b4fe !important;
+}
+
+html.dark .bg-red-50 {
+  background-color: rgba(127, 29, 29, 0.35) !important;
+  color: #fca5a5 !important;
+}
+
+/* Material Active Buttons High Contrast */
+html.dark .mat-card button.bg-blue-50 {
+  background-color: rgba(37, 99, 235, 0.25) !important;
+  color: #93c5fd !important;
+  border-color: #3b82f6 !important;
+}
+
+/* Dividers and Shadows */
+html.dark hr {
+  border-color: #273549 !important;
+}
+
+html.dark .shadow-xs,
+html.dark .shadow-sm,
+html.dark .shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5) !important;
+}
+
 

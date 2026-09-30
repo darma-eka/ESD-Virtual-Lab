@@ -38,13 +38,15 @@ const App = (function () {
       const savedTheme = localStorage.getItem("vmachining_theme");
       if (savedTheme === "dark" || savedTheme === "light") {
         currentTheme = savedTheme;
+      } else if (document.documentElement.classList.contains("dark")) {
+        currentTheme = "dark";
       } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
         currentTheme = "dark";
       } else {
         currentTheme = "light";
       }
     } catch (e) {
-      currentTheme = "light";
+      currentTheme = document.documentElement.classList.contains("dark") ? "dark" : "light";
     }
     applyTheme(currentTheme, false);
   }
@@ -89,7 +91,7 @@ const App = (function () {
     } catch (e) {}
 
     if (window.lucide) {
-      lucide.createIcons();
+      try { lucide.createIcons(); } catch (e) {}
     }
 
     if (notify) {
@@ -98,8 +100,9 @@ const App = (function () {
   }
 
   function toggleTheme() {
-    SoundEngine.playClick();
-    const newTheme = currentTheme === "dark" ? "light" : "dark";
+    try { SoundEngine.playClick(); } catch (e) {}
+    const isDark = document.documentElement.classList.contains("dark");
+    const newTheme = isDark ? "light" : "dark";
     applyTheme(newTheme, true);
   }
 
@@ -254,7 +257,9 @@ const App = (function () {
     }
 
     if (screenId === "screen-simulation") {
-      setMobileSimTab(activeMobileSimTab);
+      setMobileSimTab(activeMobileSimTab || "all");
+      setupSimulationControls();
+      updateSimOutputs();
       setTimeout(() => {
         const c = document.getElementById("lathe-canvas");
         if (c) SimEngine.init(c);
@@ -641,7 +646,7 @@ const App = (function () {
   }
 
   // Mobile Simulation View Switcher (1. Layar 3D & Mesin, 2. Parameter, 3. Semua)
-  let activeMobileSimTab = "viewport";
+  let activeMobileSimTab = "all";
 
   function setMobileSimTab(tab) {
     activeMobileSimTab = tab;
@@ -660,7 +665,7 @@ const App = (function () {
       if (key === tab) {
         btn.className = "mob-sim-tab flex-1 py-2 px-1 rounded-lg bg-blue-600 text-white shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer font-bold";
       } else {
-        btn.className = "mob-sim-tab flex-1 py-2 px-1 rounded-lg text-slate-700 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all cursor-pointer font-medium";
+        btn.className = "mob-sim-tab flex-1 py-2 px-1 rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center justify-center gap-1.5 transition-all cursor-pointer font-medium";
       }
     });
 
@@ -740,6 +745,9 @@ const App = (function () {
     }
   }
 
+  // Guard against duplicate keyboard listener registration
+  let simKeydownBound = false;
+
   // Setup Simulation Controls
   function setupSimulationControls() {
     // Machine Operation toggle (Bubut vs Frais)
@@ -748,23 +756,27 @@ const App = (function () {
     const curOp = SimEngine.getState().machineType;
     if (opLathe && opMilling) {
       if (curOp === "milling") {
-        opMilling.className = "flex-1 py-2 rounded-lg bg-blue-600 text-white font-semibold text-xs shadow-sm";
-        opLathe.className = "flex-1 py-2 rounded-lg bg-slate-100 text-slate-600 font-semibold text-xs hover:bg-slate-200";
+        opMilling.className = "flex-1 py-2 rounded-lg bg-blue-600 text-white font-semibold text-xs shadow-sm cursor-pointer";
+        opLathe.className = "flex-1 py-2 rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 font-semibold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer";
       } else {
-        opLathe.className = "flex-1 py-2 rounded-lg bg-blue-600 text-white font-semibold text-xs shadow-sm";
-        opMilling.className = "flex-1 py-2 rounded-lg bg-slate-100 text-slate-600 font-semibold text-xs hover:bg-slate-200";
+        opLathe.className = "flex-1 py-2 rounded-lg bg-blue-600 text-white font-semibold text-xs shadow-sm cursor-pointer";
+        opMilling.className = "flex-1 py-2 rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 font-semibold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer";
       }
       opLathe.onclick = () => {
-        SoundEngine.playClick();
+        try { SoundEngine.playClick(); } catch (e) {}
         SimEngine.reset();
         SimEngine.updateConfig({ machineType: "lathe" });
+        userData.activeMachine = "lathe";
+        saveUserData();
         setupSimulationControls();
         updateSimOutputs();
       };
       opMilling.onclick = () => {
-        SoundEngine.playClick();
+        try { SoundEngine.playClick(); } catch (e) {}
         SimEngine.reset();
         SimEngine.updateConfig({ machineType: "milling" });
+        userData.activeMachine = "milling";
+        saveUserData();
         setupSimulationControls();
         updateSimOutputs();
       };
@@ -902,17 +914,17 @@ const App = (function () {
       AppData.materials.forEach((m) => {
         const btn = document.createElement("button");
         const isActive = SimEngine.getState().materialId === m.id;
-        btn.className = `p-2.5 rounded-lg border text-left text-xs transition-all ${
+        btn.className = `p-2.5 rounded-lg border text-left text-xs transition-all cursor-pointer ${
           isActive
-            ? "bg-blue-50 border-blue-500 text-blue-900 font-semibold shadow-sm"
-            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+            ? "bg-blue-50 border-blue-500 text-blue-900 dark:bg-blue-950/60 dark:border-blue-400 dark:text-blue-200 font-semibold shadow-sm"
+            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700/80"
         }`;
         btn.innerHTML = `
           <div class="font-medium">${m.name.split("/")[0]}</div>
           <div class="text-[10px] text-slate-400 mt-0.5">${m.hardness}</div>
         `;
         btn.onclick = () => {
-          SoundEngine.playClick();
+          try { SoundEngine.playClick(); } catch (e) {}
           SimEngine.updateConfig({ materialId: m.id });
           setupSimulationControls();
           updateSimOutputs();
@@ -955,20 +967,20 @@ const App = (function () {
       }
 
       if (currentTool === "hss") {
-        toolHss.className = "flex-1 py-2 rounded-lg bg-blue-600 text-white font-semibold text-xs shadow-sm";
-        toolCarbide.className = "flex-1 py-2 rounded-lg bg-slate-100 text-slate-600 font-semibold text-xs hover:bg-slate-200";
+        toolHss.className = "flex-1 py-2 rounded-lg bg-blue-600 text-white font-semibold text-xs shadow-sm cursor-pointer";
+        toolCarbide.className = "flex-1 py-2 rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 font-semibold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer";
       } else {
-        toolCarbide.className = "flex-1 py-2 rounded-lg bg-blue-600 text-white font-semibold text-xs shadow-sm";
-        toolHss.className = "flex-1 py-2 rounded-lg bg-slate-100 text-slate-600 font-semibold text-xs hover:bg-slate-200";
+        toolCarbide.className = "flex-1 py-2 rounded-lg bg-blue-600 text-white font-semibold text-xs shadow-sm cursor-pointer";
+        toolHss.className = "flex-1 py-2 rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 font-semibold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer";
       }
       toolHss.onclick = () => {
-        SoundEngine.playClick();
+        try { SoundEngine.playClick(); } catch (e) {}
         SimEngine.updateConfig({ toolId: "hss" });
         setupSimulationControls();
         updateSimOutputs();
       };
       toolCarbide.onclick = () => {
-        SoundEngine.playClick();
+        try { SoundEngine.playClick(); } catch (e) {}
         SimEngine.updateConfig({ toolId: "carbide" });
         setupSimulationControls();
         updateSimOutputs();
@@ -987,10 +999,10 @@ const App = (function () {
       if (dia === curEndmillDia) {
         btn.className = "btn-endmill-dia active py-2 rounded-lg border text-xs font-bold font-mono transition-all bg-blue-600 text-white border-blue-600 shadow-sm cursor-pointer text-center";
       } else {
-        btn.className = "btn-endmill-dia py-2 rounded-lg border text-xs font-bold font-mono transition-all text-slate-700 bg-white hover:bg-slate-50 border-slate-200 cursor-pointer text-center";
+        btn.className = "btn-endmill-dia py-2 rounded-lg border text-xs font-bold font-mono transition-all text-slate-700 bg-white hover:bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 cursor-pointer text-center";
       }
       btn.onclick = () => {
-        SoundEngine.playClick();
+        try { SoundEngine.playClick(); } catch (e) {}
         SimEngine.updateConfig({ endmillDia: dia });
         setupSimulationControls();
         updateSimOutputs();
@@ -1273,7 +1285,7 @@ const App = (function () {
     function executeAxisJog(axis, dir) {
       if (typeof SimEngine === "undefined") return;
       const res = SimEngine.jogAxis(axis, dir, jogStep);
-      SoundEngine.playClick();
+      try { SoundEngine.playClick(); } catch (e) {}
 
       // Sync depth slider: Lathe uses X (radial infeed), Milling uses Z (knee vertical elevation)
       const isMilling = SimEngine.getState().machineType === "milling";
@@ -1313,6 +1325,10 @@ const App = (function () {
       const end = () => {
         if (repeatTimer) { clearTimeout(repeatTimer); repeatTimer = null; }
         if (repeatInterval) { clearInterval(repeatInterval); repeatInterval = null; }
+      };
+
+      btn.onclick = (e) => {
+        executeAxisJog(axis, dir);
       };
 
       btn.onmousedown = start;
@@ -1402,81 +1418,84 @@ const App = (function () {
       };
     }
 
-    // Keyboard Shortcuts for Manual Feed
-    window.addEventListener("keydown", (e) => {
-      // Don't trigger if user is typing in an input, textarea or select
-      if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+    // Keyboard Shortcuts for Manual Feed (register only once)
+    if (!simKeydownBound) {
+      simKeydownBound = true;
+      window.addEventListener("keydown", (e) => {
+        // Don't trigger if user is typing in an input, textarea or select
+        if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
 
-      const curMachine = SimEngine.getState().machineType;
-      let targetBtnId = null;
-      let axis = null;
-      let dir = 0;
+        const curMachine = SimEngine.getState().machineType;
+        let targetBtnId = null;
+        let axis = null;
+        let dir = 0;
 
-      if (curMachine === "milling") {
-        // Frais: Sumbu X = ArrowLeft/Right, Sumbu Y = ArrowDown/Up, Sumbu Z = PageDown/PageUp atau S/W
-        if (e.key === "ArrowLeft") {
-          targetBtnId = "btn-axis-x-minus";
-          axis = "X";
-          dir = -1;
-        } else if (e.key === "ArrowRight") {
-          targetBtnId = "btn-axis-x-plus";
-          axis = "X";
-          dir = 1;
-        } else if (e.key === "ArrowDown") {
-          targetBtnId = "btn-axis-y-minus";
-          axis = "Y";
-          dir = -1;
-        } else if (e.key === "ArrowUp") {
-          targetBtnId = "btn-axis-y-plus";
-          axis = "Y";
-          dir = 1;
-        } else if (e.key === "PageDown" || e.key === "s" || e.key === "S") {
-          targetBtnId = "btn-axis-z-minus";
-          axis = "Z";
-          dir = -1;
-        } else if (e.key === "PageUp" || e.key === "w" || e.key === "W") {
-          targetBtnId = "btn-axis-z-plus";
-          axis = "Z";
-          dir = 1;
-        }
-      } else {
-        // Bubut: Sumbu X = ArrowDown/Up, Sumbu Z = ArrowLeft/Right
-        if (e.key === "ArrowDown") {
-          targetBtnId = "btn-axis-x-minus";
-          axis = "X";
-          dir = -1;
-        } else if (e.key === "ArrowUp") {
-          targetBtnId = "btn-axis-x-plus";
-          axis = "X";
-          dir = 1;
-        } else if (e.key === "ArrowLeft") {
-          targetBtnId = "btn-axis-z-minus";
-          axis = "Z";
-          dir = -1;
-        } else if (e.key === "ArrowRight") {
-          targetBtnId = "btn-axis-z-plus";
-          axis = "Z";
-          dir = 1;
-        }
-      }
-
-      if (axis && dir) {
-        e.preventDefault();
-        executeAxisJog(axis, dir);
-        if (targetBtnId) {
-          const b = document.getElementById(targetBtnId);
-          if (b) {
-            b.classList.add("is-active");
-            setTimeout(() => b.classList.remove("is-active"), 120);
+        if (curMachine === "milling") {
+          // Frais: Sumbu X = ArrowLeft/Right, Sumbu Y = ArrowDown/Up, Sumbu Z = PageDown/PageUp atau S/W
+          if (e.key === "ArrowLeft") {
+            targetBtnId = "btn-axis-x-minus";
+            axis = "X";
+            dir = -1;
+          } else if (e.key === "ArrowRight") {
+            targetBtnId = "btn-axis-x-plus";
+            axis = "X";
+            dir = 1;
+          } else if (e.key === "ArrowDown") {
+            targetBtnId = "btn-axis-y-minus";
+            axis = "Y";
+            dir = -1;
+          } else if (e.key === "ArrowUp") {
+            targetBtnId = "btn-axis-y-plus";
+            axis = "Y";
+            dir = 1;
+          } else if (e.key === "PageDown" || e.key === "s" || e.key === "S") {
+            targetBtnId = "btn-axis-z-minus";
+            axis = "Z";
+            dir = -1;
+          } else if (e.key === "PageUp" || e.key === "w" || e.key === "W") {
+            targetBtnId = "btn-axis-z-plus";
+            axis = "Z";
+            dir = 1;
           }
-          const ovBtn = document.getElementById(targetBtnId.replace("btn-axis-", "btn-overlay-axis-"));
-          if (ovBtn) {
-            ovBtn.classList.add("ring-2", "ring-white", "scale-95");
-            setTimeout(() => ovBtn.classList.remove("ring-2", "ring-white", "scale-95"), 120);
+        } else {
+          // Bubut: Sumbu X = ArrowDown/Up, Sumbu Z = ArrowLeft/Right
+          if (e.key === "ArrowDown") {
+            targetBtnId = "btn-axis-x-minus";
+            axis = "X";
+            dir = -1;
+          } else if (e.key === "ArrowUp") {
+            targetBtnId = "btn-axis-x-plus";
+            axis = "X";
+            dir = 1;
+          } else if (e.key === "ArrowLeft") {
+            targetBtnId = "btn-axis-z-minus";
+            axis = "Z";
+            dir = -1;
+          } else if (e.key === "ArrowRight") {
+            targetBtnId = "btn-axis-z-plus";
+            axis = "Z";
+            dir = 1;
           }
         }
-      }
-    });
+
+        if (axis && dir) {
+          e.preventDefault();
+          executeAxisJog(axis, dir);
+          if (targetBtnId) {
+            const b = document.getElementById(targetBtnId);
+            if (b) {
+              b.classList.add("is-active");
+              setTimeout(() => b.classList.remove("is-active"), 120);
+            }
+            const ovBtn = document.getElementById(targetBtnId.replace("btn-axis-", "btn-overlay-axis-"));
+            if (ovBtn) {
+              ovBtn.classList.add("ring-2", "ring-white", "scale-95");
+              setTimeout(() => ovBtn.classList.remove("ring-2", "ring-white", "scale-95"), 120);
+            }
+          }
+        }
+      });
+    }
 
     updateSimOutputs();
     if (window.lucide) lucide.createIcons();
@@ -1949,7 +1968,7 @@ const App = (function () {
       userData.class = classInput.value.trim();
     }
     saveUserData();
-    SoundEngine.playSuccess();
+    try { SoundEngine.playSuccess(); } catch (e) {}
     document.getElementById("profile-modal").classList.add("hidden");
     showToast("Profil berhasil diperbarui!", "success");
   }
@@ -1963,6 +1982,8 @@ const App = (function () {
       renderAnatomyScreen();
       setupSimulationControls();
       renderQuizScreen();
+      setMobileSimTab(activeMobileSimTab || "all");
+      updateSimOutputs();
 
       // Sound toggle button
       const soundBtn = document.getElementById("btn-sound-toggle");
@@ -1970,7 +1991,9 @@ const App = (function () {
         soundBtn.onclick = () => {
           const muted = SoundEngine.toggleMute();
           soundBtn.innerHTML = muted ? '<i data-lucide="volume-x" class="w-4 h-4"></i>' : '<i data-lucide="volume-2" class="w-4 h-4"></i>';
-          if (window.lucide) lucide.createIcons();
+          if (window.lucide) {
+            try { lucide.createIcons(); } catch (e) {}
+          }
           showToast(muted ? "Audio dinonaktifkan" : "Audio aktif", "info");
         };
       }
@@ -2000,7 +2023,9 @@ const App = (function () {
         }
       });
 
-      if (window.lucide) lucide.createIcons();
+      if (window.lucide) {
+        try { lucide.createIcons(); } catch (e) {}
+      }
     },
 
     navigateTo,
@@ -2022,11 +2047,108 @@ const App = (function () {
     showPartModal,
     printLKPD,
     showProfileModal,
-    saveProfileModal
+    saveProfileModal,
+    startSimulation: () => {
+      SimEngine.start(true);
+      updateSimOutputs();
+      showToast("▶ Siklus Pemotongan Dimulai (Pemakanan Otomatis Aktif)", "success");
+    },
+    stopSimulation: () => {
+      SimEngine.stop();
+      updateSimOutputs();
+      showToast("⏸ Pemotongan Dijeda", "info");
+    },
+    resetSimulation: () => {
+      SimEngine.reset();
+      updateSimOutputs();
+      showToast("🔄 Posisi Pahat & Benda Kerja Direset ke Awal", "info");
+    },
+    emergencyStop: () => {
+      try { SoundEngine.playAlarm(); } catch (e) {}
+      SimEngine.stop();
+      updateSimOutputs();
+      showToast("🚨 SAKELAR EMERGENCY STOP DIAKTIFKAN!", "danger");
+    },
+    toggleAutoFeed: () => {
+      try { SoundEngine.playClick(); } catch (e) {}
+      const active = SimEngine.toggleAutoFeed();
+      updateSimOutputs();
+      if (typeof lucide !== "undefined") {
+        try { lucide.createIcons(); } catch (e) {}
+      }
+      if (active) {
+        showToast("⚙ Pemakanan Otomatis DIAKTIFKAN", "success");
+      } else {
+        showToast("✋ Pemakanan Otomatis DINONAKTIFKAN (Mode Manual)", "info");
+      }
+    },
+    toggleCoolant: () => {
+      try { SoundEngine.playClick(); } catch (e) {}
+      const newState = !SimEngine.getState().coolant;
+      SimEngine.updateConfig({ coolant: newState });
+      setupSimulationControls();
+      updateSimOutputs();
+      if (typeof lucide !== "undefined") {
+        try { lucide.createIcons(); } catch (e) {}
+      }
+      showToast(newState ? "💧 Cairan Pendingin (Coolant) Dinyalakan" : "🚫 Cairan Pendingin (Coolant) Dimatikan", "info");
+    },
+    calcIdealRPM: () => {
+      try { SoundEngine.playClick(); } catch (e) {}
+      const curState = SimEngine.getState();
+      const mat = (typeof AppData !== "undefined" && AppData.materials)
+        ? (AppData.materials.find((m) => m.id === curState.materialId) || AppData.materials[0])
+        : null;
+      if (!mat) return;
+      const recCs = curState.toolId === "carbide" ? mat.csCarbide : mat.csHSS;
+      const midCs = (recCs.min + recCs.max) / 2;
+      const effectiveDia = curState.machineType === "milling"
+        ? (curState.endmillDia || 12)
+        : (curState.diameter || 50);
+      const idealRPM = Math.round((1000 * midCs) / (Math.PI * effectiveDia));
+      const clampedRPM = Math.min(2200, Math.max(80, idealRPM));
+
+      const rpmSlider = document.getElementById("slider-rpm");
+      const rpmVal = document.getElementById("val-rpm");
+      if (rpmSlider) rpmSlider.value = clampedRPM;
+      if (rpmVal) rpmVal.textContent = `${clampedRPM} RPM`;
+
+      SimEngine.updateConfig({ rpm: clampedRPM });
+      updateSimOutputs();
+      showToast(`⚡ Putaran Spindel diatur ke ${clampedRPM} RPM (Cs ideal: ${Math.round(midCs)} m/min, d: ${effectiveDia} mm)`, "success");
+    },
+    setSimMachine: (mach) => {
+      try { SoundEngine.playClick(); } catch (e) {}
+      SimEngine.reset();
+      SimEngine.updateConfig({ machineType: mach });
+      userData.activeMachine = mach;
+      saveUserData();
+      setupSimulationControls();
+      updateSimOutputs();
+    },
+    setSimTool: (toolId) => {
+      try { SoundEngine.playClick(); } catch (e) {}
+      SimEngine.updateConfig({ toolId: toolId });
+      setupSimulationControls();
+      updateSimOutputs();
+    },
+    jogAxis: (axis, dir) => {
+      executeAxisJog(axis.toUpperCase(), dir);
+    }
   };
 })();
 
 // Global startup
-window.addEventListener("DOMContentLoaded", () => {
-  App.init();
-});
+function startApp() {
+  try {
+    App.init();
+  } catch (err) {
+    console.error("App.init error:", err);
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", startApp);
+} else {
+  startApp();
+}

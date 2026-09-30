@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Preview Animasi Logo ESD V-Lab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes esd-gear-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .esd-gear-anim {
+      transform-origin: 50.16% 40.35%;
+      animation: esd-gear-spin 18s linear infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 p-8 flex flex-col items-center min-h-screen">
+  <div class="max-w-4xl w-full">
+    <div class="flex items-center justify-between mb-8 pb-4 border-b border-slate-200">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-800">Preview Logo ESD V-Lab Dinamis</h1>
+        <p class="text-sm text-slate-500">Roda gigi berputar 360°, posisi mesin bubut & frais tetap tegak, teks 3D ESD di depan.</p>
+      </div>
+      <a href="index.html" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm">
+        Buka Aplikasi Utama &rarr;
+      </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- Card 1: Large Showcase -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center text-center">
+        <span class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-4">Ukuran Besar (Hero Dashboard)</span>
+        <div class="relative w-64 h-64 select-none my-2">
+          <!-- 1. Rotating Gear Layer -->
+          <div class="absolute inset-0 overflow-hidden pointer-events-none" style="clip-path: inset(0 0 49.36% 0);">
+            <img src="img/logo-esd-gear.png" class="w-full h-full object-contain esd-gear-anim" alt="Roda Gigi">
+          </div>
+          <!-- 2. Static Inner Machine -->
+          <img src="img/logo-esd-inner.png" class="absolute inset-0 w-full h-full object-contain pointer-events-none" alt="Mesin Bubut & Frais">
+          <!-- 3. Foreground ESD Typography -->
+          <img src="img/logo-esd-foreground.png" class="relative z-10 w-full h-full object-contain pointer-events-none" alt="ESD V-Lab">
+        </div>
+        <p class="text-xs text-slate-500 mt-4 leading-relaxed">
+          Roda gigi berputar halus secara kontinu di belakang teks <b>ESD</b>. Chuck bubut dan endmill tetap stabil di dalam.
+        </p>
+      </div>
+
+      <!-- Card 2: Sidebar Brand Navbar Scale -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center">
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Ukuran Sidebar Header</span>
+        <div class="w-full bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center gap-3 my-auto">
+          <!-- Animated Brand Logo -->
+          <div class="relative w-12 h-12 flex-shrink-0 select-none">
+            <div class="absolute inset-0 overflow-hidden pointer-events-none" style="clip-path: inset(0 0 49.36% 0);">
+              <img src="img/logo-esd-gear.png" class="w-full h-full object-contain esd-gear-anim" alt="Gear">
+            </div>
+            <img src="img/logo-esd-inner.png" class="absolute inset-0 w-full h-full object-contain pointer-events-none" alt="Machines">
+            <img src="img/logo-esd-foreground.png" class="relative z-10 w-full h-full object-contain pointer-events-none" alt="ESD V-Lab">
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-extrabold text-base tracking-tight text-slate-900">ESD V-Lab</span>
+              <span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">SMK</span>
+            </div>
+            <span class="text-[11px] text-slate-500 font-medium block">Pemesinan Konvensional</span>
+          </div>
+        </div>
+        <p class="text-xs text-slate-400 mt-4 text-center">Tampilan pada navigasi sidebar kiri aplikasi.</p>
+      </div>
+
+      <!-- Card 3: Original Static Reference -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center text-center">
+        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Logo Asli (Statis)</span>
+        <div class="relative w-52 h-52 my-auto select-none">
+          <img src="Logo ESD V-Lab.png" class="w-full h-full object-contain" alt="Original Logo">
+        </div>
+        <p class="text-xs text-slate-400 mt-4 leading-relaxed">
+          File referensi sumber: <br><code class="text-[10px] text-slate-600 bg-slate-100 px-1 py-0.5 rounded">Logo ESD V-Lab.png</code>
+        </p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

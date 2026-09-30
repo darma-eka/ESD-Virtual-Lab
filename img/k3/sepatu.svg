@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+    <linearGradient id="bootGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="steelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="40%" stop-color="#cbd5e1" />
+      <stop offset="100%" stop-color="#64748b" />
+    </linearGradient>
+    <filter id="shadow3" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <!-- Circular Base Badge -->
+  <circle cx="60" cy="60" r="54" fill="#f0f9ff" stroke="#bae6fd" stroke-width="2"/>
+  <circle cx="60" cy="60" r="48" fill="url(#bgGrad3)" filter="url(#shadow3)"/>
+  <circle cx="60" cy="60" r="45" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.4" stroke-dasharray="3 2"/>
+
+  <!-- Safety Boot Graphic -->
+  <g filter="url(#shadow3)">
+    <!-- Main Leather Boot Body -->
+    <path d="M 36 36 L 54 36 L 56 50 L 68 56 C 76 60, 84 62, 92 63 C 96 64, 98 67, 98 71 C 98 75, 95 78, 90 78 L 34 78 C 30 78, 28 74, 28 68 L 28 50 C 28 42, 32 36, 36 36 Z" 
+          fill="url(#bootGrad)" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"/>
+
+    <!-- Padded Collar Top -->
+    <rect x="34" y="34" width="22" height="7" rx="3" fill="#64748b" stroke="#ffffff" stroke-width="1"/>
+
+    <!-- Steel Toe Cap Reinforcement Highlight -->
+    <path d="M 78 59 C 84 62, 92 63, 94 65 C 97 68, 97 73, 95 77 L 80 77 C 76 72, 76 64, 78 59 Z" 
+          fill="url(#steelGrad)" stroke="#38bdf8" stroke-width="1.2"/>
+    <path d="M 83 62 Q 91 66 93 72" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Steel Toe Shield Icon Symbol -->
+    <path d="M 84 68 L 88 66 L 92 68 L 92 72 Q 88 75 88 75 Q 84 72 84 72 Z" fill="#0284c7" opacity="0.85"/>
+
+    <!-- Boot Laces & Eyelets -->
+    <line x1="48" y1="44" x2="55" y2="47" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="49" y1="49" x2="57" y2="52" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="51" y1="54" x2="60" y2="57" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round"/>
+    <circle cx="48" cy="44" r="1.5" fill="#facc15"/>
+    <circle cx="49" cy="49" r="1.5" fill="#facc15"/>
+    <circle cx="51" cy="54" r="1.5" fill="#facc15"/>
+
+    <!-- Heavy Duty Deep Tread Outsole -->
+    <path d="M 27 77 L 97 77 C 98 77, 99 79, 98 81 L 96 84 C 95 86, 94 86, 92 86 L 30 86 C 28 86, 27 85, 27 83 Z" 
+          fill="#020617" stroke="#ffffff" stroke-width="1.2"/>
+    <!-- Sole Lug Cleats -->
+    <rect x="32" y="84" width="6" height="3" fill="#cbd5e1" rx="0.5"/>
+    <rect x="42" y="84" width="6" height="3" fill="#cbd5e1" rx="0.5"/>
+    <rect x="52" y="84" width="6" height="3" fill="#cbd5e1" rx="0.5"/>
+    <rect x="68" y="84" width="7" height="3" fill="#cbd5e1" rx="0.5"/>
+    <rect x="80" y="84" width="7" height="3" fill="#cbd5e1" rx="0.5"/>
+  </g>
+
+  <!-- Sub-label Badge -->
+  <rect x="36" y="86" width="48" height="15" rx="7.5" fill="#ffffff" filter="url(#shadow3)"/>
+  <text x="60" y="97" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="#0369a1" text-anchor="middle">STEEL TOE</text>
+</svg>

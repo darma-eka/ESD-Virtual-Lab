@@ -469,6 +469,467 @@ const AppData = {
     }
   ],
 
+  // ==================== QUIZ 1: LEMBAR KERJA 1 (LK-1) PARAMETER BUBUT ====================
+  // Sumber: D:\PPG\Courses\PPL\pembelajaran\Parameter\02_LK1_Parameter_Bubut.docx
+  quiz1Challenges: [
+    // ---------- KASUS 1: POROS BAJA LUNAK ST-37 (PAHAT CARBIDE) ----------
+    {
+      id: "lk1_q1",
+      caseNum: 1,
+      caseTitle: "Studi Kasus 1: Pembubutan Poros Baja Lunak ST-37",
+      caseDescription: "Sebuah poros baja lunak ST-37 akan dibubut menggunakan pahat carbide. Data parameter:\n• Vc rekomendasi = 100 m/min\n• Diameter awal (d) = 40 mm, diameter akhir = 34 mm\n• Panjang pemotongan (L) = 80 mm\n• Gerak makan (f) = 0,2 mm/rev\n(Petunjuk perhitungan: Gunakan π = 3,14159)",
+      level: 1,
+      category: "Putaran Spindle (n)",
+      question: "Soal 1.a — Hitunglah putaran spindle mesin bubut (n) dalam satuan RPM!",
+      formulaHint: "n = (1000 · Vc) / (π · d)",
+      options: [
+        "550 RPM",
+        "796 RPM",
+        "980 RPM",
+        "1.250 RPM"
+      ],
+      correct: 1,
+      explanation: "n = (1000 · Vc) / (π · d) = (1000 · 100) / (3,14159 · 40) = 100.000 / 125,6636 ≈ 795,77 RPM. Dibulatkan ke putaran standar mesin terdekat yaitu 796 RPM."
+    },
+    {
+      id: "lk1_q2",
+      caseNum: 1,
+      caseTitle: "Studi Kasus 1: Pembubutan Poros Baja Lunak ST-37",
+      level: 1,
+      category: "Kedalaman Potong (ap)",
+      question: "Soal 1.b — Hitunglah kedalaman potong radial (ap) pada proses pembubutan poros tersebut!",
+      formulaHint: "ap = (d_awal - d_akhir) / 2",
+      options: [
+        "1,5 mm",
+        "2,0 mm",
+        "3,0 mm",
+        "6,0 mm"
+      ],
+      correct: 2,
+      explanation: "ap = (d_awal - d_akhir) / 2 = (40 mm - 34 mm) / 2 = 6 mm / 2 = 3,0 mm. Pada pembubutan silindris lurus, kedalaman potong radial adalah setengah dari selisih diameter total benda kerja."
+    },
+    {
+      id: "lk1_q3",
+      caseNum: 1,
+      caseTitle: "Studi Kasus 1: Pembubutan Poros Baja Lunak ST-37",
+      level: 2,
+      category: "Waktu Pemesinan (tm)",
+      question: "Soal 1.c — Hitunglah waktu pemesinan teoritis (tm) yang diperlukan untuk membubut panjang L = 80 mm!",
+      formulaHint: "tm = L / (f · n)",
+      options: [
+        "0,25 menit (15 detik)",
+        "0,50 menit (30 detik)",
+        "1,20 menit (72 detik)",
+        "2,50 menit (150 detik)"
+      ],
+      correct: 1,
+      explanation: "tm = L / (f · n) = 80 / (0,2 · 795,77) = 80 / 159,155 ≈ 0,5026 menit (~0,50 menit atau sekitar 30,2 detik)."
+    },
+    {
+      id: "lk1_q4",
+      caseNum: 1,
+      caseTitle: "Studi Kasus 1: Pembubutan Poros Baja Lunak ST-37",
+      level: 2,
+      category: "Laju Pembuangan Geram (MRR)",
+      question: "Soal 1.d — Hitunglah laju pembuangan material atau geram (Material Removal Rate / MRR) dalam mm³/min!",
+      formulaHint: "MRR = f · ap · Vc · 1000",
+      options: [
+        "24.000 mm³/min",
+        "36.000 mm³/min",
+        "60.000 mm³/min",
+        "120.000 mm³/min"
+      ],
+      correct: 2,
+      explanation: "MRR = f · ap · Vc · 1000 = 0,2 mm/rev · 3,0 mm · 100 m/min · 1000 = 60.000 mm³/min."
+    },
+
+    // ---------- KASUS 2: POROS ALUMINIUM FINISHING ----------
+    {
+      id: "lk1_q5",
+      caseNum: 2,
+      caseTitle: "Studi Kasus 2: Pembubutan Finishing Poros Aluminium",
+      caseDescription: "Poros aluminium akan dibubut finishing dengan hasil akhir yang halus. Data parameter:\n• Diameter benda kerja (d) = 25 mm\n• Kecepatan potong Vc = 150 m/min\n• Gerak makan (f) = 0,08 mm/rev\n• Kedalaman potong (ap) = 0,3 mm\n• Panjang pemotongan (L) = 120 mm",
+      level: 2,
+      category: "Putaran Spindle (n)",
+      question: "Soal 2.a — Hitunglah putaran spindle mesin (n) untuk finishing poros aluminium tersebut!",
+      formulaHint: "n = (1000 · Vc) / (π · d)",
+      options: [
+        "950 RPM",
+        "1.200 RPM",
+        "1.910 RPM",
+        "2.450 RPM"
+      ],
+      correct: 2,
+      explanation: "n = (1000 · Vc) / (π · d) = (1000 · 150) / (3,14159 · 25) = 150.000 / 78,5398 ≈ 1.909,86 RPM ≈ 1.910 RPM."
+    },
+    {
+      id: "lk1_q6",
+      caseNum: 2,
+      caseTitle: "Studi Kasus 2: Pembubutan Finishing Poros Aluminium",
+      level: 2,
+      category: "Waktu Pemesinan (tm)",
+      question: "Soal 2.b — Hitunglah waktu pemesinan (tm) untuk finishing poros aluminium sepanjang 120 mm!",
+      formulaHint: "tm = L / (f · n)",
+      options: [
+        "0,45 menit (27 detik)",
+        "0,79 menit (47 detik)",
+        "1,50 menit (90 detik)",
+        "2,10 menit (126 detik)"
+      ],
+      correct: 1,
+      explanation: "tm = L / (f · n) = 120 / (0,08 · 1.909,86) = 120 / 152,789 ≈ 0,7854 menit (~0,79 menit atau sekitar 47,1 detik)."
+    },
+    {
+      id: "lk1_q7",
+      caseNum: 2,
+      caseTitle: "Studi Kasus 2: Pembubutan Finishing Poros Aluminium",
+      level: 3,
+      category: "Analisis Variasi Vc & Kualitas",
+      question: "Soal 2.c — Jika Vc dinaikkan 20%, berapa putaran n yang baru dan bagaimana pengaruhnya terhadap kualitas permukaan?",
+      formulaHint: "Vc_baru = 150 · 1,2 = 180 m/min; n_baru = (1000 · Vc_baru) / (π · d)",
+      options: [
+        "n = 1.600 RPM; permukaan menjadi kasar karena getaran spindle meningkat",
+        "n = 2.292 RPM; kualitas permukaan lebih halus karena meminimalkan Built-Up Edge (BUE)",
+        "n = 2.800 RPM; benda kerja melengkung dan timbul bekas chatter terbakar",
+        "n = 1.910 RPM; tidak ada perubahan putaran mesin maupun kualitas permukaan"
+      ],
+      correct: 1,
+      explanation: "Vc baru = 150 · 1,20 = 180 m/min. n_baru = (1000 · 180) / (3,14159 · 25) ≈ 2.291,83 RPM ≈ 2.292 RPM (naik 20%). Pada finishing aluminium, kenaikan Vc mencegah terbentuknya tatal tempel (Built-Up Edge / BUE) sehingga menghasilkan sayatan yang sangat bersih dan nilai kekasaran permukaan Ra menjadi jauh lebih halus."
+    },
+
+    // ---------- KASUS 3: OPTIMASI BAJA S45C SET A VS SET B ----------
+    {
+      id: "lk1_q8",
+      caseNum: 3,
+      caseTitle: "Studi Kasus 3: Optimasi Parameter Pembubutan Baja S45C",
+      caseDescription: "Operator mesin memiliki dua pilihan parameter untuk membubut baja S45C dengan d = 50 mm dan L = 100 mm:\n• Set A: Vc = 80 m/min, f = 0,3 mm/rev, ap = 2,0 mm\n• Set B: Vc = 60 m/min, f = 0,15 mm/rev, ap = 1,0 mm",
+      level: 2,
+      category: "Kalkulasi Set A",
+      question: "Soal 3.a — Hitunglah putaran spindel (n), waktu pemesinan (tm), dan MRR untuk kombinasi Set A!",
+      formulaHint: "nA = (1000 · Vc)/(π · d); tmA = L/(f · n); MRR_A = f · ap · Vc · 1000",
+      options: [
+        "n = 350 RPM; tm = 1,20 menit; MRR = 24.000 mm³/min",
+        "n = 509 RPM; tm = 0,65 menit; MRR = 48.000 mm³/min",
+        "n = 620 RPM; tm = 0,85 menit; MRR = 36.000 mm³/min",
+        "n = 750 RPM; tm = 0,40 menit; MRR = 60.000 mm³/min"
+      ],
+      correct: 1,
+      explanation: "Perhitungan Set A:\n• n = (1000 · 80) / (3,14159 · 50) ≈ 509,3 RPM (509 RPM)\n• tm = 100 / (0,3 · 509,3) ≈ 0,654 menit (~0,65 menit atau 39,3 detik)\n• MRR = 0,3 · 2,0 · 80 · 1000 = 48.000 mm³/min."
+    },
+    {
+      id: "lk1_q9",
+      caseNum: 3,
+      caseTitle: "Studi Kasus 3: Optimasi Parameter Pembubutan Baja S45C",
+      level: 2,
+      category: "Kalkulasi Set B",
+      question: "Soal 3.b — Hitunglah putaran spindel (n), waktu pemesinan (tm), dan MRR untuk kombinasi Set B!",
+      formulaHint: "nB = (1000 · Vc)/(π · d); tmB = L/(f · n); MRR_B = f · ap · Vc · 1000",
+      options: [
+        "n = 250 RPM; tm = 2,50 menit; MRR = 4.500 mm³/min",
+        "n = 382 RPM; tm = 1,75 menit; MRR = 9.000 mm³/min",
+        "n = 450 RPM; tm = 1,10 menit; MRR = 12.000 mm³/min",
+        "n = 500 RPM; tm = 1,50 menit; MRR = 15.000 mm³/min"
+      ],
+      correct: 1,
+      explanation: "Perhitungan Set B:\n• n = (1000 · 60) / (3,14159 · 50) ≈ 381,97 RPM (382 RPM)\n• tm = 100 / (0,15 · 381,97) ≈ 1,745 menit (~1,75 menit atau 104,7 detik)\n• MRR = 0,15 · 1,0 · 60 · 1000 = 9.000 mm³/min."
+    },
+    {
+      id: "lk1_q10",
+      caseNum: 3,
+      caseTitle: "Studi Kasus 3: Optimasi Parameter Pembubutan Baja S45C",
+      level: 3,
+      category: "Analisis Trade-Off Industri",
+      question: "Soal 3.c — Dari kedua pilihan tersebut, set mana yang lebih produktif dan set mana yang lebih baik untuk kualitas permukaan?",
+      options: [
+        "Set B lebih produktif karena pemotongannya lambat sehingga hemat daya mesin",
+        "Set A lebih produktif (MRR 48.000 mm³/min, tm 0,65 min / roughing), sedangkan Set B lebih baik untuk kualitas permukaan (f=0,15, ap=1,0 / finishing)",
+        "Kedua set menghasilkan kualitas permukaan dan produktivitas yang sama persis",
+        "Set A cocok untuk finishing karena getarannya lebih besar sehingga memecah geram"
+      ],
+      correct: 1,
+      explanation: "Analisis Trade-off Rekayasa:\n• Set A unggul secara PRODUKTIVITAS karena menghasilkan MRR 48.000 mm³/min (5,3 kali lebih banyak) dan waktu pemesinan hanya 0,65 menit (jauh lebih cepat), ideal untuk pembubutan kasar (roughing).\n• Set B unggul dalam KUALITAS PERMUKAAN karena feeding f kecil (0,15 mm/rev) dan ap dangkal (1,0 mm) menghasilkan gaya potong minimal dan nilai kekasaran permukaan Ra yang halus, ideal untuk pembubutan halus (finishing)."
+    }
+  ],
+
+  // Rangkuman Resmi Jawaban Lembar Kerja 1 (LK-1)
+  quiz1SummaryTable: [
+    {
+      no: "1",
+      soal: "Soal 1 — Poros Baja Lunak ST-37 (Pahat Karbida)",
+      parameter: "Vc=100, d=40→34 mm, L=80, f=0,2, ap=3,0",
+      n: "796 RPM",
+      tm: "0,50 menit (30 dtk)",
+      mrr: "60.000 mm³/min",
+      catatan: "Roughing efisien, tatal teratur"
+    },
+    {
+      no: "2",
+      soal: "Soal 2 — Poros Aluminium Finishing",
+      parameter: "Vc=150, d=25 mm, L=120, f=0,08, ap=0,3",
+      n: "1.910 RPM",
+      tm: "0,79 menit (47 dtk)",
+      mrr: "3.600 mm³/min",
+      catatan: "Finishing halus mengkilap (bebas BUE)"
+    },
+    {
+      no: "3A",
+      soal: "Soal 3 (Set A) — Baja S45C (Mode Agresif)",
+      parameter: "Vc=80, d=50 mm, L=100, f=0,3, ap=2,0",
+      n: "509 RPM",
+      tm: "0,65 menit (39 dtk)",
+      mrr: "48.000 mm³/min",
+      catatan: "Unggul PRODUKTIVITAS (Roughing)"
+    },
+    {
+      no: "3B",
+      soal: "Soal 3 (Set B) — Baja S45C (Mode Halus)",
+      parameter: "Vc=60, d=50 mm, L=100, f=0,15, ap=1,0",
+      n: "382 RPM",
+      tm: "1,75 menit (105 dtk)",
+      mrr: "9.000 mm³/min",
+      catatan: "Unggul KUALITAS PERMUKAAN (Finishing)"
+    }
+  ],
+
+  // ==================== ASESMEN DIAGNOSTIK KOGNITIF & ANGKET NON-KOGNITIF ====================
+  // Berdasarkan Dokumen 4_Instrumen_Asesmen_Pertemuan_1_Diagnostik_Formatif_Sumatif.docx
+  diagnosticQuestions: [
+    {
+      id: "diag_1",
+      number: 1,
+      question: "Mesin perkakas yang prinsip kerjanya memutar benda kerja dan menyayatnya dengan pahat translasi adalah...",
+      options: [
+        "A. Mesin Frais",
+        "B. Mesin Bubut",
+        "C. Mesin Skrap",
+        "D. Mesin Gerinda",
+        "E. Mesin Bor"
+      ],
+      correct: 1, // B
+      keyLetter: "B",
+      points: 10,
+      topic: "Prinsip Kerja Mesin Bubut"
+    },
+    {
+      id: "diag_2",
+      number: 2,
+      question: "Bagian mesin bubut yang berfungsi memutar benda kerja dan memuat susunan gearbox kecepatan putar adalah...",
+      options: [
+        "A. Apron",
+        "B. Tailstock",
+        "C. Headstock",
+        "D. Toolpost",
+        "E. Bed mesin"
+      ],
+      correct: 2, // C
+      keyLetter: "C",
+      points: 10,
+      topic: "Headstock (Kepala Tetap)"
+    },
+    {
+      id: "diag_3",
+      number: 3,
+      question: "Alat pendukung yang dipasang pada kepala lepas untuk menahan ujung benda kerja panjang agar tidak lentur adalah...",
+      options: [
+        "A. Senter Putar (Revolving Center)",
+        "B. Collet Chuck",
+        "C. Face Plate",
+        "D. Follower Rest",
+        "E. Lathe Dog"
+      ],
+      correct: 0, // A
+      keyLetter: "A",
+      points: 10,
+      topic: "Perlengkapan Kepala Lepas"
+    },
+    {
+      id: "diag_4",
+      number: 4,
+      question: "Untuk melakukan pembubutan muka (facing) meratakan ujung poros, eretan yang digerakkan adalah...",
+      options: [
+        "A. Eretan Atas",
+        "B. Eretan Melintang",
+        "C. Eretan Alas",
+        "D. Kepala Lepas",
+        "E. Feed Rod"
+      ],
+      correct: 1, // B
+      keyLetter: "B",
+      points: 10,
+      topic: "Eretan Melintang (Cross Slide)"
+    },
+    {
+      id: "diag_5",
+      number: 5,
+      question: "Jika sebuah baja ST 37 berdiameter 20 mm dibubut dengan kecepatan potong Cs = 25 m/menit, maka putaran mesin n teoritis adalah...",
+      options: [
+        "A. 250 RPM",
+        "B. 398 RPM",
+        "C. 500 RPM",
+        "D. 796 RPM",
+        "E. 1000 RPM"
+      ],
+      correct: 1, // B
+      keyLetter: "B",
+      points: 10,
+      topic: "Kalkulasi Parameter RPM (n)"
+    },
+    {
+      id: "diag_6",
+      number: 6,
+      question: "Tindakan keselamatan kerja (K3LH) yang PALING KRITIS dan WAJIB segera dilakukan setelah memasang benda pada chuck adalah...",
+      options: [
+        "A. Menyalakan lampu kerja",
+        "B. Mencabut kunci chuck dari lubang adaptor",
+        "C. Menyiramkan coolant",
+        "D. Menekan emergency stop",
+        "E. Memutar eretan ke paling kanan"
+      ],
+      correct: 1, // B
+      keyLetter: "B",
+      points: 10,
+      topic: "K3LH Kunci Cekam (Chuck)"
+    },
+    {
+      id: "diag_7",
+      number: 7,
+      question: "Poros berulir trapesium tebal yang hanya berputar dan menghubungkan gerak eretan saat membubut ulir adalah...",
+      options: [
+        "A. Feed Rod",
+        "B. Main Spindle",
+        "C. Lead Screw (Poros Transportir)",
+        "D. Rack Gear",
+        "E. Spline Shaft"
+      ],
+      correct: 2, // C
+      keyLetter: "C",
+      points: 10,
+      topic: "Poros Transportir (Lead Screw)"
+    },
+    {
+      id: "diag_8",
+      number: 8,
+      question: "Komponen yang dapat diputar sudutnya (-45 s.d. +45 derajat) untuk pembubutan tirus sudut luar adalah...",
+      options: [
+        "A. Eretan Atas (Compound Rest)",
+        "B. Eretan Melintang",
+        "C. Toolpost",
+        "D. Apron",
+        "E. Tailstock"
+      ],
+      correct: 0, // A
+      keyLetter: "A",
+      points: 10,
+      topic: "Eretan Atas (Compound Rest)"
+    },
+    {
+      id: "diag_9",
+      number: 9,
+      question: "Pada pembacaan jangka sorong dengan ketelitian 0.05 mm, jika garis 0 nonius melewati angka 14 mm dan garis nonius ke-6 segaris lurus dengan skala utama, hasil pembacaannya adalah...",
+      options: [
+        "A. 14.06 mm",
+        "B. 14.30 mm",
+        "C. 14.60 mm",
+        "D. 14.05 mm",
+        "E. 14.65 mm"
+      ],
+      correct: 1, // B
+      keyLetter: "B",
+      points: 10,
+      topic: "Alat Ukur Jangka Sorong"
+    },
+    {
+      id: "diag_10",
+      number: 10,
+      question: "Dokumen rekayasa manufaktur yang wajib disahkan guru sebelum siswa menyalakan mesin bubut disebut...",
+      options: [
+        "A. Work Preparation (WP)",
+        "B. Job Sheet",
+        "C. Kartu Hadir",
+        "D. Laporan Praktik",
+        "E. Kartu Stok"
+      ],
+      correct: 0, // A
+      keyLetter: "A",
+      points: 10,
+      topic: "Dokumen Work Preparation (WP)"
+    }
+  ],
+
+  // 1.2 Angket Non-Kognitif Kesiapan Belajar & Gaya Belajar Siswa (Tidak dinilai, sebagai diagnostik & portofolio)
+  diagnosticSurvey: [
+    {
+      id: "survey_gaya_belajar",
+      number: 1,
+      title: "Gaya Belajar Favorit",
+      question: "Pilihlah gaya belajar yang paling menggambarkan dirimu dalam memahami materi teknik mesin:",
+      options: [
+        {
+          value: "Visual",
+          label: "Visual (Gambar / Sketsa)",
+          desc: "Lebih cepat paham lewat gambar, sketsa komponen, grafik tabel, atau video demonstrasi."
+        },
+        {
+          value: "Auditori",
+          label: "Auditori (Penjelasan Lisan / Diskusi)",
+          desc: "Lebih cepat paham lewat penjelasan lisan guru, instruksi ceramah, dan diskusi kelompok."
+        },
+        {
+          value: "Kinestetik",
+          label: "Kinestetik (Praktik Langsung Bengkel)",
+          desc: "Lebih cepat paham dengan langsung memegang alat, mencoba handle tuas mesin, dan praktik fisik di bengkel."
+        }
+      ]
+    },
+    {
+      id: "survey_pengalaman_mesin",
+      number: 2,
+      title: "Pengalaman Mesin Perkakas",
+      question: "Bagaimanakah pengalaman interaksi langsungmu dengan mesin perkakas bubut sebelum materi ini?",
+      options: [
+        {
+          value: "Belum Pernah",
+          label: "Belum Pernah Mengoperasikan",
+          desc: "Belum pernah menyentuh atau mengoperasikan mesin perkakas bubut sama sekali."
+        },
+        {
+          value: "Pernah Melihat",
+          label: "Pernah Melihat di Lab / Video",
+          desc: "Pernah melihat kakak kelas/guru mengoperasikan di bengkel atau melalui tayangan video pembelajaran."
+        },
+        {
+          value: "Pernah Mencoba",
+          label: "Sudah Pernah Mencoba Dasar (Kelas X)",
+          desc: "Sudah pernah mencoba menggerakkan tuas atau latihan membubut muka/lurus sederhana di kelas X."
+        }
+      ]
+    },
+    {
+      id: "survey_kesiapan_k3",
+      number: 3,
+      title: "Kesiapan Fisik & K3",
+      question: "Bagaimanakah kesiapan perlengkapan APD dan kondisi fisikmu untuk beraktivitas di bengkel pemesinan?",
+      options: [
+        {
+          value: "Lengkap & Prima",
+          label: "Lengkap & Fisik Prima",
+          desc: "Memiliki seragam wearpack & safety shoes lengkap, serta tidak memiliki riwayat trauma/pusing akibat suara mesin putar."
+        },
+        {
+          value: "Lengkap Sebagian",
+          label: "APD Belum Lengkap",
+          desc: "Hanya memiliki salah satu perlengkapan APD (wearpack atau sepatu safety), perlengkapan lainnya masih dipersiapkan."
+        },
+        {
+          value: "Perlu Pendampingan",
+          label: "Perlu Pendampingan Khusus",
+          desc: "Belum memiliki APD lengkap / memiliki kepekaan atau kendala fisik terhadap getaran/suara mesin putar berkecepatan tinggi."
+        }
+      ]
+    }
+  ],
+
+
   classes: ["11 TP A", "11 TP B"],
   academicYears: ["2026/2027"],
 

@@ -30,16 +30,34 @@ const SyncManager = (function () {
     const user = typeof App !== "undefined" && App.getUserData ? App.getUserData() : {};
     const sim = typeof SimEngine !== "undefined" ? SimEngine.getState() : {};
 
-    // Hitung skor kuis
+    // Hitung skor kuis komprehensif
     let correctCount = 0;
-    let totalQ = 5;
+    let totalQ = 8;
     if (typeof AppData !== "undefined" && AppData.quizChallenges) {
       totalQ = AppData.quizChallenges.length;
       correctCount = AppData.quizChallenges.filter(
         (q) => user.quizAnswers && user.quizAnswers[q.id] === q.correct
       ).length;
     }
-    const quizScore = Math.round((correctCount / totalQ) * 100);
+    const compScore = Math.round((correctCount / totalQ) * 100);
+
+    // Hitung skor Quiz 1 (LK-1: Parameter Bubut)
+    let q1Correct = 0;
+    let q1Total = 10;
+    if (typeof AppData !== "undefined" && AppData.quiz1Challenges) {
+      q1Total = AppData.quiz1Challenges.length;
+      q1Correct = AppData.quiz1Challenges.filter(
+        (q) => user.quiz1Answers && user.quiz1Answers[q.id] === q.correct
+      ).length;
+    }
+    const quiz1Score = Math.round((q1Correct / q1Total) * 100);
+
+    // Tentukan quiz aktif
+    const activeTab = typeof App !== "undefined" && App.getCurrentQuizTab ? App.getCurrentQuizTab() : "quiz1";
+    const activeQuizScore = activeTab === "quiz1" ? quiz1Score : compScore;
+    const activeQuizCorrect = activeTab === "quiz1" ? q1Correct : correctCount;
+    const activeQuizTotal = activeTab === "quiz1" ? q1Total : totalQ;
+    const activeQuizName = activeTab === "quiz1" ? "Quiz 1 (LK-1 Bubut)" : "Uji Kompetensi Mandiri";
 
     // K3 & Anatomi
     const totalParts = (AppData?.latheParts?.length || 9) + (AppData?.millingParts?.length || 13);
@@ -57,9 +75,16 @@ const SyncManager = (function () {
       class: user.class || "11 TP A",
       group: user.group || "-",
       academicYear: user.academicYear || "2024/2025",
-      quizScore: quizScore,
-      quizCorrect: correctCount,
-      quizTotal: totalQ,
+      quizName: activeQuizName,
+      quizScore: activeQuizScore,
+      quizCorrect: activeQuizCorrect,
+      quizTotal: activeQuizTotal,
+      quiz1Score: quiz1Score,
+      quiz1Correct: q1Correct,
+      quiz1Total: q1Total,
+      compQuizScore: compScore,
+      compQuizCorrect: correctCount,
+      compQuizTotal: totalQ,
       safetyScore: user.safetyScore || 0,
       safetyStatus: (user.safetyScore || 0) >= 100 ? "LULUS ZERO ACCIDENT" : "TERVERIFIKASI",
       learnedPartsCount: learnedCount,
@@ -73,6 +98,107 @@ const SyncManager = (function () {
         timeStyle: "short"
       })
     };
+  }
+
+  // Mengumpulkan data lengkap pengerjaan Quiz 1 (LK-1: Parameter Bubut) beserta berkas lampiran
+  function gatherQuiz1Data() {
+    const user = typeof App !== "undefined" && App.getUserData ? App.getUserData() : {};
+    const questions = (typeof AppData !== "undefined" && AppData.quiz1Challenges) ? AppData.quiz1Challenges : [];
+    const q1Answers = user.quiz1Answers || {};
+
+    let correctCount = 0;
+    const summaryParts = [];
+
+    questions.forEach((q, idx) => {
+      const studentAns = q1Answers[q.id];
+      if (studentAns === q.correct) {
+        correctCount++;
+      }
+      const letter = (studentAns !== undefined && studentAns !== null) ? String.fromCharCode(65 + studentAns) : "-";
+      summaryParts.push(`Q${idx + 1}:${letter}`);
+    });
+
+    const totalQ = questions.length || 10;
+    const score = Math.round((correctCount / totalQ) * 100);
+    const status = score >= 75 ? "LULUS (KOMPETEN)" : "PERLU PENGAYAAN";
+    const summaryStr = summaryParts.join(", ");
+
+    let attachmentPayload = null;
+    if (user.quiz1Attachment && user.quiz1Attachment.dataUrl) {
+      const base64Data = user.quiz1Attachment.dataUrl.split(",")[1] || user.quiz1Attachment.dataUrl;
+      attachmentPayload = {
+        hasAttachment: true,
+        fileName: user.quiz1Attachment.name,
+        fileType: user.quiz1Attachment.type,
+        fileSize: user.quiz1Attachment.sizeFormatted || `${Math.round(user.quiz1Attachment.size / 1024)} KB`,
+        fileData: base64Data
+      };
+    }
+
+    return {
+      action: "submit_quiz1",
+      name: user.name || "Siswa Belum Terdaftar",
+      nis: user.nis || "-",
+      class: user.class || "11 TP A",
+      group: user.group || "-",
+      academicYear: user.academicYear || "2026/2027",
+      quiz1Score: score,
+      quiz1Correct: correctCount,
+      quiz1Total: totalQ,
+      quizStatus: status,
+      answersSummary: summaryStr,
+      attachment: attachmentPayload,
+      timestamp: new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
+    };
+  }
+
+  // Kirim hasil Quiz 1 & berkas lampiran ke Google Sheets Webhook
+  async function submitQuiz1(customPayload = null) {
+    const webhookUrl = getWebhookUrl();
+    const payload = customPayload || gatherQuiz1Data();
+
+    if (!webhookUrl) {
+      try {
+        localStorage.setItem("esd_pending_quiz1", JSON.stringify(payload));
+      } catch (e) {}
+      return {
+        success: false,
+        noUrl: true,
+        message: "URL Google Apps Script belum disetel. Hasil Quiz 1 & berkas lampiran telah tersimpan secara lokal di browser."
+      };
+    }
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return {
+        success: result.status === "success",
+        data: result,
+        attachmentUrl: result.attachmentUrl || null,
+        message: result.message || "Hasil Quiz 1 & Lampiran berhasil disinkronkan ke Google Sheets!"
+      };
+    } catch (err) {
+      console.warn("Sinkronisasi Quiz 1 gagal:", err);
+      try {
+        localStorage.setItem("esd_pending_quiz1", JSON.stringify(payload));
+      } catch (e) {}
+      return {
+        success: false,
+        error: err.message,
+        message: "Gagal terhubung ke Google Sheets: " + err.message + ". Data tersimpan aman di browser."
+      };
+    }
   }
 
   // Kirim nilai ke Google Sheets Webhook
@@ -114,6 +240,52 @@ const SyncManager = (function () {
         success: false,
         error: err.message,
         message: "Gagal terhubung ke Google Sheets: " + err.message
+      };
+    }
+  }
+
+  // Kirim Asesmen Diagnostik Awal & Profil Belajar ke Google Sheets Webhook
+  async function submitDiagnostic(customPayload) {
+    const webhookUrl = getWebhookUrl();
+    if (!webhookUrl) {
+      try {
+        localStorage.setItem("esd_pending_diagnostic", JSON.stringify(customPayload));
+      } catch (e) {}
+      return {
+        success: false,
+        noUrl: true,
+        message: "URL Google Apps Script belum disetel. Hasil pretest telah disimpan secara lokal di browser."
+      };
+    }
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(customPayload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return {
+        success: result.status === "success",
+        data: result,
+        message: result.message || "Hasil Asesmen Diagnostik berhasil disinkronkan ke Google Sheets!"
+      };
+    } catch (err) {
+      console.warn("Sinkronisasi diagnostik gagal:", err);
+      try {
+        localStorage.setItem("esd_pending_diagnostic", JSON.stringify(customPayload));
+      } catch (e) {}
+      return {
+        success: false,
+        error: err.message,
+        message: "Gagal terhubung ke Google Sheets: " + err.message + ". Hasil tersimpan di memori browser."
       };
     }
   }
@@ -204,6 +376,122 @@ function doPost(e) {
     }
     var payload = JSON.parse(e.postData.contents);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Jika Asesmen Diagnostik Awal
+    if (payload.action === "submit_diagnostic") {
+      var dSheet = ss.getSheetByName("Pretest Diagnostik") || ss.insertSheet("Pretest Diagnostik");
+      var dHeaders = ["NO", "WAKTU PENGERJAAN", "NAMA LENGKAP SISWA", "NIS", "KELAS", "KELOMPOK", "SKOR KOGNITIF (0-100)", "BENAR / 10", "KATEGORI KESIAPAN", "GAYA BELAJAR SISWA", "PENGALAMAN MESIN", "KESIAPAN FISIK & K3", "RINCIAN JAWABAN (Q1-Q10)", "TAHUN AJARAN"];
+      if (dSheet.getLastRow() < 1) {
+        dSheet.getRange(1, 1, 1, dHeaders.length).setValues([dHeaders]).setBackground("#1e40af").setFontColor("#ffffff").setFontWeight("bold").setHorizontalAlignment("center").setVerticalAlignment("middle");
+        dSheet.setRowHeight(1, 35);
+        dSheet.setFrozenRows(1);
+      }
+      var dName = (payload.name || "").toString().trim();
+      var dNis = (payload.nis || "").toString().trim();
+      var dScore = typeof payload.diagnosticScore !== "undefined" ? Number(payload.diagnosticScore) : 0;
+      var dCorrect = typeof payload.diagnosticCorrect !== "undefined" ? Number(payload.diagnosticCorrect) : Math.round(dScore / 10);
+      var dCategory = (payload.category || (dScore >= 80 ? "Kesiapan Tinggi (Mahir)" : dScore >= 60 ? "Kesiapan Sedang (Siap)" : "Kesiapan Awal (Perlu Penguatan)")).toString().trim();
+      var dTimestamp = payload.timestamp || new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
+      var dLastRow = dSheet.getLastRow();
+      var dTargetRow = -1;
+      if (dLastRow >= 2) {
+        var dNisRange = dSheet.getRange(2, 4, dLastRow - 1, 1).getValues();
+        var dNameRange = dSheet.getRange(2, 3, dLastRow - 1, 1).getValues();
+        for (var di = 0; di < dNameRange.length; di++) {
+          if ((dNis && dNisRange[di][0] && dNis === dNisRange[di][0].toString().trim()) || (dName && dNameRange[di][0] && dName.toLowerCase() === dNameRange[di][0].toString().trim().toLowerCase())) {
+            dTargetRow = di + 2;
+            break;
+          }
+        }
+      }
+      var dRowValues = [
+        dTargetRow > 0 ? dSheet.getRange(dTargetRow, 1).getValue() : (dLastRow >= 2 ? dLastRow : 1),
+        dTimestamp, dName, dNis, payload.class || "11 TP A", payload.group || "-",
+        dScore, dCorrect + " / 10 Butir", dCategory, payload.learningStyle || "-",
+        payload.machineExp || "-", payload.safetyReadiness || "-", payload.answersSummary || "-", payload.academicYear || "2026/2027"
+      ];
+      if (dTargetRow > 0) {
+        dSheet.getRange(dTargetRow, 1, 1, dRowValues.length).setValues([dRowValues]);
+        dSheet.getRange(dTargetRow, 7).setBackground(dScore >= 80 ? "#d1fae5" : dScore >= 60 ? "#dbeafe" : "#fef3c7").setFontColor(dScore >= 80 ? "#065f46" : dScore >= 60 ? "#1e40af" : "#92400e").setFontWeight("bold");
+        return ContentService.createTextOutput(JSON.stringify({ status: "success", action: "updated", row: dTargetRow, student: dName, score: dScore, message: "Pretest Diagnostik " + dName + " berhasil diperbarui di tab 'Pretest Diagnostik'." })).setMimeType(ContentService.MimeType.JSON);
+      } else {
+        dSheet.appendRow(dRowValues);
+        var dNewRow = dSheet.getLastRow();
+        dSheet.getRange(dNewRow, 7).setBackground(dScore >= 80 ? "#d1fae5" : dScore >= 60 ? "#dbeafe" : "#fef3c7").setFontColor(dScore >= 80 ? "#065f46" : dScore >= 60 ? "#1e40af" : "#92400e").setFontWeight("bold");
+        return ContentService.createTextOutput(JSON.stringify({ status: "success", action: "appended", row: dNewRow, student: dName, score: dScore, message: "Pretest Diagnostik " + dName + " berhasil ditambahkan di tab 'Pretest Diagnostik'." })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    // Jika Kuis 1 (LK-1 Parameter Bubut + Lampiran Berkas)
+    if (payload.action === "submit_quiz1") {
+      var qSheet = ss.getSheetByName("Quiz 1 (LK-1 Bubut)") || ss.insertSheet("Quiz 1 (LK-1 Bubut)");
+      var qHeaders = ["NO", "WAKTU PENGERJAAN", "NAMA LENGKAP SISWA", "NIS", "KELAS", "KELOMPOK", "SKOR QUIZ 1 (0-100)", "BENAR / 10", "STATUS KELULUSAN", "RINCIAN JAWABAN (Q1-Q10)", "STATUS LAMPIRAN", "LINK GOOGLE DRIVE LAMPIRAN", "TAHUN AJARAN"];
+      if (qSheet.getLastRow() < 1) {
+        qSheet.getRange(1, 1, 1, qHeaders.length).setValues([qHeaders]).setBackground("#b45309").setFontColor("#ffffff").setFontWeight("bold").setHorizontalAlignment("center").setVerticalAlignment("middle");
+        qSheet.setRowHeight(1, 35);
+        qSheet.setFrozenRows(1);
+      }
+      var qName = (payload.name || "").toString().trim();
+      var qNis = (payload.nis || "").toString().trim();
+      var qScore = typeof payload.quiz1Score !== "undefined" ? Number(payload.quiz1Score) : 0;
+      var qCorrect = typeof payload.quiz1Correct !== "undefined" ? Number(payload.quiz1Correct) : Math.round(qScore / 10);
+      var qSummary = qCorrect + " / 10 Soal";
+      var qStatus = qScore >= 75 ? "LULUS (KOMPETEN)" : "PERLU PENGAYAAN";
+      var qTimestamp = payload.timestamp || new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
+      var qAttachmentStatus = "Tidak Ada Lampiran";
+      var qAttachmentUrl = "-";
+
+      if (payload.attachment && payload.attachment.fileData) {
+        try {
+          var folderName = "ESD V-Lab - Lampiran LK-1 Siswa";
+          var folders = DriveApp.getFoldersByName(folderName);
+          var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
+          var decodedBytes = Utilities.base64Decode(payload.attachment.fileData);
+          var mimeType = payload.attachment.fileType || "application/octet-stream";
+          var cleanFileName = (qNis ? qNis + "_" : "") + qName.replace(/[^a-zA-Z0-9]/g, "_") + "_LK1_" + (payload.attachment.fileName || "lampiran");
+          var blob = Utilities.newBlob(decodedBytes, mimeType, cleanFileName);
+          var driveFile = folder.createFile(blob);
+          driveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+          qAttachmentUrl = driveFile.getUrl();
+          qAttachmentStatus = "Terlampir (" + (payload.attachment.fileSize || "File") + ")";
+        } catch (errDrive) {
+          qAttachmentStatus = "Tercatat di Lab (" + (payload.attachment.fileName || "File") + ")";
+          qAttachmentUrl = "Catatan: Izin Google Drive belum aktif (" + errDrive.toString() + ")";
+        }
+      }
+
+      var qLastRow = qSheet.getLastRow();
+      var qTargetRow = -1;
+      if (qLastRow >= 2) {
+        var qNisRange = qSheet.getRange(2, 4, qLastRow - 1, 1).getValues();
+        var qNameRange = qSheet.getRange(2, 3, qLastRow - 1, 1).getValues();
+        for (var qi = 0; qi < qNameRange.length; qi++) {
+          if ((qNis && qNisRange[qi][0] && qNis === qNisRange[qi][0].toString().trim()) || (qName && qNameRange[qi][0] && qName.toLowerCase() === qNameRange[qi][0].toString().trim().toLowerCase())) {
+            qTargetRow = qi + 2;
+            break;
+          }
+        }
+      }
+
+      var qRowValues = [
+        qTargetRow > 0 ? qSheet.getRange(qTargetRow, 1).getValue() : (qLastRow >= 2 ? qLastRow : 1),
+        qTimestamp, qName, qNis, payload.class || "11 TP A", payload.group || "-",
+        qScore, qSummary, qStatus, payload.answersSummary || "-", qAttachmentStatus, qAttachmentUrl, payload.academicYear || "2026/2027"
+      ];
+
+      if (qTargetRow > 0) {
+        qSheet.getRange(qTargetRow, 1, 1, qRowValues.length).setValues([qRowValues]);
+        qSheet.getRange(qTargetRow, 7).setBackground(qScore >= 75 ? "#d1fae5" : "#fef3c7").setFontColor(qScore >= 75 ? "#065f46" : "#92400e").setFontWeight("bold");
+        return ContentService.createTextOutput(JSON.stringify({ status: "success", action: "updated", row: qTargetRow, student: qName, score: qScore, attachmentUrl: qAttachmentUrl, message: "Data Quiz 1 (LK-1) siswa " + qName + " berhasil diperbarui di tab 'Quiz 1 (LK-1 Bubut)'." })).setMimeType(ContentService.MimeType.JSON);
+      } else {
+        qSheet.appendRow(qRowValues);
+        var qNewRow = qSheet.getLastRow();
+        qSheet.getRange(qNewRow, 7).setBackground(qScore >= 75 ? "#d1fae5" : "#fef3c7").setFontColor(qScore >= 75 ? "#065f46" : "#92400e").setFontWeight("bold");
+        return ContentService.createTextOutput(JSON.stringify({ status: "success", action: "appended", row: qNewRow, student: qName, score: qScore, attachmentUrl: qAttachmentUrl, message: "Data Quiz 1 (LK-1) baru untuk " + qName + " berhasil ditambahkan di tab 'Quiz 1 (LK-1 Bubut)'." })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    // Rekap Evaluasi Mandiri / Kuis Reguler
     var sheet = ss.getSheetByName(payload.class || "11 TP A") || ss.getSheetByName("11 TP A") || ss.getSheets()[0];
 
     // Pastikan Header Evaluasi tersedia
@@ -221,7 +509,7 @@ function doPost(e) {
     var simParam = "Cs: " + (payload.simCs || "-") + " m/min | Ra: " + (payload.simRa || "-") + " µm";
     var status = quizScore >= 75 ? "LULUS (KOMPETEN)" : "REMIDI";
     var timestamp = payload.timestamp || new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
-    var year = (payload.academicYear || "2024/2025").toString().trim();
+    var year = (payload.academicYear || "2026/2027").toString().trim();
 
     var lastRow = sheet.getLastRow();
     var targetRow = -1;
@@ -268,7 +556,10 @@ function doPost(e) {
     getWebhookUrl,
     setWebhookUrl,
     gatherStudentData,
+    gatherQuiz1Data,
     submitGrade,
+    submitQuiz1,
+    submitDiagnostic,
     testConnection,
     openModal,
     closeModal,

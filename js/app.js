@@ -19,6 +19,10 @@ const App = (function () {
     badges: [],
     learnedParts: [],
     quizAnswers: {},
+    quiz1Answers: {},
+    quiz1Attachment: null,
+    diagnosticCompleted: false,
+    diagnosticData: null,
     activeScreen: "screen-home",
     activeMachine: "lathe" // "lathe" or "milling"
   };
@@ -26,13 +30,14 @@ const App = (function () {
   let userData = { ...defaultUser };
   let anatomyViewMode = "3d";
   let simViewMode = "3d";
+  let currentQuizTab = "quiz1"; // "quiz1" (LK-1) or "comprehensive" (Uji Kompetensi)
 
   const breadcrumbsMap = {
     "screen-home": "Dashboard / Ringkasan & Lobi Utama",
     "screen-k3": "Keselamatan Kerja / Ruang APD & SOP K3",
     "screen-anatomy": "Eksplorasi Mesin / Anatomi Bubut & Frais",
     "screen-simulation": "Laboratorium / Simulator Kecepatan Potong",
-    "screen-quiz": "Evaluasi Mandiri / Uji Kompetensi & LKPD Digital"
+    "screen-quiz": "Evaluasi & Quiz / Uji Kompetensi & LKPD Digital"
   };
 
   // ==================== THEME MANAGEMENT (DARK / LIGHT MODE) ====================
@@ -111,24 +116,83 @@ const App = (function () {
     applyTheme(newTheme, true);
   }
 
+  function getAccountStorageKey(name, nis) {
+    const cleanNis = (nis || "").toString().trim();
+    const cleanName = (name || "").toString().trim().toLowerCase().replace(/[^a-z0-9]/g, "_");
+    if (cleanNis && cleanNis !== "-") {
+      return "esd_account_nis_" + cleanNis;
+    }
+    return "esd_account_name_" + (cleanName || "guest");
+  }
+
+  function getDiagnosticStorageKey(name, nis) {
+    const cleanNis = (nis || "").toString().trim();
+    const cleanName = (name || "").toString().trim().toLowerCase().replace(/[^a-z0-9]/g, "_");
+    if (cleanNis && cleanNis !== "-") {
+      return "esd_diag_" + cleanNis;
+    }
+    return "esd_diag_" + (cleanName || "guest");
+  }
+
   function loadUserData() {
     try {
       const saved = localStorage.getItem("vmachining_user");
       if (saved) {
         const parsed = JSON.parse(saved);
-        userData = { ...defaultUser, ...parsed };
-        // Ensure login state consistency
-        userData.isLoggedIn = parsed.isLoggedIn === true && Boolean(parsed.name && parsed.name.trim());
-        if (userData.name) {
-          userData.role = userData.name.toLowerCase().includes("admin") ? "admin" : "student";
+        const isLogged = parsed.isLoggedIn === true && Boolean(parsed.name && parsed.name.trim());
+        if (isLogged) {
+          const cleanName = parsed.name.trim();
+          const cleanNis = (parsed.nis || "").toString().trim();
+          const accKey = getAccountStorageKey(cleanName, cleanNis);
+          const savedAcc = localStorage.getItem(accKey);
+
+          if (savedAcc) {
+            const parsedAcc = JSON.parse(savedAcc);
+            userData = {
+              ...defaultUser,
+              ...parsedAcc,
+              ...parsed,
+              name: cleanName,
+              nis: cleanNis,
+              isLoggedIn: true
+            };
+            userData.quizAnswers = (parsedAcc.quizAnswers && typeof parsedAcc.quizAnswers === "object") ? { ...parsedAcc.quizAnswers } : {};
+            userData.quiz1Answers = (parsedAcc.quiz1Answers && typeof parsedAcc.quiz1Answers === "object") ? { ...parsedAcc.quiz1Answers } : {};
+            userData.quiz1Attachment = (parsedAcc.quiz1Attachment && typeof parsedAcc.quiz1Attachment === "object") ? { ...parsedAcc.quiz1Attachment } : null;
+          } else {
+            userData = { ...defaultUser, ...parsed, isLoggedIn: true };
+            if (!userData.quizAnswers || typeof userData.quizAnswers !== "object") userData.quizAnswers = {};
+            if (!userData.quiz1Answers || typeof userData.quiz1Answers !== "object") userData.quiz1Answers = {};
+            if (!userData.quiz1Attachment || typeof userData.quiz1Attachment !== "object") userData.quiz1Attachment = null;
+            try {
+              localStorage.setItem(accKey, JSON.stringify(userData));
+            } catch (e) {}
+          }
+
+          if (userData.name) {
+            userData.role = userData.name.toLowerCase().includes("admin") ? "admin" : "student";
+          }
+
+          // Verify diagnostic data for this student
+          isDiagnosticCompleted(userData.name, userData.nis);
+        } else {
+          userData = { ...defaultUser, isLoggedIn: false };
         }
+      } else {
+        userData = { ...defaultUser, isLoggedIn: false };
       }
-    } catch (e) {}
+    } catch (e) {
+      userData = { ...defaultUser, isLoggedIn: false };
+    }
   }
 
   function saveUserData() {
     try {
       localStorage.setItem("vmachining_user", JSON.stringify(userData));
+      if (userData.isLoggedIn && userData.name && userData.name.trim()) {
+        const accKey = getAccountStorageKey(userData.name, userData.nis);
+        localStorage.setItem(accKey, JSON.stringify(userData));
+      }
     } catch (e) {}
     updateHUD();
   }
@@ -142,6 +206,7 @@ const App = (function () {
       userData.isLoggedIn = false;
       welcomeScreen.classList.remove("hidden");
       welcomeScreen.style.display = "flex";
+      closeDiagnosticModal();
       // Fill inputs if available
       const nameInput = document.getElementById("login-name");
       const classSelect = document.getElementById("login-class");
@@ -155,6 +220,16 @@ const App = (function () {
     } else {
       welcomeScreen.classList.add("hidden");
       welcomeScreen.style.display = "none";
+
+      // If logged in student has NOT completed diagnostic, show diagnostic modal
+      if (userData.role !== "admin") {
+        const isDone = isDiagnosticCompleted(userData.name, userData.nis);
+        if (!isDone) {
+          setTimeout(() => {
+            openDiagnosticModal(false);
+          }, 200);
+        }
+      }
     }
   }
 
@@ -294,17 +369,91 @@ const App = (function () {
       }
     }
 
-    userData.name = cleanName;
-    userData.class = classVal || "11 TP A";
-    userData.academicYear = yearVal || "2026/2027";
-    userData.nis = nis;
-    userData.group = group;
-    userData.role = role;
-    userData.isLoggedIn = true;
+    // 1. If previous user was active, flush their progress to their own dedicated key first
+    if (userData.isLoggedIn && userData.name && userData.name.trim()) {
+      const prevAccKey = getAccountStorageKey(userData.name, userData.nis);
+      try {
+        localStorage.setItem(prevAccKey, JSON.stringify(userData));
+      } catch (e) {}
+    }
 
+    // 2. Load target student's isolated account record if it exists
+    const targetKey = getAccountStorageKey(cleanName, nis);
+    let targetAccData = null;
+    try {
+      const rawAcc = localStorage.getItem(targetKey);
+      if (rawAcc) {
+        targetAccData = JSON.parse(rawAcc);
+      }
+    } catch (e) {}
+
+    if (targetAccData) {
+      // Restore existing student's isolated progress
+      userData = {
+        ...defaultUser,
+        ...targetAccData,
+        name: cleanName,
+        class: classVal || targetAccData.class || "11 TP A",
+        academicYear: yearVal || targetAccData.academicYear || "2026/2027",
+        nis: nis || targetAccData.nis || "",
+        group: group || targetAccData.group || "",
+        role: role,
+        isLoggedIn: true
+      };
+      userData.quizAnswers = (targetAccData.quizAnswers && typeof targetAccData.quizAnswers === "object") ? { ...targetAccData.quizAnswers } : {};
+      userData.quiz1Answers = (targetAccData.quiz1Answers && typeof targetAccData.quiz1Answers === "object") ? { ...targetAccData.quiz1Answers } : {};
+      userData.quiz1Attachment = (targetAccData.quiz1Attachment && typeof targetAccData.quiz1Attachment === "object") ? { ...targetAccData.quiz1Attachment } : null;
+      userData.badges = Array.isArray(targetAccData.badges) ? [...targetAccData.badges] : [];
+      userData.learnedParts = Array.isArray(targetAccData.learnedParts) ? [...targetAccData.learnedParts] : [];
+    } else {
+      // New student record: clean, isolated default state
+      userData = {
+        ...defaultUser,
+        name: cleanName,
+        class: classVal || "11 TP A",
+        academicYear: yearVal || "2026/2027",
+        nis: nis,
+        group: group,
+        role: role,
+        isLoggedIn: true,
+        level: 1,
+        xp: 0,
+        xpMax: 500,
+        safetyScore: 0,
+        badges: [],
+        learnedParts: [],
+        quizAnswers: {},
+        quiz1Answers: {},
+        quiz1Attachment: null,
+        diagnosticCompleted: false,
+        diagnosticData: null
+      };
+    }
+
+    // 3. Verify diagnostic completion specifically for this student
+    const diagCompleted = isDiagnosticCompleted(cleanName, nis);
+    if (!diagCompleted) {
+      userData.diagnosticCompleted = false;
+      userData.diagnosticData = null;
+    }
+
+    // 4. Reset in-memory diagnostic modal form answers so they don't leak from previous user
+    diagnosticAnswers.cognitive = {};
+    diagnosticAnswers.survey = {};
+    if (userData.diagnosticData) {
+      if (userData.diagnosticData.cognitiveAnswers) {
+        diagnosticAnswers.cognitive = { ...userData.diagnosticData.cognitiveAnswers };
+      }
+      if (userData.diagnosticData.surveyAnswers) {
+        diagnosticAnswers.survey = { ...userData.diagnosticData.surveyAnswers };
+      }
+    }
+
+    // 5. Persist isolated state and refresh UI
     saveUserData();
     checkAuth();
     updateHUD();
+    renderQuizScreen();
 
     try { SoundEngine.playSuccess(); } catch (e) {}
 
@@ -313,6 +462,11 @@ const App = (function () {
     } else {
       const infoKelompok = group ? ` (${group})` : "";
       showToast(`Selamat datang di ESD V-Lab, ${cleanName}${infoKelompok}!`, "success");
+      if (!isDiagnosticCompleted(cleanName, nis)) {
+        setTimeout(() => {
+          openDiagnosticModal(false);
+        }, 350);
+      }
     }
   }
 
@@ -352,10 +506,46 @@ const App = (function () {
 
   function logout() {
     try { SoundEngine.playClick(); } catch (e) {}
-    userData.isLoggedIn = false;
-    saveUserData();
+
+    // Flush current user's progress to their dedicated account key
+    if (userData.name && userData.name.trim()) {
+      const accKey = getAccountStorageKey(userData.name, userData.nis);
+      try {
+        localStorage.setItem(accKey, JSON.stringify(userData));
+      } catch (e) {}
+    }
+
+    // Reset memory state completely
+    userData = {
+      ...defaultUser,
+      isLoggedIn: false,
+      level: 1,
+      xp: 0,
+      xpMax: 500,
+      safetyScore: 0,
+      badges: [],
+      learnedParts: [],
+      quizAnswers: {},
+      quiz1Answers: {},
+      quiz1Attachment: null,
+      diagnosticCompleted: false,
+      diagnosticData: null
+    };
+
+    const q1Input = document.getElementById("quiz1-file-input");
+    if (q1Input) q1Input.value = "";
+
+    diagnosticAnswers.cognitive = {};
+    diagnosticAnswers.survey = {};
+
+    try {
+      localStorage.removeItem("vmachining_user");
+    } catch (e) {}
+
     hideAdminPasswordSection();
+    closeDiagnosticModal();
     checkAuth();
+
     const nameInput = document.getElementById("login-name");
     if (nameInput) {
       nameInput.value = "";
@@ -363,7 +553,9 @@ const App = (function () {
     }
     const badge = document.getElementById("login-student-badge");
     if (badge) badge.classList.add("hidden");
+
     updateHUD();
+    renderQuizScreen();
     showToast("Anda telah keluar dari sesi praktikum virtual.", "info");
   }
 
@@ -427,11 +619,31 @@ const App = (function () {
       classEl.textContent = `${userData.class || "11 TP A"}${yearInfo}`;
     }
     if (levelEl) levelEl.textContent = `Level ${userData.level}`;
+    const xpPct = Math.min(100, Math.round((userData.xp / userData.xpMax) * 100));
     if (xpBarEl) {
-      const pct = Math.min(100, Math.round((userData.xp / userData.xpMax) * 100));
-      xpBarEl.style.width = `${pct}%`;
+      xpBarEl.style.width = `${xpPct}%`;
     }
     if (xpTextEl) xpTextEl.textContent = `${userData.xp} / ${userData.xpMax} XP`;
+
+    // Dynamic Level Card on Dashboard (screen-home)
+    const homeLevelEl = document.getElementById("stat-home-level");
+    const homeXpEl = document.getElementById("stat-home-xp");
+    if (homeLevelEl) {
+      const levelNames = ["", "Magang (L1)", "Junior (L2)", "Teknisi (L3)", "Senior (L4)", "Master (L5)", "Pakar (L6)"];
+      homeLevelEl.textContent = levelNames[userData.level] || `Spesialis (L${userData.level})`;
+    }
+    if (homeXpEl) {
+      homeXpEl.textContent = `${userData.xp} / ${userData.xpMax} XP`;
+    }
+
+    // Dynamic Level Indicators in Profile Modal
+    const profileLevelBadge = document.getElementById("profile-level-badge");
+    const profileXpBar = document.getElementById("profile-xp-bar");
+    const profileXpText = document.getElementById("profile-xp-text");
+    if (profileLevelBadge) profileLevelBadge.textContent = `Level ${userData.level}`;
+    if (profileXpBar) profileXpBar.style.width = `${xpPct}%`;
+    if (profileXpText) profileXpText.textContent = `${userData.xp} / ${userData.xpMax} XP`;
+
     if (safetyBadgeEl) {
       safetyBadgeEl.textContent = `${userData.safetyScore} Pts`;
     }
@@ -486,6 +698,62 @@ const App = (function () {
       } else {
         studentNote.classList.remove("hidden");
         studentNote.style.display = "";
+      }
+    }
+
+    // Diagnostic Card HUD update on screen-home
+    const diagBadge = document.getElementById("badge-diag-status");
+    const diagDesc = document.getElementById("desc-diag-status");
+    const diagScoreBox = document.getElementById("stat-diag-score-box");
+    const diagScoreText = document.getElementById("stat-diag-score-text");
+    const diagBtnText = document.getElementById("btn-diag-home-text");
+    const profileDiagBadge = document.getElementById("profile-diag-badge");
+    const profileDiagDesc = document.getElementById("profile-diag-desc");
+
+    if (userData.diagnosticCompleted && userData.diagnosticData) {
+      const d = userData.diagnosticData;
+      if (d.skipped) {
+        if (diagBadge) {
+          diagBadge.textContent = "Dilewati";
+          diagBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300";
+        }
+        if (diagDesc) diagDesc.textContent = "Asesmen diagnostik telah dilewati (siswa tercatat telah mengisi sebelumnya).";
+        if (diagScoreBox) diagScoreBox.classList.add("hidden");
+        if (diagBtnText) diagBtnText.textContent = "Kerjakan Asesmen";
+        if (profileDiagBadge) {
+          profileDiagBadge.textContent = "Dilewati";
+          profileDiagBadge.className = "font-bold px-2 py-0.5 rounded text-[11px] bg-slate-200 text-slate-700";
+        }
+      } else {
+        if (diagBadge) {
+          diagBadge.textContent = `Selesai (${d.score}/100)`;
+          diagBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300";
+        }
+        if (diagDesc) {
+          diagDesc.textContent = `Gaya Belajar: ${d.learningStyle || "-"} | Status: ${d.category || "-"}`;
+        }
+        if (diagScoreBox) diagScoreBox.classList.remove("hidden");
+        if (diagScoreText) diagScoreText.textContent = `${d.score} / 100`;
+        if (diagBtnText) diagBtnText.textContent = "Lihat / Review Jawaban";
+        if (profileDiagBadge) {
+          profileDiagBadge.textContent = `Selesai (${d.score} Pts)`;
+          profileDiagBadge.className = "font-bold px-2 py-0.5 rounded text-[11px] bg-emerald-100 text-emerald-800";
+        }
+        if (profileDiagDesc) {
+          profileDiagDesc.textContent = `Gaya Belajar: ${d.learningStyle || "-"} | Kesiapan: ${d.category || "-"}`;
+        }
+      }
+    } else {
+      if (diagBadge) {
+        diagBadge.textContent = "Belum Selesai";
+        diagBadge.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300";
+      }
+      if (diagDesc) diagDesc.textContent = "Pengukuran 10 butir kognitif awal mesin bubut & pemetaan gaya belajar untuk portofolio LKPD siswa.";
+      if (diagScoreBox) diagScoreBox.classList.add("hidden");
+      if (diagBtnText) diagBtnText.textContent = "Buka Soal Diagnostik";
+      if (profileDiagBadge) {
+        profileDiagBadge.textContent = "Belum Selesai";
+        profileDiagBadge.className = "font-bold px-2 py-0.5 rounded text-[11px] bg-indigo-100 text-indigo-800";
       }
     }
   }
@@ -2011,41 +2279,164 @@ const App = (function () {
     }
   }
 
-  // Render Quiz Challenges
+  // ==================== QUIZ & EVALUASI CONTROLLER ====================
+  function toggleQuiz1FormulaCard() {
+    const card = document.getElementById("quiz1-formula-card");
+    const txt = document.getElementById("btn-toggle-formula-text");
+    if (!card) return;
+    const isHidden = card.classList.contains("hidden");
+    if (isHidden) {
+      card.classList.remove("hidden");
+      if (txt) txt.textContent = "Sembunyikan Rumus Acuan";
+    } else {
+      card.classList.add("hidden");
+      if (txt) txt.textContent = "Lihat Rumus Acuan";
+    }
+  }
+
+  function switchQuizPackage(tabId) {
+    currentQuizTab = tabId || "quiz1";
+
+    const tabLk1 = document.getElementById("tab-quiz-lk1");
+    const tabComp = document.getElementById("tab-quiz-comprehensive");
+    const bannerLk1 = document.getElementById("quiz1-intro-banner");
+    const formulaCard = document.getElementById("quiz1-formula-card");
+    const attachmentCard = document.getElementById("quiz1-attachment-card");
+    const titleEl = document.getElementById("quiz-screen-title");
+    const subtitleEl = document.getElementById("quiz-screen-subtitle");
+
+    if (currentQuizTab === "quiz1") {
+      if (tabLk1) {
+        tabLk1.className = "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-sm";
+      }
+      if (tabComp) {
+        tabComp.className = "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white";
+      }
+      if (bannerLk1) bannerLk1.classList.remove("hidden");
+      if (attachmentCard) attachmentCard.classList.remove("hidden");
+      if (titleEl) titleEl.textContent = "Quiz 1: Perhitungan Parameter Bubut (LK-1)";
+      if (subtitleEl) subtitleEl.textContent = "Kerjakan 10 butir soal perhitungan parameter pemotongan poros ST-37, aluminium finishing, dan optimasi baja S45C.";
+    } else {
+      if (tabLk1) {
+        tabLk1.className = "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white";
+      }
+      if (tabComp) {
+        tabComp.className = "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-sm";
+      }
+      if (bannerLk1) bannerLk1.classList.add("hidden");
+      if (formulaCard) formulaCard.classList.add("hidden");
+      if (attachmentCard) attachmentCard.classList.add("hidden");
+      if (titleEl) titleEl.textContent = "Uji Kompetensi Mandiri (Teori & Kasus)";
+      if (subtitleEl) subtitleEl.textContent = "Uji kemampuan kognitif K3, anatomi mesin, dan kalkulasi parameter bubut & frais secara komprehensif.";
+    }
+
+    // Update active state on sidebar navigation
+    document.querySelectorAll(".sidebar-nav-item").forEach((btn) => {
+      if (btn.dataset.target === "screen-quiz") {
+        if (btn.dataset.quizTab === currentQuizTab) {
+          btn.classList.add("active");
+        } else {
+          btn.classList.remove("active");
+        }
+      }
+    });
+
+    renderQuizScreen();
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
+  }
+
+  function resetQuizAnswers(tabId) {
+    if (tabId === "quiz1") {
+      userData.quiz1Answers = {};
+      showToast("Jawaban Quiz 1 berhasil direset. Silakan berlatih kembali!", "info");
+    } else {
+      userData.quizAnswers = {};
+      showToast("Jawaban Uji Kompetensi berhasil direset. Silakan berlatih kembali!", "info");
+    }
+    saveUserData();
+    renderQuizScreen();
+  }
+
+  // Render Quiz Challenges (Mendukung Quiz 1: LK-1 Parameter Bubut & Uji Kompetensi Komprehensif)
   function renderQuizScreen() {
     const container = document.getElementById("quiz-questions-container");
+    const summaryEl = document.getElementById("quiz-summary-box");
     if (!container) return;
     container.innerHTML = "";
+    if (summaryEl) {
+      summaryEl.classList.add("hidden");
+      summaryEl.innerHTML = "";
+    }
 
-    AppData.quizChallenges.forEach((q, idx) => {
+    const isQuiz1 = currentQuizTab === "quiz1";
+    const questions = isQuiz1 ? (AppData.quiz1Challenges || []) : (AppData.quizChallenges || []);
+    if (!userData.quiz1Answers || typeof userData.quiz1Answers !== "object") userData.quiz1Answers = {};
+    if (!userData.quizAnswers || typeof userData.quizAnswers !== "object") userData.quizAnswers = {};
+    const answersMap = isQuiz1 ? userData.quiz1Answers : userData.quizAnswers;
+
+    let lastCaseNum = null;
+
+    questions.forEach((q, idx) => {
+      // Render Header Kartu Kasus (Khusus Quiz 1) saat masuk babak kasus baru
+      if (isQuiz1 && q.caseNum && q.caseNum !== lastCaseNum) {
+        lastCaseNum = q.caseNum;
+        const caseHeader = document.createElement("div");
+        caseHeader.className = "p-4 sm:p-5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/90 dark:border-amber-800/60 mb-3 shadow-xs";
+        caseHeader.innerHTML = `
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-xl bg-amber-500 text-white font-black text-xs flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+              K${q.caseNum}
+            </div>
+            <div class="flex-1">
+              <h3 class="font-black text-sm sm:text-base text-amber-950 dark:text-amber-100">
+                ${q.caseTitle || ("Studi Kasus " + q.caseNum)}
+              </h3>
+              ${q.caseDescription ? `
+                <div class="mt-2 p-3 rounded-xl bg-white/90 dark:bg-slate-900/80 border border-amber-200 dark:border-amber-900/60 text-xs text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed font-sans shadow-2xs">
+                  ${q.caseDescription}
+                </div>
+              ` : ""}
+            </div>
+          </div>
+        `;
+        container.appendChild(caseHeader);
+      }
+
       const card = document.createElement("div");
       card.className = "mat-card mb-4";
-      const isAnswered = userData.quizAnswers[q.id] !== undefined;
-      const selectedOpt = userData.quizAnswers[q.id];
+      const isAnswered = answersMap[q.id] !== undefined;
+      const selectedOpt = answersMap[q.id];
 
       let optionsHtml = "";
       q.options.forEach((opt, optIdx) => {
-        let optClass = "p-3 rounded-lg border text-xs font-medium cursor-pointer transition-all mb-2 flex items-center justify-between ";
+        let optClass = "p-3 rounded-xl border text-xs font-medium cursor-pointer transition-all mb-2 flex items-center justify-between ";
         if (isAnswered) {
           if (optIdx === q.correct) {
-            optClass += "bg-emerald-50 border-emerald-500 text-emerald-900 font-semibold";
+            optClass += "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-bold";
           } else if (optIdx === selectedOpt) {
-            optClass += "bg-red-50 border-red-500 text-red-900 font-semibold";
+            optClass += "bg-red-50 dark:bg-red-950/40 border-red-500 text-red-900 dark:text-red-200 font-bold";
           } else {
-            optClass += "bg-slate-50 border-slate-200 text-slate-400 opacity-60";
+            optClass += "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-400 opacity-60";
           }
         } else {
-          optClass += "bg-white border-slate-200 text-slate-700 hover:border-blue-400 hover:bg-slate-50";
+          optClass += "bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/40 dark:hover:bg-slate-800";
         }
 
         optionsHtml += `
           <div class="${optClass}" data-qid="${q.id}" data-opt="${optIdx}">
-            <span>${String.fromCharCode(65 + optIdx)}. ${opt}</span>
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center font-bold text-[11px] text-slate-700 dark:text-slate-200 flex-shrink-0">
+                ${String.fromCharCode(65 + optIdx)}
+              </span>
+              <span>${opt}</span>
+            </div>
             ${
               isAnswered && optIdx === q.correct
-                ? '<span class="text-emerald-700 font-bold">✓ Benar</span>'
+                ? '<span class="text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center gap-1 flex-shrink-0"><i data-lucide="check" class="w-3.5 h-3.5"></i> Benar</span>'
                 : isAnswered && optIdx === selectedOpt
-                ? '<span class="text-red-700 font-bold">✗ Salah</span>'
+                ? '<span class="text-red-600 dark:text-red-400 font-bold text-xs flex items-center gap-1 flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i> Salah</span>'
                 : ""
             }
           </div>
@@ -2056,17 +2447,26 @@ const App = (function () {
         <div class="p-5">
           <div class="flex items-center justify-between mb-2">
             <span class="mat-badge mat-badge-primary">
-              Level ${q.level} • ${q.category}
+              ${isQuiz1 ? 'LK-1 Parameter Bubut' : ('Level ' + q.level)} • ${q.category}
             </span>
-            <span class="text-xs text-slate-400 font-medium">Soal ${idx + 1} dari ${AppData.quizChallenges.length}</span>
+            <span class="text-xs text-slate-400 font-medium">Soal ${idx + 1} dari ${questions.length}</span>
           </div>
-          <h4 class="font-semibold text-sm text-slate-800 mb-3">${q.question}</h4>
-          ${q.formulaHint ? `<div class="mb-3 p-2.5 bg-blue-50/60 border border-blue-200 rounded text-xs text-blue-800 font-mono">💡 Rumus Petunjuk: ${q.formulaHint}</div>` : ""}
+          <h4 class="font-bold text-sm text-slate-800 dark:text-white mb-3 leading-snug">${q.question}</h4>
+          ${q.formulaHint ? `
+            <div class="mb-3 p-2.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl text-xs text-blue-800 dark:text-blue-300 font-mono flex items-center gap-2">
+              <i data-lucide="lightbulb" class="w-4 h-4 text-amber-500 flex-shrink-0"></i>
+              <span>Rumus Petunjuk: <strong>${q.formulaHint}</strong></span>
+            </div>
+          ` : ""}
           <div class="options-group">${optionsHtml}</div>
           ${
             isAnswered
-              ? `<div class="mt-3 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 leading-relaxed">
-                  <strong>Pembahasan:</strong> ${q.explanation}
+              ? `<div class="mt-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                  <div class="font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-1.5">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5 text-blue-600"></i>
+                    <span>Pembahasan & Langkah Perhitungan:</span>
+                  </div>
+                  <div class="whitespace-pre-line">${q.explanation}</div>
                 </div>`
               : ""
           }
@@ -2079,14 +2479,14 @@ const App = (function () {
           optEl.onclick = () => {
             const qid = optEl.dataset.qid;
             const chosen = parseInt(optEl.dataset.opt);
-            userData.quizAnswers[qid] = chosen;
+            answersMap[qid] = chosen;
 
             if (chosen === q.correct) {
-              SoundEngine.playSuccess();
+              try { SoundEngine.playSuccess(); } catch (e) {}
               addXP(50);
               showToast("Jawaban Benar! +50 XP", "success");
             } else {
-              SoundEngine.playWarning();
+              try { SoundEngine.playWarning(); } catch (e) {}
               showToast("Jawaban Kurang Tepat!", "danger");
             }
             saveUserData();
@@ -2098,42 +2498,94 @@ const App = (function () {
       container.appendChild(card);
     });
 
-    // Check if all answered
-    const totalQ = AppData.quizChallenges.length;
-    const answeredCount = Object.keys(userData.quizAnswers).length;
-    const correctCount = AppData.quizChallenges.filter(
-      (q) => userData.quizAnswers[q.id] === q.correct
-    ).length;
+    // Check if all questions in the current package are answered
+    const totalQ = questions.length;
+    const answeredCount = Object.keys(answersMap).filter(id => questions.some(q => q.id === id)).length;
+    const correctCount = questions.filter(q => answersMap[q.id] === q.correct).length;
 
-    const summaryEl = document.getElementById("quiz-summary-box");
-    if (summaryEl && answeredCount === totalQ) {
+    if (summaryEl && answeredCount === totalQ && totalQ > 0) {
       summaryEl.classList.remove("hidden");
       const isAdmin = userData.role === "admin";
+      const scorePct = Math.round((correctCount / totalQ) * 100);
+
+      // Quiz 1 Summary Table HTML
+      let summaryTableHtml = "";
+      if (isQuiz1 && AppData.quiz1SummaryTable) {
+        summaryTableHtml = `
+          <div class="mt-4 bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-amber-200 dark:border-amber-900/60 shadow-xs">
+            <div class="flex items-center gap-2 mb-2 font-bold text-xs text-slate-800 dark:text-white">
+              <i data-lucide="table" class="w-4 h-4 text-amber-600"></i>
+              <span>Tabel Rangkuman Hasil Perhitungan Lembar Kerja 1 (LK-1)</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="bg-amber-50/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-b border-amber-200 dark:border-slate-700">
+                    <th class="p-2 font-bold">Kasus / Benda Kerja</th>
+                    <th class="p-2 font-bold">Parameter Acuan</th>
+                    <th class="p-2 font-bold font-mono">n (RPM)</th>
+                    <th class="p-2 font-bold font-mono">tm (menit)</th>
+                    <th class="p-2 font-bold font-mono">MRR (mm³/min)</th>
+                    <th class="p-2 font-bold">Analisis Rekayasa</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
+                  ${AppData.quiz1SummaryTable.map(row => `
+                    <tr>
+                      <td class="p-2 font-semibold text-slate-800 dark:text-white">${row.soal}</td>
+                      <td class="p-2 font-mono text-[11px] text-slate-500 dark:text-slate-400">${row.parameter}</td>
+                      <td class="p-2 font-bold font-mono text-blue-600 dark:text-blue-400">${row.n}</td>
+                      <td class="p-2 font-bold font-mono text-amber-600 dark:text-amber-400">${row.tm}</td>
+                      <td class="p-2 font-bold font-mono text-emerald-600 dark:text-emerald-400">${row.mrr}</td>
+                      <td class="p-2 text-[11px] text-slate-500 dark:text-slate-400">${row.catatan}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
       summaryEl.innerHTML = `
-        <div class="p-5 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/90 dark:bg-blue-950/40 text-blue-950 dark:text-blue-100 flex flex-col gap-4 shadow-sm">
+        <div class="p-5 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/90 dark:bg-blue-950/40 text-blue-950 dark:text-blue-100 flex flex-col gap-4 shadow-sm animate-in fade-in duration-200">
           <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
             <div>
               <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 text-[11px] font-bold mb-1">
                 <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-blue-600"></i>
-                <span>Uji Kompetensi Mandiri Selesai</span>
+                <span>${isQuiz1 ? 'Quiz 1: Parameter Bubut Selesai' : 'Uji Kompetensi Mandiri Selesai'}</span>
               </div>
               <h4 class="font-extrabold text-base text-slate-900 dark:text-white">Hasil Evaluasi Pembelajaran</h4>
               <p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-                Skor Kuis: <strong class="text-emerald-700 dark:text-emerald-400 font-extrabold text-sm">${correctCount} / ${totalQ} Benar (${Math.round((correctCount / totalQ) * 100)}%)</strong>
+                Skor Akhir: <strong class="text-emerald-700 dark:text-emerald-400 font-extrabold text-sm">${correctCount} / ${totalQ} Benar (${scorePct}%)</strong>
+                — Predikat: <span class="font-bold ${scorePct >= 75 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}">${scorePct >= 75 ? 'LULUS (KOMPETEN)' : 'PERLU PENGAYAAN'}</span>
               </p>
             </div>
-            ${
-              isAdmin
-                ? `<button onclick="App.printLKPD()" class="mat-btn mat-btn-primary admin-only-feature">
-                    <i data-lucide="printer" class="w-4 h-4"></i>
-                    <span>Cetak / Unduh LKPD Digital (PDF)</span>
-                  </button>`
-                : `<div class="px-3.5 py-2 rounded-xl bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-200 text-xs font-bold flex items-center gap-2 border border-emerald-300 dark:border-emerald-800">
-                    <i data-lucide="award" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
-                    <span>Evaluasi Tersimpan di Profil Sesi</span>
-                  </div>`
-            }
+            <div class="flex items-center gap-2">
+              <button 
+                type="button" 
+                onclick="App.resetQuizAnswers('${currentQuizTab}')" 
+                class="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Ulangi pengerjaan kuis ini untuk latihan kembali"
+              >
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                <span>Ulangi Quiz</span>
+              </button>
+              ${
+                isAdmin
+                  ? `<button onclick="App.printLKPD()" class="mat-btn mat-btn-primary admin-only-feature">
+                      <i data-lucide="printer" class="w-4 h-4"></i>
+                      <span>Cetak / Unduh LKPD Digital (PDF)</span>
+                    </button>`
+                  : `<div class="px-3.5 py-2 rounded-xl bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-200 text-xs font-bold flex items-center gap-2 border border-emerald-300 dark:border-emerald-800">
+                      <i data-lucide="award" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                      <span>Evaluasi Tersimpan</span>
+                    </div>`
+              }
+            </div>
           </div>
+
+          ${summaryTableHtml}
 
           <!-- Google Sheets Real-Time Sync Section -->
           <div class="pt-3 border-t border-blue-200/80 dark:border-blue-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white/70 dark:bg-slate-900/40 p-3 rounded-xl">
@@ -2144,23 +2596,30 @@ const App = (function () {
               <div>
                 <div class="text-xs font-bold text-slate-800 dark:text-white">Rekapitulasi Nilai ke Spreadsheet Guru</div>
                 <div id="sync-status-quiz" class="text-[11px] text-slate-500 dark:text-slate-400">
-                  Kirim skor kuis, keselamatan K3, dan parameter simulasi ke Google Sheets kelas.
+                  ${isQuiz1 ? 'Kirim jawaban 10 butir Quiz 1, skor evaluasi, dan berkas lampiran pekerjaan siswa ke Google Sheets & Google Drive kelas.' : 'Kirim skor Uji Kompetensi, keselamatan K3, dan parameter simulasi ke Google Sheets kelas.'}
                 </div>
               </div>
             </div>
             <button 
               id="btn-sync-grades-quiz" 
-              onclick="App.sendGradesToSpreadsheet()" 
+              onclick="${isQuiz1 ? 'App.sendQuiz1ToSpreadsheet()' : 'App.sendGradesToSpreadsheet()'}" 
               class="self-stretch sm:self-auto py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer"
             >
               <i data-lucide="send" class="w-4 h-4"></i>
-              <span>Kirim Nilai ke Spreadsheet Guru</span>
+              <span>${isQuiz1 ? 'Kirim Jawaban & Lampiran ke Spreadsheet' : 'Kirim Nilai ke Spreadsheet Guru'}</span>
             </button>
           </div>
         </div>
       `;
-      unlockBadge("quiz_master", "Master Teori Pemesinan");
-      if (window.lucide) lucide.createIcons();
+      if (scorePct >= 75) {
+        unlockBadge("quiz_master", "Master Teori Pemesinan");
+      }
+    }
+
+    renderQuiz1AttachmentUI();
+
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
     }
   }
 
@@ -2211,6 +2670,1197 @@ const App = (function () {
         if (window.lucide) lucide.createIcons();
       }
     }
+  }
+
+  // ==================== QUIZ 1 BERKAS LAMPIRAN & SINKRONISASI ====================
+  function compressImageIfNeeded(file) {
+    return new Promise((resolve, reject) => {
+      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      if (isPdf) {
+        if (file.size > 5 * 1024 * 1024) {
+          return reject(new Error("Ukuran berkas PDF melebihi batas maksimal 5 MB."));
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          resolve({
+            fileName: file.name,
+            fileType: "application/pdf",
+            fileSize: file.size,
+            fileData: e.target.result,
+            uploadedAt: new Date().toLocaleString("id-ID")
+          });
+        };
+        reader.onerror = () => reject(new Error("Gagal membaca berkas PDF."));
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        return reject(new Error("Format berkas tidak didukung. Harap gunakan foto/gambar (JPG/PNG/WebP) atau dokumen PDF."));
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        return reject(new Error("Ukuran foto melebihi batas maksimal 10 MB."));
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1600;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.82);
+          const base64Len = compressedDataUrl.length - (compressedDataUrl.indexOf(",") + 1);
+          const estSize = Math.round((base64Len * 3) / 4);
+
+          resolve({
+            fileName: file.name.replace(/\.[^/.]+$/, "") + ".jpg",
+            fileType: "image/jpeg",
+            fileSize: estSize,
+            fileData: compressedDataUrl,
+            uploadedAt: new Date().toLocaleString("id-ID")
+          });
+        };
+        img.onerror = () => reject(new Error("Gagal memproses file foto."));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error("Gagal membaca elemen gambar."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function processQuiz1File(file) {
+    if (!file) return;
+    try {
+      showToast("Sedang memproses dan mengompres berkas lampiran...", "info");
+      const attachment = await compressImageIfNeeded(file);
+      userData.quiz1Attachment = attachment;
+      saveUserData();
+      renderQuiz1AttachmentUI();
+      showToast(`Berkas "${attachment.fileName}" berhasil dilampirkan!`, "success");
+      try { SoundEngine.playSuccess(); } catch (e) {}
+    } catch (err) {
+      showToast(err.message || "Gagal melampirkan berkas.", "danger");
+      try { SoundEngine.playAlarm(); } catch (e) {}
+    }
+  }
+
+  function handleQuiz1FileUpload(event) {
+    if (!event || !event.target || !event.target.files || !event.target.files[0]) return;
+    processQuiz1File(event.target.files[0]);
+  }
+
+  function handleQuiz1DragOver(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const dz = document.getElementById("quiz1-dropzone");
+    if (dz) {
+      dz.classList.add("border-amber-500", "bg-amber-100/50", "dark:bg-amber-950/40");
+    }
+  }
+
+  function handleQuiz1DragLeave(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const dz = document.getElementById("quiz1-dropzone");
+    if (dz) {
+      dz.classList.remove("border-amber-500", "bg-amber-100/50", "dark:bg-amber-950/40");
+    }
+  }
+
+  function handleQuiz1Drop(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const dz = document.getElementById("quiz1-dropzone");
+    if (dz) {
+      dz.classList.remove("border-amber-500", "bg-amber-100/50", "dark:bg-amber-950/40");
+    }
+    if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
+      processQuiz1File(event.dataTransfer.files[0]);
+    }
+  }
+
+  function removeQuiz1Attachment() {
+    userData.quiz1Attachment = null;
+    const input = document.getElementById("quiz1-file-input");
+    if (input) input.value = "";
+    saveUserData();
+    renderQuiz1AttachmentUI();
+    showToast("Lampiran berkas Quiz 1 berhasil dihapus.", "info");
+    try { SoundEngine.playClick(); } catch (e) {}
+  }
+
+  function renderQuiz1AttachmentUI() {
+    const card = document.getElementById("quiz1-attachment-card");
+    const dropzone = document.getElementById("quiz1-dropzone");
+    const preview = document.getElementById("quiz1-attached-preview");
+    const thumbBox = document.getElementById("quiz1-preview-thumb-box");
+    const nameEl = document.getElementById("quiz1-preview-filename");
+    const sizeEl = document.getElementById("quiz1-preview-filesize");
+    const dateEl = document.getElementById("quiz1-preview-date");
+
+    if (!card) return;
+
+    if (currentQuizTab !== "quiz1") {
+      card.classList.add("hidden");
+      return;
+    } else {
+      card.classList.remove("hidden");
+    }
+
+    const att = userData.quiz1Attachment;
+    if (att && att.fileData) {
+      if (dropzone) dropzone.classList.add("hidden");
+      if (preview) preview.classList.remove("hidden");
+      if (nameEl) nameEl.textContent = att.fileName || "Lampiran_LK1.jpg";
+      if (sizeEl) {
+        const kb = Math.round((att.fileSize || 0) / 1024);
+        sizeEl.textContent = kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB`;
+      }
+      if (dateEl) dateEl.textContent = att.uploadedAt || "Hari ini";
+
+      if (thumbBox) {
+        if (att.fileType && att.fileType.startsWith("image/")) {
+          thumbBox.innerHTML = `<img src="${att.fileData}" alt="Thumbnail" class="w-full h-full object-cover">`;
+        } else {
+          thumbBox.innerHTML = `<i data-lucide="file-text" class="w-6 h-6 text-red-500"></i>`;
+        }
+      }
+    } else {
+      if (dropzone) dropzone.classList.remove("hidden");
+      if (preview) preview.classList.add("hidden");
+    }
+
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
+  }
+
+  function previewQuiz1Attachment() {
+    const att = userData.quiz1Attachment;
+    if (!att || !att.fileData) {
+      showToast("Tidak ada berkas lampiran yang dapat ditampilkan.", "info");
+      return;
+    }
+
+    const modal = document.getElementById("attachment-preview-modal");
+    const titleEl = document.getElementById("attachment-modal-title");
+    const metaEl = document.getElementById("attachment-modal-meta");
+    const bodyEl = document.getElementById("attachment-modal-body");
+
+    if (!modal || !bodyEl) return;
+
+    if (titleEl) titleEl.textContent = att.fileName || "Lampiran Pekerjaan Siswa";
+    if (metaEl) {
+      const kb = Math.round((att.fileSize || 0) / 1024);
+      const szStr = kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB`;
+      metaEl.textContent = `${att.fileType || "Berkas"} • ${szStr} • Diunggah: ${att.uploadedAt || "-"}`;
+    }
+
+    if (att.fileType && att.fileType.startsWith("image/")) {
+      bodyEl.innerHTML = `
+        <div class="max-w-full max-h-[70vh] flex items-center justify-center p-2">
+          <img src="${att.fileData}" alt="Pratinjau Lampiran" class="max-w-full max-h-[70vh] object-contain rounded-xl shadow-xl border border-slate-700/50">
+        </div>
+      `;
+    } else if (att.fileType === "application/pdf" || (att.fileName && att.fileName.toLowerCase().endsWith(".pdf"))) {
+      bodyEl.innerHTML = `
+        <iframe src="${att.fileData}" class="w-full h-[65vh] rounded-xl border border-slate-700/50 bg-white" title="Pratinjau PDF"></iframe>
+      `;
+    } else {
+      bodyEl.innerHTML = `
+        <div class="text-center p-8 text-slate-400">
+          <i data-lucide="file-question" class="w-12 h-12 mx-auto mb-2 text-slate-500"></i>
+          <p>Pratinjau langsung tidak tersedia untuk tipe berkas ini.</p>
+        </div>
+      `;
+    }
+
+    modal.classList.remove("hidden");
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
+  }
+
+  function closeAttachmentPreview() {
+    const modal = document.getElementById("attachment-preview-modal");
+    if (modal) modal.classList.add("hidden");
+    const bodyEl = document.getElementById("attachment-modal-body");
+    if (bodyEl) bodyEl.innerHTML = "";
+  }
+
+  async function sendQuiz1ToSpreadsheet() {
+    const btn = document.getElementById("btn-sync-grades-quiz");
+    const statusEl = document.getElementById("sync-status-quiz");
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Sedang Mengunggah...</span>';
+      if (window.lucide) lucide.createIcons();
+    }
+    if (statusEl) {
+      statusEl.textContent = "Mengunggah hasil pengerjaan Quiz 1 & berkas lampiran ke Google Sheets & Drive...";
+      statusEl.className = "text-[11px] text-blue-600 dark:text-blue-400 font-medium";
+    }
+
+    if (typeof SyncManager === "undefined") {
+      showToast("Modul sinkronisasi belum dimuat.", "danger");
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i><span>Kirim Jawaban & Lampiran ke Spreadsheet</span>';
+        if (window.lucide) lucide.createIcons();
+      }
+      return;
+    }
+
+    const res = await SyncManager.submitQuiz1();
+
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i><span>Kirim Ulang ke Spreadsheet</span>';
+      if (window.lucide) lucide.createIcons();
+    }
+
+    if (res.success) {
+      showToast("Berhasil! Jawaban Quiz 1 & berkas lampiran telah tersimpan di Google Spreadsheet Guru.", "success");
+      try { SoundEngine.playSuccess(); } catch (e) {}
+      if (statusEl) {
+        statusEl.innerHTML = `<span class="text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1"><i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-600"></i> ${res.message}</span>`;
+        if (window.lucide) lucide.createIcons();
+      }
+    } else if (res.noUrl) {
+      showToast("URL Spreadsheet belum disetel oleh Guru. Jawaban tersimpan di memori lab.", "info");
+      if (statusEl) {
+        statusEl.innerHTML = '<span class="text-amber-700 dark:text-amber-300 flex items-center gap-1"><i data-lucide="info" class="w-3.5 h-3.5"></i> Webhook Google Sheets belum diisi oleh Guru</span>';
+        if (window.lucide) lucide.createIcons();
+      }
+    } else {
+      showToast("Gagal menyinkronkan Quiz 1: " + res.message, "danger");
+      if (statusEl) {
+        statusEl.innerHTML = `<span class="text-red-600 dark:text-red-400 flex items-center gap-1"><i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Gagal: ${res.message}</span>`;
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+  }
+
+  // ==================== ASESMEN DIAGNOSTIK KOGNITIF & ANGKET PROFIL SISWA ====================
+  let diagnosticAnswers = {
+    cognitive: {},
+    survey: {}
+  };
+
+  function isDiagnosticCompleted(name, nis) {
+    const studentName = (name || (userData && userData.name) || "").trim();
+    const studentNis = (nis || (userData && userData.nis) || "").trim();
+    if (!studentName && !studentNis) return false;
+
+    // 1. Check dedicated account storage
+    const accKey = getAccountStorageKey(studentName, studentNis);
+    try {
+      const accData = localStorage.getItem(accKey);
+      if (accData) {
+        const parsed = JSON.parse(accData);
+        if (parsed.diagnosticCompleted && parsed.diagnosticData) {
+          if (userData && userData.name && userData.name.toLowerCase() === studentName.toLowerCase()) {
+            userData.diagnosticData = parsed.diagnosticData;
+            userData.diagnosticCompleted = true;
+          }
+          return true;
+        }
+      }
+    } catch (e) {}
+
+    // 2. Check standardized diagnostic key
+    const stdDiagKey = getDiagnosticStorageKey(studentName, studentNis);
+    try {
+      const cachedStd = localStorage.getItem(stdDiagKey);
+      if (cachedStd) {
+        const parsed = JSON.parse(cachedStd);
+        if (userData && userData.name && userData.name.toLowerCase() === studentName.toLowerCase()) {
+          userData.diagnosticData = parsed;
+          userData.diagnosticCompleted = true;
+        }
+        return true;
+      }
+    } catch (e) {}
+
+    // 3. Check legacy diagnostic key (esd_diag_<nis || name>)
+    const legacyKey = "esd_diag_" + (studentNis || studentName);
+    try {
+      const cachedLegacy = localStorage.getItem(legacyKey);
+      if (cachedLegacy) {
+        const parsed = JSON.parse(cachedLegacy);
+        if (userData && userData.name && userData.name.toLowerCase() === studentName.toLowerCase()) {
+          userData.diagnosticData = parsed;
+          userData.diagnosticCompleted = true;
+        }
+        return true;
+      }
+    } catch (e) {}
+
+    return false;
+  }
+
+  function openDiagnosticModal(isManual = false) {
+    const modal = document.getElementById("diagnostic-modal");
+    if (!modal) return;
+
+    // Student identity headers
+    const nameEl = document.getElementById("diag-student-name");
+    const nisEl = document.getElementById("diag-student-nis");
+    const classEl = document.getElementById("diag-student-class");
+    const groupEl = document.getElementById("diag-student-group");
+    const adminCloseBtn = document.getElementById("btn-diag-admin-close");
+    const mandatoryNotice = document.getElementById("diag-mandatory-notice");
+    const questionsScroll = document.getElementById("diag-questions-scroll");
+    const resultScreen = document.getElementById("diag-result-screen");
+    const modalFooter = document.getElementById("diag-modal-footer");
+    const progressWrapper = document.getElementById("diag-progress-wrapper");
+
+    const displayName = userData.name || (userData.role === "admin" ? "Admin Guru" : "Siswa");
+    if (nameEl) nameEl.textContent = `Nama: ${displayName}`;
+    if (nisEl) nisEl.textContent = `NIS: ${userData.nis || "-"}`;
+    if (classEl) classEl.textContent = `Kelas: ${userData.class || "11 TP A"}`;
+    if (groupEl) groupEl.textContent = `Kelompok: ${userData.group || "-"}`;
+
+    // Admin or manual retake controls
+    const isTeacher = userData.role === "admin";
+    if (adminCloseBtn) {
+      if (isTeacher || isManual || (userData.diagnosticCompleted && userData.diagnosticData)) {
+        adminCloseBtn.classList.remove("hidden");
+      } else {
+        adminCloseBtn.classList.add("hidden");
+      }
+    }
+
+    // If user already completed and is opening manually, show result screen with option to review
+    if (isManual && userData.diagnosticCompleted && userData.diagnosticData && !userData.diagnosticData.skipped) {
+      showDiagnosticResultView(userData.diagnosticData, null);
+    } else {
+      // Show questions view
+      if (questionsScroll) questionsScroll.classList.remove("hidden");
+      if (resultScreen) resultScreen.classList.add("hidden");
+      if (modalFooter) modalFooter.classList.remove("hidden");
+      if (mandatoryNotice) mandatoryNotice.classList.remove("hidden");
+      if (progressWrapper) progressWrapper.classList.remove("hidden");
+
+      // Preload previous answers if available
+      if (userData.diagnosticData && userData.diagnosticData.cognitiveAnswers) {
+        diagnosticAnswers.cognitive = { ...userData.diagnosticData.cognitiveAnswers };
+      }
+      if (userData.diagnosticData && userData.diagnosticData.surveyAnswers) {
+        diagnosticAnswers.survey = { ...userData.diagnosticData.surveyAnswers };
+      }
+
+      renderDiagnosticQuestions();
+      updateDiagnosticProgress();
+    }
+
+    modal.classList.remove("hidden");
+    modal.style.display = "flex";
+    document.body.classList.add("modal-diagnostic-open");
+
+    // Close mobile sidebar if open
+    const sidebar = document.getElementById("main-sidebar");
+    const overlay = document.getElementById("sidebar-overlay");
+    if (sidebar && sidebar.classList.contains("open")) {
+      sidebar.classList.remove("open");
+    }
+    if (overlay && !overlay.classList.contains("hidden")) {
+      overlay.classList.add("hidden");
+    }
+
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
+  }
+
+  function closeDiagnosticModal() {
+    const modal = document.getElementById("diagnostic-modal");
+    if (modal) {
+      modal.classList.add("hidden");
+      modal.style.display = "none";
+    }
+    document.body.classList.remove("modal-diagnostic-open");
+  }
+
+  function renderDiagnosticQuestions() {
+    const container = document.getElementById("diag-questions-scroll");
+    if (!container || typeof AppData === "undefined") return;
+
+    const questions = AppData.diagnosticQuestions || [];
+    const survey = AppData.diagnosticSurvey || [];
+
+    let html = `
+      <!-- Header Banner Bagian 1 -->
+      <div class="p-3.5 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold text-blue-900 dark:text-blue-200 uppercase tracking-wider block">
+            Bagian I. Asesmen Diagnostik Kognitif Awal
+          </span>
+          <p class="text-[11px] text-blue-800 dark:text-blue-300 mt-0.5">
+            10 Butir Soal Pilihan Ganda Pemesinan Bubut (Bobot: 10 Poin / Soal, Skor Maksimal: 100 Poin)
+          </p>
+        </div>
+        <span class="px-2.5 py-1 rounded-lg bg-blue-600 text-white font-mono font-bold text-xs">
+          10 Soal
+        </span>
+      </div>
+      <div class="space-y-4">
+    `;
+
+    // Render 10 Cognitive Questions
+    questions.forEach((q) => {
+      const selected = diagnosticAnswers.cognitive[q.id];
+      html += `
+        <div id="diag-card-${q.id}" class="mat-card p-4 sm:p-5 border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-[#151e2e] transition-all">
+          <div class="flex items-start gap-2.5 mb-3">
+            <span class="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
+              ${q.number}
+            </span>
+            <div class="flex-1">
+              <span class="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider block mb-0.5">
+                ${q.topic || "Soal Kognitif"} &bull; 10 Poin
+              </span>
+              <p class="font-bold text-xs sm:text-sm text-slate-800 dark:text-white leading-relaxed">
+                ${q.question}
+              </p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 gap-2 pt-1">
+      `;
+
+      const letters = ["A", "B", "C", "D", "E"];
+      q.options.forEach((optText, optIdx) => {
+        const letter = letters[optIdx];
+        const isSel = selected === letter;
+        const optClass = isSel
+          ? "border-blue-600 bg-blue-50/80 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 ring-1 ring-blue-500 font-semibold"
+          : "border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800";
+
+        html += `
+          <div 
+            onclick="App.selectDiagnosticOption('cognitive', '${q.id}', '${letter}')"
+            class="diag-opt-item diag-opt-${q.id} p-2.5 sm:p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between ${optClass}"
+            data-letter="${letter}"
+          >
+            <div class="flex items-center gap-2.5">
+              <span class="w-5 h-5 rounded-md flex items-center justify-center font-bold text-[11px] ${
+                isSel ? "bg-blue-600 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+              }">
+                ${letter}
+              </span>
+              <span class="leading-relaxed">${optText.replace(/^[A-E]\.\s*/, '')}</span>
+            </div>
+            <div class="w-4 h-4 rounded-full border flex items-center justify-center ${
+              isSel ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300 dark:border-slate-600"
+            }">
+              ${isSel ? '<i data-lucide="check" class="w-3 h-3"></i>' : ''}
+            </div>
+          </div>
+        `;
+      });
+
+      html += `
+          </div>
+        </div>
+      `;
+    });
+
+    html += `
+      </div>
+
+      <!-- Header Banner Bagian 2 (Non-Kognitif) -->
+      <div class="p-3.5 rounded-xl bg-purple-50/80 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-900/60 flex items-center justify-between mt-6">
+        <div>
+          <span class="text-xs font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wider block">
+            Bagian II. Angket Kesiapan Belajar & Gaya Belajar Siswa
+          </span>
+          <p class="text-[11px] text-purple-800 dark:text-purple-300 mt-0.5">
+            Bahan diagnostik non-kognitif untuk profil portofolio LKPD Anda (Tidak dinilai numerik)
+          </p>
+        </div>
+        <span class="px-2.5 py-1 rounded-lg bg-purple-600 text-white font-mono font-bold text-xs">
+          3 Butir
+        </span>
+      </div>
+      <div class="space-y-4">
+    `;
+
+    // Render 3 Survey Questions
+    survey.forEach((s) => {
+      const selected = diagnosticAnswers.survey[s.id];
+      html += `
+        <div id="diag-card-${s.id}" class="mat-card p-4 sm:p-5 border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-[#151e2e] transition-all">
+          <div class="flex items-start gap-2.5 mb-3">
+            <span class="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
+              ${s.number}
+            </span>
+            <div class="flex-1">
+              <span class="text-[10px] font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider block mb-0.5">
+                ${s.title} &bull; Profil Pembelajaran
+              </span>
+              <p class="font-bold text-xs sm:text-sm text-slate-800 dark:text-white leading-relaxed">
+                ${s.question}
+              </p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 gap-2.5 pt-1">
+      `;
+
+      s.options.forEach((opt) => {
+        const isSel = selected === opt.value;
+        const optClass = isSel
+          ? "border-purple-600 bg-purple-50/80 dark:bg-purple-950/60 text-purple-900 dark:text-purple-200 ring-1 ring-purple-500 font-semibold"
+          : "border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800";
+
+        html += `
+          <div 
+            onclick="App.selectDiagnosticOption('survey', '${s.id}', '${opt.value}')"
+            class="diag-survey-item diag-survey-${s.id} p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start justify-between gap-3 ${optClass}"
+            data-value="${opt.value}"
+          >
+            <div>
+              <span class="font-bold block text-xs ${isSel ? "text-purple-700 dark:text-purple-300" : "text-slate-800 dark:text-white"}">
+                ${opt.label}
+              </span>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                ${opt.desc}
+              </p>
+            </div>
+            <div class="w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${
+              isSel ? "border-purple-600 bg-purple-600 text-white" : "border-slate-300 dark:border-slate-600"
+            }">
+              ${isSel ? '<i data-lucide="check" class="w-3 h-3"></i>' : ''}
+            </div>
+          </div>
+        `;
+      });
+
+      html += `
+          </div>
+        </div>
+      `;
+    });
+
+    html += `</div>`;
+    container.innerHTML = html;
+  }
+
+  function selectDiagnosticOption(section, qId, val) {
+    try { SoundEngine.playClick(); } catch (e) {}
+    diagnosticAnswers[section][qId] = val;
+
+    // Remove any red highlight
+    const card = document.getElementById(`diag-card-${qId}`);
+    if (card) {
+      card.classList.remove("ring-2", "ring-red-500", "bg-red-50/30", "dark:bg-red-950/20");
+    }
+
+    // Refresh option item UI
+    if (section === "cognitive") {
+      const items = document.querySelectorAll(`.diag-opt-${qId}`);
+      items.forEach((item) => {
+        const isSel = item.dataset.letter === val;
+        const letterBadge = item.querySelector("span:first-child");
+        const checkCircle = item.querySelector("div:last-child");
+
+        if (isSel) {
+          item.className = `diag-opt-item diag-opt-${qId} p-2.5 sm:p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between border-blue-600 bg-blue-50/80 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 ring-1 ring-blue-500 font-semibold`;
+          if (letterBadge) letterBadge.className = "w-5 h-5 rounded-md flex items-center justify-center font-bold text-[11px] bg-blue-600 text-white";
+          if (checkCircle) {
+            checkCircle.className = "w-4 h-4 rounded-full border flex items-center justify-center border-blue-600 bg-blue-600 text-white";
+            checkCircle.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i>';
+          }
+        } else {
+          item.className = `diag-opt-item diag-opt-${qId} p-2.5 sm:p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800`;
+          if (letterBadge) letterBadge.className = "w-5 h-5 rounded-md flex items-center justify-center font-bold text-[11px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300";
+          if (checkCircle) {
+            checkCircle.className = "w-4 h-4 rounded-full border flex items-center justify-center border-slate-300 dark:border-slate-600";
+            checkCircle.innerHTML = "";
+          }
+        }
+      });
+    } else {
+      const items = document.querySelectorAll(`.diag-survey-${qId}`);
+      items.forEach((item) => {
+        const isSel = item.dataset.value === val;
+        const checkCircle = item.querySelector("div:last-child");
+        if (isSel) {
+          item.className = `diag-survey-item diag-survey-${qId} p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start justify-between gap-3 border-purple-600 bg-purple-50/80 dark:bg-purple-950/60 text-purple-900 dark:text-purple-200 ring-1 ring-purple-500 font-semibold`;
+          if (checkCircle) {
+            checkCircle.className = "w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 border-purple-600 bg-purple-600 text-white";
+            checkCircle.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i>';
+          }
+        } else {
+          item.className = `diag-survey-item diag-survey-${qId} p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start justify-between gap-3 border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800`;
+          if (checkCircle) {
+            checkCircle.className = "w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 border-slate-300 dark:border-slate-600";
+            checkCircle.innerHTML = "";
+          }
+        }
+      });
+    }
+
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
+    updateDiagnosticProgress();
+  }
+
+  function updateDiagnosticProgress() {
+    const cogCount = Object.keys(diagnosticAnswers.cognitive).length;
+    const surCount = Object.keys(diagnosticAnswers.survey).length;
+    const total = cogCount + surCount;
+    const maxTotal = 13;
+    const pct = Math.min(100, Math.round((total / maxTotal) * 100));
+
+    const countEl = document.getElementById("diag-progress-count");
+    const pctEl = document.getElementById("diag-progress-percent");
+    const barEl = document.getElementById("diag-progress-bar");
+
+    if (countEl) countEl.textContent = `${total} / ${maxTotal}`;
+    if (pctEl) pctEl.textContent = `${pct}%`;
+    if (barEl) {
+      barEl.style.width = `${pct}%`;
+      if (total === maxTotal) {
+        barEl.className = "bg-emerald-600 h-full rounded-full transition-all duration-300";
+      } else {
+        barEl.className = "bg-blue-600 h-full rounded-full transition-all duration-300";
+      }
+    }
+  }
+
+  async function submitDiagnosticTest() {
+    const questions = AppData.diagnosticQuestions || [];
+    const survey = AppData.diagnosticSurvey || [];
+
+    // Validation: Check all 10 cognitive questions
+    const unansweredCognitive = questions.filter((q) => !diagnosticAnswers.cognitive[q.id]);
+    // Validation: Check all 3 survey questions
+    const unansweredSurvey = survey.filter((s) => !diagnosticAnswers.survey[s.id]);
+
+    const totalUnanswered = unansweredCognitive.length + unansweredSurvey.length;
+
+    if (totalUnanswered > 0) {
+      try { SoundEngine.playAlarm(); } catch (e) {}
+      showToast(`Mohon lengkapi seluruh soal! Masih ada ${totalUnanswered} butir pertanyaan yang belum diisi.`, "danger");
+
+      // Highlight unanswered questions
+      unansweredCognitive.forEach((q) => {
+        const card = document.getElementById(`diag-card-${q.id}`);
+        if (card) {
+          card.classList.add("ring-2", "ring-red-500", "bg-red-50/30", "dark:bg-red-950/20");
+        }
+      });
+      unansweredSurvey.forEach((s) => {
+        const card = document.getElementById(`diag-card-${s.id}`);
+        if (card) {
+          card.classList.add("ring-2", "ring-red-500", "bg-red-50/30", "dark:bg-red-950/20");
+        }
+      });
+
+      // Scroll to the first unanswered item
+      const firstId = unansweredCognitive.length > 0 ? unansweredCognitive[0].id : unansweredSurvey[0].id;
+      const firstCard = document.getElementById(`diag-card-${firstId}`);
+      if (firstCard) {
+        firstCard.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return;
+    }
+
+    // All 13 questions are complete!
+    const submitBtn = document.getElementById("btn-diag-submit");
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Menyimpan & Menyinkronkan...</span>';
+      if (window.lucide) {
+        try { lucide.createIcons(); } catch (e) {}
+      }
+    }
+
+    // Calculate score
+    let correctCount = 0;
+    const summaryParts = [];
+    questions.forEach((q) => {
+      const studentAns = diagnosticAnswers.cognitive[q.id];
+      if (studentAns === q.keyLetter) {
+        correctCount++;
+      }
+      summaryParts.push(`${q.number}:${studentAns}`);
+    });
+
+    const score = correctCount * 10;
+    const category = score >= 80 ? "Kesiapan Tinggi (Mahir)" : score >= 60 ? "Kesiapan Sedang (Siap)" : "Kesiapan Awal (Perlu Penguatan)";
+    const summaryStr = summaryParts.join(", ");
+
+    const record = {
+      completed: true,
+      skipped: false,
+      score: score,
+      correctCount: correctCount,
+      totalQuestions: 10,
+      category: category,
+      learningStyle: diagnosticAnswers.survey["survey_gaya_belajar"] || "-",
+      machineExp: diagnosticAnswers.survey["survey_pengalaman_mesin"] || "-",
+      safetyReadiness: diagnosticAnswers.survey["survey_kesiapan_k3"] || "-",
+      cognitiveAnswers: { ...diagnosticAnswers.cognitive },
+      surveyAnswers: { ...diagnosticAnswers.survey },
+      answersSummary: summaryStr,
+      submittedAt: new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
+    };
+
+    userData.diagnosticCompleted = true;
+    userData.diagnosticData = record;
+
+    const stdKey = getDiagnosticStorageKey(userData.name, userData.nis);
+    const legacyKey = "esd_diag_" + (userData.nis || userData.name);
+    try {
+      localStorage.setItem(stdKey, JSON.stringify(record));
+      localStorage.setItem(legacyKey, JSON.stringify(record));
+    } catch (e) {}
+
+    saveUserData();
+    addXP(100);
+    unlockBadge("badge-diagnostic", "Diagnostik Tuntas");
+
+    // Sync to Google Spreadsheet
+    const payload = {
+      action: "submit_diagnostic",
+      name: userData.name,
+      nis: userData.nis,
+      class: userData.class,
+      group: userData.group,
+      academicYear: userData.academicYear,
+      diagnosticScore: score,
+      diagnosticCorrect: correctCount,
+      diagnosticTotal: 10,
+      category: category,
+      learningStyle: record.learningStyle,
+      machineExp: record.machineExp,
+      safetyReadiness: record.safetyReadiness,
+      answersSummary: summaryStr,
+      timestamp: record.submittedAt
+    };
+
+    let syncRes = null;
+    try {
+      syncRes = await SyncManager.submitDiagnostic(payload);
+    } catch (err) {
+      console.warn("Gagal kirim diagnostik ke sheet:", err);
+    }
+
+    try { SoundEngine.playSuccess(); } catch (e) {}
+    showDiagnosticResultView(record, syncRes);
+
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i><span>Kirim Jawaban Diagnostik</span>';
+    }
+
+    updateHUD();
+  }
+
+  function showDiagnosticResultView(record, syncRes) {
+    const questionsScroll = document.getElementById("diag-questions-scroll");
+    const resultScreen = document.getElementById("diag-result-screen");
+    const modalFooter = document.getElementById("diag-modal-footer");
+    const mandatoryNotice = document.getElementById("diag-mandatory-notice");
+    const progressWrapper = document.getElementById("diag-progress-wrapper");
+    const adminCloseBtn = document.getElementById("btn-diag-admin-close");
+
+    if (questionsScroll) questionsScroll.classList.add("hidden");
+    if (mandatoryNotice) mandatoryNotice.classList.add("hidden");
+    if (modalFooter) modalFooter.classList.add("hidden");
+    if (progressWrapper) progressWrapper.classList.add("hidden");
+    if (adminCloseBtn) adminCloseBtn.classList.remove("hidden");
+
+    if (!resultScreen) return;
+    resultScreen.classList.remove("hidden");
+
+    const isHigh = record.score >= 80;
+    const isMid = record.score >= 60;
+    const badgeColor = isHigh
+      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-300"
+      : isMid
+      ? "bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 border-blue-300"
+      : "bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border-amber-300";
+
+    const syncHtml = syncRes && syncRes.success
+      ? `<div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-center gap-2">
+          <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+          <span><strong>Berhasil Disinkronkan:</strong> Data tersimpan di Google Spreadsheet tab <em>"Pretest Diagnostik"</em>.</span>
+        </div>`
+      : `<div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300 flex items-center justify-center gap-2">
+          <i data-lucide="cloud-off" class="w-4 h-4 text-blue-600"></i>
+          <span>Hasil pretest tersimpan aman di perangkat browser ini (Portofolio aktif).</span>
+        </div>`;
+
+    resultScreen.innerHTML = `
+      <div class="max-w-xl mx-auto space-y-5">
+        
+        <!-- Trophy Icon -->
+        <div class="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 mx-auto flex items-center justify-center shadow-inner">
+          <i data-lucide="award" class="w-9 h-9"></i>
+        </div>
+
+        <div>
+          <h3 class="text-xl font-black text-slate-800 dark:text-white">
+            Asesmen Diagnostik Selesai!
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Terima kasih telah melengkapi pretest kognitif awal dan angket gaya belajar.
+          </p>
+        </div>
+
+        <!-- Score Big Badge -->
+        <div class="p-5 rounded-2xl bg-gradient-to-b from-indigo-50/80 to-white dark:from-slate-800/80 dark:to-[#151e2e] border border-indigo-100 dark:border-slate-700 shadow-sm text-center">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest block mb-1">
+            Skor Diagnostik Kognitif
+          </span>
+          <div class="text-4xl sm:text-5xl font-black text-indigo-600 dark:text-indigo-400 tracking-tight">
+            ${record.score} <span class="text-xl sm:text-2xl text-slate-400 font-bold">/ 100</span>
+          </div>
+          <div class="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${badgeColor}">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+            <span>${record.category} (${record.correctCount} dari 10 Soal Benar)</span>
+          </div>
+        </div>
+
+        <!-- Profil Non-Kognitif Siswa -->
+        <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/40 text-left text-xs space-y-2">
+          <div class="font-bold text-slate-800 dark:text-white flex items-center gap-1.5 mb-2 border-b border-slate-200 dark:border-slate-700 pb-1.5">
+            <i data-lucide="user-check" class="w-3.5 h-3.5 text-indigo-600"></i>
+            <span>Profil Kesiapan Belajar Siswa (Portofolio):</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+            <div class="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <span class="text-slate-400 block font-medium">Gaya Belajar:</span>
+              <strong class="text-indigo-600 dark:text-indigo-400 text-xs">${record.learningStyle}</strong>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <span class="text-slate-400 block font-medium">Pengalaman Mesin:</span>
+              <strong class="text-slate-800 dark:text-slate-200 text-xs">${record.machineExp}</strong>
+            </div>
+            <div class="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <span class="text-slate-400 block font-medium">Kesiapan Fisik & K3:</span>
+              <strong class="text-slate-800 dark:text-slate-200 text-xs">${record.safetyReadiness}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sync Result -->
+        ${syncHtml}
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+          <button 
+            type="button" 
+            onclick="App.closeDiagnosticModal(); App.showToast('Selamat belajar di Laboratorium Virtual Pemesinan!', 'success');" 
+            class="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 cursor-pointer"
+          >
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            <span>Masuk ke Laboratorium Virtual</span>
+          </button>
+          <button 
+            type="button" 
+            onclick="App.reviewDiagnosticQuestions()" 
+            class="w-full sm:w-auto px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <i data-lucide="eye" class="w-4 h-4"></i>
+            <span>Review Lembar Jawaban</span>
+          </button>
+        </div>
+
+      </div>
+    `;
+
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
+  }
+
+  function reviewDiagnosticQuestions() {
+    const questionsScroll = document.getElementById("diag-questions-scroll");
+    const resultScreen = document.getElementById("diag-result-screen");
+    const modalFooter = document.getElementById("diag-modal-footer");
+    const mandatoryNotice = document.getElementById("diag-mandatory-notice");
+    const progressWrapper = document.getElementById("diag-progress-wrapper");
+
+    if (resultScreen) resultScreen.classList.add("hidden");
+    if (questionsScroll) questionsScroll.classList.remove("hidden");
+    if (modalFooter) modalFooter.classList.remove("hidden");
+    if (mandatoryNotice) mandatoryNotice.classList.add("hidden");
+    if (progressWrapper) progressWrapper.classList.remove("hidden");
+
+    renderDiagnosticQuestions();
+    updateDiagnosticProgress();
+  }
+
+  function skipDiagnosticTest() {
+    try { SoundEngine.playClick(); } catch (e) {}
+
+    // If student already has valid diagnostic record
+    if (userData.diagnosticCompleted && userData.diagnosticData && !userData.diagnosticData.skipped) {
+      showToast(`Asesmen Diagnostik Anda telah tersimpan sebelumnya (Skor: ${userData.diagnosticData.score}/100). Selamat belajar!`, "info");
+      closeDiagnosticModal();
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Konfirmasi Lewati Pretest Diagnostik:\n\n" +
+      "Apakah Anda yakin sudah pernah mengisi dan mengirimkan lembar Asesmen Diagnostik sebelumnya?\n\n" +
+      "(Catatan: Pretest diagnostik diperuntukkan untuk memetakan kesiapan awal dan dimasukkan ke lembar LKPD portofolio siswa)."
+    );
+
+    if (confirmed) {
+      const skippedRecord = {
+        completed: true,
+        skipped: true,
+        score: 0,
+        correctCount: 0,
+        totalQuestions: 10,
+        category: "Dilewati (Sudah Mengerjakan Sebelumnya)",
+        learningStyle: "Dilewati (Konfirmasi Siswa)",
+        machineExp: "-",
+        safetyReadiness: "-",
+        cognitiveAnswers: {},
+        surveyAnswers: {},
+        answersSummary: "Dilewati",
+        submittedAt: new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
+      };
+
+      userData.diagnosticCompleted = true;
+      userData.diagnosticData = skippedRecord;
+      const stdKey = getDiagnosticStorageKey(userData.name, userData.nis);
+      const legacyKey = "esd_diag_" + (userData.nis || userData.name);
+      try {
+        localStorage.setItem(stdKey, JSON.stringify(skippedRecord));
+        localStorage.setItem(legacyKey, JSON.stringify(skippedRecord));
+      } catch (e) {}
+
+      saveUserData();
+      closeDiagnosticModal();
+      updateHUD();
+      showToast("Asesmen Diagnostik dilewati. Anda dapat membuka kembali sewaktu-waktu melalui menu navigasi.", "info");
+    }
+  }
+
+  function getDiagnosticLKPDHtml() {
+    const d = userData.diagnosticData;
+    if (!d) {
+      return `
+        <div class="border p-4 rounded text-xs leading-relaxed mb-6 bg-gray-50">
+          <p class="text-gray-500 italic">Status Asesmen Diagnostik: Belum dikerjakan oleh peserta didik.</p>
+        </div>
+      `;
+    }
+
+    if (d.skipped) {
+      return `
+        <div class="border p-4 rounded text-xs leading-relaxed mb-6 bg-gray-50">
+          <p><strong>Status Asesmen Diagnostik:</strong> Dilewati (Peserta didik menyatakan telah mengirimkan jawaban sebelumnya).</p>
+          <p class="text-[11px] text-gray-500 mt-1">Waktu: ${d.submittedAt || "-"}</p>
+        </div>
+      `;
+    }
+
+    const questions = (typeof AppData !== "undefined" && AppData.diagnosticQuestions) ? AppData.diagnosticQuestions : [];
+    let rowsHtml = "";
+    questions.forEach((q) => {
+      const ans = (d.cognitiveAnswers && d.cognitiveAnswers[q.id]) || "-";
+      const isCorrect = ans === q.keyLetter;
+      rowsHtml += `
+        <tr>
+          <td class="border border-gray-400 p-1.5 text-center">${q.number}</td>
+          <td class="border border-gray-400 p-1.5">${q.topic || q.question.substring(0, 50) + "..."}</td>
+          <td class="border border-gray-400 p-1.5 text-center font-bold font-mono">${q.keyLetter}</td>
+          <td class="border border-gray-400 p-1.5 text-center font-bold font-mono">${ans}</td>
+          <td class="border border-gray-400 p-1.5 text-center ${isCorrect ? "text-emerald-700 font-bold" : "text-red-600 font-bold"}">
+            ${isCorrect ? "✓ BENAR (10 Pts)" : "✗ SALAH (0 Pts)"}
+          </td>
+        </tr>
+      `;
+    });
+
+    return `
+      <div class="border p-4 rounded text-xs leading-relaxed mb-6 bg-gray-50">
+        <div class="grid grid-cols-2 gap-4 mb-4 pb-3 border-b border-gray-300">
+          <div>
+            <p><strong>Nilai Pretest Diagnostik:</strong> <span class="text-sm font-bold">${d.score} / 100</span> (${d.correctCount} dari 10 Butir Benar)</p>
+            <p><strong>Kategori Kesiapan:</strong> ${d.category}</p>
+            <p><strong>Waktu Pengerjaan:</strong> ${d.submittedAt}</p>
+          </div>
+          <div>
+            <p><strong>Gaya Belajar Siswa:</strong> <span class="font-bold underline">${d.learningStyle}</span></p>
+            <p><strong>Pengalaman Mesin Perkakas:</strong> ${d.machineExp}</p>
+            <p><strong>Kesiapan Fisik & K3:</strong> ${d.safetyReadiness}</p>
+          </div>
+        </div>
+
+        <p class="font-bold mb-2">Tabel Rekapitulasi 10 Butir Soal Asesmen Diagnostik Kognitif:</p>
+        <table class="w-full text-[11px] border-collapse border border-gray-400 bg-white">
+          <thead>
+            <tr class="bg-gray-200 text-left">
+              <th class="border border-gray-400 p-1.5 text-center w-10">No</th>
+              <th class="border border-gray-400 p-1.5">Materi / Indikator Soal</th>
+              <th class="border border-gray-400 p-1.5 text-center w-16">Kunci</th>
+              <th class="border border-gray-400 p-1.5 text-center w-16">Jawaban Siswa</th>
+              <th class="border border-gray-400 p-1.5 text-center w-28">Status & Poin</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // Lembar Hasil Quiz 1 (LK-1: Parameter Bubut) untuk Cetak LKPD
+  function getQuiz1LKPDHtml() {
+    const q1Answers = userData.quiz1Answers || {};
+    const questions = (typeof AppData !== "undefined" && AppData.quiz1Challenges) ? AppData.quiz1Challenges : [];
+    const totalQ = questions.length;
+    const answeredCount = Object.keys(q1Answers).length;
+    const correctCount = questions.filter(q => q1Answers[q.id] === q.correct).length;
+    const scorePct = totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0;
+
+    let rowsHtml = "";
+    questions.forEach((q, idx) => {
+      const isAns = q1Answers[q.id] !== undefined;
+      const ansIdx = q1Answers[q.id];
+      const isCorrect = isAns && ansIdx === q.correct;
+      const userText = isAns ? (String.fromCharCode(65 + ansIdx) + ". " + q.options[ansIdx]) : "-";
+
+      rowsHtml += `
+        <tr class="border-b border-gray-300">
+          <td class="border border-gray-400 p-1.5 text-center font-bold">${idx + 1}</td>
+          <td class="border border-gray-400 p-1.5">
+            <strong>${q.category}</strong>: ${q.question}
+          </td>
+          <td class="border border-gray-400 p-1.5 font-bold text-center">${String.fromCharCode(65 + q.correct)}</td>
+          <td class="border border-gray-400 p-1.5 text-center ${isCorrect ? 'text-green-700 font-bold' : (isAns ? 'text-red-700' : 'text-gray-400')}">
+            ${isAns ? String.fromCharCode(65 + ansIdx) : 'Kosong'}
+          </td>
+          <td class="border border-gray-400 p-1.5 text-center font-bold ${isCorrect ? 'text-green-700' : (isAns ? 'text-red-700' : 'text-gray-400')}">
+            ${isCorrect ? '✓ Benar (10)' : (isAns ? '✗ Salah (0)' : '-')}
+          </td>
+        </tr>
+      `;
+    });
+
+    let summaryTableHtml = "";
+    if (typeof AppData !== "undefined" && AppData.quiz1SummaryTable) {
+      summaryTableHtml = `
+        <div class="mt-4">
+          <p class="font-bold mb-1">Rangkuman Tabel Hasil Perhitungan (Kunci Evaluasi LK-1):</p>
+          <table class="w-full text-[10.5px] border-collapse border border-gray-400">
+            <thead>
+              <tr class="bg-gray-100 font-bold border-b border-gray-400">
+                <th class="border border-gray-400 p-1 text-left">Benda Kerja</th>
+                <th class="border border-gray-400 p-1 text-left">Parameter</th>
+                <th class="border border-gray-400 p-1 text-center">n (RPM)</th>
+                <th class="border border-gray-400 p-1 text-center">tm (menit)</th>
+                <th class="border border-gray-400 p-1 text-center">MRR</th>
+                <th class="border border-gray-400 p-1 text-left">Analisis Rekayasa</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${AppData.quiz1SummaryTable.map(r => `
+                <tr class="border-b border-gray-300">
+                  <td class="border border-gray-400 p-1 font-semibold">${r.soal}</td>
+                  <td class="border border-gray-400 p-1 font-mono">${r.parameter}</td>
+                  <td class="border border-gray-400 p-1 text-center font-bold">${r.n}</td>
+                  <td class="border border-gray-400 p-1 text-center font-bold">${r.tm}</td>
+                  <td class="border border-gray-400 p-1 text-center font-bold">${r.mrr}</td>
+                  <td class="border border-gray-400 p-1">${r.catatan}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="border p-4 rounded text-xs leading-relaxed mb-6 bg-gray-50">
+        <div class="flex items-center justify-between mb-3 border-b pb-2">
+          <div>
+            <p><strong>Capaian:</strong> ${correctCount} / ${totalQ} Soal Terjawab Benar (${scorePct}%)</p>
+            <p class="text-[11px] text-gray-500">Mata Pelajaran: Teknik Pemesinan Lanjut | Fase F - XI SMK</p>
+          </div>
+          <div class="px-3 py-1 rounded border font-bold text-center ${scorePct >= 75 ? 'bg-green-100 text-green-800 border-green-300' : 'bg-amber-100 text-amber-800 border-amber-300'}">
+            Nilai LK-1: ${scorePct} / 100
+          </div>
+        </div>
+
+        <table class="w-full text-left text-[11px] border-collapse border border-gray-400">
+          <thead>
+            <tr class="bg-gray-100 text-gray-700">
+              <th class="border border-gray-400 p-1.5 text-center w-8">No</th>
+              <th class="border border-gray-400 p-1.5">Materi & Indikator Soal LK-1</th>
+              <th class="border border-gray-400 p-1.5 text-center w-14">Kunci</th>
+              <th class="border border-gray-400 p-1.5 text-center w-16">Jawaban</th>
+              <th class="border border-gray-400 p-1.5 text-center w-24">Hasil</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+
+        ${summaryTableHtml}
+
+        ${
+          userData.quiz1Attachment
+            ? `
+          <div class="mt-4 p-3 bg-white border border-gray-400 rounded">
+            <p class="font-bold text-gray-800 mb-1">Lampiran Berkas Pekerjaan Siswa:</p>
+            <p class="text-[11px] text-gray-600">
+              Nama Berkas: <strong>${userData.quiz1Attachment.fileName}</strong> 
+              (${Math.round(userData.quiz1Attachment.fileSize / 1024)} KB) 
+              • Diunggah: ${userData.quiz1Attachment.uploadedAt || "-"}
+            </p>
+            ${
+              userData.quiz1Attachment.fileType && userData.quiz1Attachment.fileType.startsWith("image/")
+                ? `<div class="mt-2 text-center">
+                    <img src="${userData.quiz1Attachment.fileData}" alt="Lampiran Siswa" style="max-height: 380px; max-width: 100%; object-fit: contain; margin: 0 auto; border: 1px solid #ccc; border-radius: 4px;" />
+                   </div>`
+                : `<p class="mt-1 text-[11px] text-blue-700 italic font-mono">[Dokumen PDF terlampir dalam arsip digital Google Drive]</p>`
+            }
+          </div>
+        `
+            : `
+          <div class="mt-3 text-[11px] text-gray-400 italic">
+            * Tidak ada lampiran berkas fisik/coretan yang diunggah untuk LK-1 ini.
+          </div>
+        `
+        }
+      </div>
+    `;
   }
 
   // Print LKPD Generator
@@ -2314,10 +3964,16 @@ const App = (function () {
         </table>
 
         <h4 class="font-bold text-md mb-2 border-b pb-1">II. Catatan Evaluasi & Kesimpulan</h4>
-        <div class="border p-4 rounded text-xs leading-relaxed mb-8 bg-gray-50">
+        <div class="border p-4 rounded text-xs leading-relaxed mb-6 bg-gray-50">
           <p><strong>Status Analisis:</strong> ${sim.evaluation.desc}</p>
           <p class="mt-2 text-gray-600">Berdasarkan hasil uji coba virtual, pemilihan parameter putaran spindel dan kecepatan pemakanan sangat mempengaruhi kualitas kehalusan permukaan serta keawetan mata pahat.</p>
         </div>
+
+        <h4 class="font-bold text-md mb-2 border-b pb-1">III. Lembar Hasil Asesmen Diagnostik Awal & Angket Profil Siswa</h4>
+        ${getDiagnosticLKPDHtml()}
+
+        <h4 class="font-bold text-md mb-2 border-b pb-1 mt-6">IV. Lembar Hasil Perhitungan Parameter Pemotongan Mesin Bubut (LK-1 / Quiz 1)</h4>
+        ${getQuiz1LKPDHtml()}
 
         <div class="grid grid-cols-2 gap-8 text-center text-xs mt-12 pt-8">
           <div>
@@ -2345,26 +4001,88 @@ const App = (function () {
     const modal = document.getElementById("profile-modal");
     const nameInput = document.getElementById("input-user-name");
     const classInput = document.getElementById("input-user-class");
+    const levelBadge = document.getElementById("profile-level-badge");
+    const xpBar = document.getElementById("profile-xp-bar");
+    const xpText = document.getElementById("profile-xp-text");
+
+    if (levelBadge) {
+      levelBadge.textContent = `Level ${userData.level}`;
+    }
+    if (xpText) {
+      xpText.textContent = `${userData.xp} / ${userData.xpMax} XP`;
+    }
+    if (xpBar) {
+      const pct = Math.min(100, Math.round((userData.xp / userData.xpMax) * 100));
+      xpBar.style.width = `${pct}%`;
+    }
+
     if (modal && nameInput && classInput) {
       nameInput.value = userData.name;
       classInput.value = userData.class;
       modal.classList.remove("hidden");
     }
+
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
+  }
+
+  function resetStudentLevel() {
+    try { SoundEngine.playClick(); } catch (e) {}
+    if (!userData.isLoggedIn || !userData.name) {
+      showToast("Silakan masuk dengan akun siswa terlebih dahulu!", "danger");
+      return;
+    }
+    const studentName = userData.name;
+    const isConfirmed = window.confirm(
+      `Konfirmasi Reset Level & XP Siswa:\n\n` +
+      `Apakah Anda yakin ingin mereset level dan perolehan XP untuk "${studentName}" kembali ke Level 1 (0 XP)?\n\n` +
+      `Level saat ini: Level ${userData.level} (${userData.xp} / ${userData.xpMax} XP)\n\n` +
+      `Perolehan level ini akan dikembalikan ke kondisi awal (Level 1, 0 XP). Jawaban kuis dan portofolio asesmen diagnostik tetap aman.`
+    );
+    if (!isConfirmed) return;
+
+    userData.level = 1;
+    userData.xp = 0;
+    userData.xpMax = 500;
+    saveUserData();
+    updateHUD();
+
+    // Update profile modal UI
+    const levelBadge = document.getElementById("profile-level-badge");
+    const xpBar = document.getElementById("profile-xp-bar");
+    const xpText = document.getElementById("profile-xp-text");
+    if (levelBadge) levelBadge.textContent = "Level 1";
+    if (xpBar) xpBar.style.width = "0%";
+    if (xpText) xpText.textContent = "0 / 500 XP";
+
+    try { SoundEngine.playSuccess(); } catch (e) {}
+    showToast(`Level & XP untuk "${studentName}" berhasil direset ke Level 1 (0 XP)!`, "success");
   }
 
   function saveProfileModal() {
     const nameInput = document.getElementById("input-user-name");
     const classInput = document.getElementById("input-user-class");
+    let changedName = false;
     if (nameInput && nameInput.value.trim()) {
       const cleanName = nameInput.value.trim();
-      userData.name = cleanName;
-      userData.role = cleanName.toLowerCase().includes("admin") ? "admin" : "student";
-      if (typeof AppData !== "undefined" && AppData.students) {
-        const match = AppData.students.find((s) => s.name.toLowerCase() === cleanName.toLowerCase());
-        if (match) {
-          userData.nis = match.nis;
-          userData.group = match.group;
+      if (cleanName !== userData.name) {
+        changedName = true;
+        // Persist old account before switching
+        if (userData.name) {
+          const oldKey = getAccountStorageKey(userData.name, userData.nis);
+          try { localStorage.setItem(oldKey, JSON.stringify(userData)); } catch (e) {}
         }
+        userData.name = cleanName;
+        userData.role = cleanName.toLowerCase().includes("admin") ? "admin" : "student";
+        if (typeof AppData !== "undefined" && AppData.students) {
+          const match = AppData.students.find((s) => s.name.toLowerCase() === cleanName.toLowerCase());
+          if (match) {
+            userData.nis = match.nis;
+            userData.group = match.group;
+          }
+        }
+        isDiagnosticCompleted(userData.name, userData.nis);
       }
     }
     if (classInput && classInput.value.trim()) {
@@ -2374,6 +4092,9 @@ const App = (function () {
     try { SoundEngine.playSuccess(); } catch (e) {}
     document.getElementById("profile-modal").classList.add("hidden");
     showToast("Profil berhasil diperbarui!", "success");
+    if (changedName) {
+      renderQuizScreen();
+    }
   }
 
   return {
@@ -2428,6 +4149,21 @@ const App = (function () {
         }
       });
 
+      // Attachment preview modal close on ESC and backdrop click
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          closeAttachmentPreview();
+        }
+      });
+      const previewModal = document.getElementById("attachment-preview-modal");
+      if (previewModal) {
+        previewModal.addEventListener("click", (e) => {
+          if (e.target === previewModal) {
+            closeAttachmentPreview();
+          }
+        });
+      }
+
       if (window.lucide) {
         try { lucide.createIcons(); } catch (e) {}
       }
@@ -2451,8 +4187,28 @@ const App = (function () {
     setMobileSimTab,
     showPartModal,
     printLKPD,
+    switchQuizPackage,
+    toggleQuiz1FormulaCard,
+    resetQuizAnswers,
+    getCurrentQuizTab: () => currentQuizTab,
+    handleQuiz1FileUpload,
+    handleQuiz1DragOver,
+    handleQuiz1DragLeave,
+    handleQuiz1Drop,
+    removeQuiz1Attachment,
+    renderQuiz1AttachmentUI,
+    previewQuiz1Attachment,
+    closeAttachmentPreview,
+    sendQuiz1ToSpreadsheet,
     showProfileModal,
     saveProfileModal,
+    resetStudentLevel,
+    openDiagnosticModal,
+    closeDiagnosticModal,
+    skipDiagnosticTest,
+    submitDiagnosticTest,
+    selectDiagnosticOption,
+    reviewDiagnosticQuestions,
     login,
     quickLogin,
     logout,

@@ -928,23 +928,51 @@ html.dark .shadow {
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5) !important;
 }
 
-/* Welcome & Login Modal Overlay (Full Coverage, High Z-Index & Strong Blur) */
-#welcome-screen {
+/* Welcome & Pretest Diagnostik Modal Overlays (Full Coverage, High Z-Index & Strong Blur) */
+#welcome-screen,
+#diagnostic-modal {
   position: fixed !important;
   inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
   z-index: 99999 !important;
   background-color: rgba(11, 17, 32, 0.88) !important;
-  backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   pointer-events: auto !important;
 }
 
-#welcome-screen.hidden {
+#welcome-screen.hidden,
+#diagnostic-modal.hidden {
   display: none !important;
   pointer-events: none !important;
+}
+
+/* Full backdrop blur & lock ensuring all elements outside the pretest window (Sidebar, Topbar, 3D Canvas, Dashboard) are 100% blurred */
+body.modal-diagnostic-open {
+  overflow: hidden !important;
+}
+
+body.modal-diagnostic-open #main-sidebar,
+body.modal-diagnostic-open #app-main-wrapper,
+body.modal-diagnostic-open #mobile-bottom-nav {
+  filter: blur(8px) !important;
+  -webkit-filter: blur(8px) !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+#main-sidebar,
+#app-main-wrapper,
+#mobile-bottom-nav {
+  transition: filter 0.25s ease;
 }
 
 /* ==================== ESD V-LAB LOGO THEME-AWARE BASE & OUTLINE ==================== */

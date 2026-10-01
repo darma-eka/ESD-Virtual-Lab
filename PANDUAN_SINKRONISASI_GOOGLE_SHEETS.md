@@ -71,6 +71,73 @@ function doPost(e) {
 
     var payload = JSON.parse(e.postData.contents);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // 1. PENGIRIMAN ASESMEN DIAGNOSTIK AWAL (Tab 'Pretest Diagnostik')
+    if (payload.action === "submit_diagnostic") {
+      var dSheet = ss.getSheetByName("Pretest Diagnostik") || ss.insertSheet("Pretest Diagnostik");
+      var dHeaders = [
+        "NO", "WAKTU PENGERJAAN", "NAMA LENGKAP SISWA", "NIS", "KELAS", "KELOMPOK",
+        "SKOR KOGNITIF (0-100)", "BENAR / 10", "KATEGORI KESIAPAN", "GAYA BELAJAR SISWA",
+        "PENGALAMAN MESIN", "KESIAPAN FISIK & K3", "RINCIAN JAWABAN (Q1-Q10)", "TAHUN AJARAN"
+      ];
+      if (dSheet.getLastRow() < 1) {
+        dSheet.getRange(1, 1, 1, dHeaders.length).setValues([dHeaders])
+          .setBackground("#1e40af").setFontColor("#ffffff").setFontWeight("bold")
+          .setHorizontalAlignment("center").setVerticalAlignment("middle");
+        dSheet.setRowHeight(1, 35);
+        dSheet.setFrozenRows(1);
+      }
+
+      var dName = (payload.name || "").toString().trim();
+      var dNis = (payload.nis || "").toString().trim();
+      var dScore = typeof payload.diagnosticScore !== "undefined" ? Number(payload.diagnosticScore) : 0;
+      var dCorrect = typeof payload.diagnosticCorrect !== "undefined" ? Number(payload.diagnosticCorrect) : Math.round(dScore / 10);
+      var dCategory = (payload.category || (dScore >= 80 ? "Kesiapan Tinggi (Mahir)" : dScore >= 60 ? "Kesiapan Sedang (Siap)" : "Kesiapan Awal (Perlu Penguatan)")).toString().trim();
+      var dTimestamp = payload.timestamp || new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
+      var dLastRow = dSheet.getLastRow();
+      var dTargetRow = -1;
+
+      if (dLastRow >= 2) {
+        var dNisRange = dSheet.getRange(2, 4, dLastRow - 1, 1).getValues();
+        var dNameRange = dSheet.getRange(2, 3, dLastRow - 1, 1).getValues();
+        for (var di = 0; di < dNameRange.length; di++) {
+          if ((dNis && dNisRange[di][0] && dNis === dNisRange[di][0].toString().trim()) || (dName && dNameRange[di][0] && dName.toLowerCase() === dNameRange[di][0].toString().trim().toLowerCase())) {
+            dTargetRow = di + 2;
+            break;
+          }
+        }
+      }
+
+      var dRowValues = [
+        dTargetRow > 0 ? dSheet.getRange(dTargetRow, 1).getValue() : (dLastRow >= 2 ? dLastRow : 1),
+        dTimestamp, dName, dNis, payload.class || "11 TP A", payload.group || "-",
+        dScore, dCorrect + " / 10 Butir", dCategory, payload.learningStyle || "-",
+        payload.machineExp || "-", payload.safetyReadiness || "-", payload.answersSummary || "-", payload.academicYear || "2026/2027"
+      ];
+
+      if (dTargetRow > 0) {
+        dSheet.getRange(dTargetRow, 1, 1, dRowValues.length).setValues([dRowValues]);
+        dSheet.getRange(dTargetRow, 7)
+          .setBackground(dScore >= 80 ? "#d1fae5" : dScore >= 60 ? "#dbeafe" : "#fef3c7")
+          .setFontColor(dScore >= 80 ? "#065f46" : dScore >= 60 ? "#1e40af" : "#92400e").setFontWeight("bold");
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "success", action: "updated", row: dTargetRow, student: dName, score: dScore,
+          message: "Pretest Diagnostik " + dName + " berhasil diperbarui di tab 'Pretest Diagnostik'."
+        })).setMimeType(ContentService.MimeType.JSON);
+      } else {
+        dSheet.appendRow(dRowValues);
+        var dNewRow = dSheet.getLastRow();
+        dSheet.getRange(dNewRow, 7)
+          .setBackground(dScore >= 80 ? "#d1fae5" : dScore >= 60 ? "#dbeafe" : "#fef3c7")
+          .setFontColor(dScore >= 80 ? "#065f46" : dScore >= 60 ? "#1e40af" : "#92400e").setFontWeight("bold");
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "success", action: "appended", row: dNewRow, student: dName, score: dScore,
+          message: "Pretest Diagnostik " + dName + " berhasil ditambahkan di tab 'Pretest Diagnostik'."
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    // 2. PENGIRIMAN NILAI KUIS REGULER & PRAKTIK (Tab '11 TP A')
     var sheet = ss.getSheetByName(payload.class || "11 TP A") || ss.getSheetByName("11 TP A") || ss.getSheets()[0];
 
     // Buat header evaluasi otomatis jika belum ada (Kolom F - M)
@@ -102,7 +169,7 @@ function doPost(e) {
     var simParam = "Cs: " + (payload.simCs || "-") + " m/min | Ra: " + (payload.simRa || "-") + " µm";
     var status = quizScore >= 75 ? "LULUS (KOMPETEN)" : "REMIDI";
     var timestamp = payload.timestamp || new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
-    var year = (payload.academicYear || "2024/2025").toString().trim();
+    var year = (payload.academicYear || "2026/2027").toString().trim();
 
     var lastRow = sheet.getLastRow();
     var targetRow = -1;
@@ -122,7 +189,6 @@ function doPost(e) {
     }
 
     if (targetRow > 0) {
-      // Perbarui nilai pada baris siswa yang bersangkutan
       sheet.getRange(targetRow, 6, 1, 8).setValues([[
         quizScore, quizSummary, safetyScore, partsLearned, simParam, status, timestamp, year
       ]]);
@@ -140,7 +206,6 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
 
     } else {
-      // Tambahkan siswa baru di baris paling bawah
       var nextNo = lastRow >= 2 ? lastRow : 1;
       sheet.appendRow([
         nextNo, name, nis, payload.class || "11 TP A", payload.group || "-",

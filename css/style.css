@@ -928,4 +928,65 @@ html.dark .shadow {
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5) !important;
 }
 
+/* Welcome & Login Modal Overlay (Full Coverage, High Z-Index & Strong Blur) */
+#welcome-screen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 99999 !important;
+  background-color: rgba(11, 17, 32, 0.88) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  pointer-events: auto !important;
+}
+
+#welcome-screen.hidden {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* ==================== ESD V-LAB LOGO THEME-AWARE BASE & OUTLINE ==================== */
+
+/* In Light Mode: completely hidden so light theme logo remains 100% natural, crisp, and untouched */
+.esd-logo-dark-base {
+  display: none !important;
+}
+
+/* In Dark Mode ONLY: activate the white contour base behind all logo instances */
+html.dark .esd-logo-dark-base {
+  display: block !important;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 0;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.55));
+}
+
+/* In Dark Mode: ensure the animated gear and machine layers sit properly on top of the white base */
+html.dark .esd-logo-gear-layer {
+  z-index: 1;
+}
+
+/* Clean centering for login screen logo */
+.esd-brand-logo-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Contrast enhancement in Dark Mode only */
+html.dark .esd-brand-logo-sidebar,
+html.dark .esd-brand-logo-hero,
+html.dark .esd-brand-logo-login {
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.35));
+}
+
+
+
+
 

@@ -1,0 +1,105 @@
+﻿INSTRUMEN ASESMEN PEMBELAJARAN LENGKAP - PERTEMUAN 1
+ASESMEN DIAGNOSTIK, FORMATIF (SIKAP & PROSES), DAN SUMATIF
+KONSENTRASI KEAHLIAN TEKNIK PEMESINAN - FASE F (KELAS XI TP A)
+SMK NEGERI 2 DEPOK SLEMAN
+BAGIAN 1. ASESMEN DIAGNOSTIK (AWAL PEMBELAJARAN)
+1.1 Soal Pilihan Ganda Diagnostik Kognitif Awal (10 Butir Soal):
+1. Mesin perkakas yang prinsip kerjanya memutar benda kerja dan menyayatnya dengan pahat translasi adalah...
+A. Mesin Frais    B. Mesin Bubut    C. Mesin Skrap    D. Mesin Gerinda    E. Mesin Bor
+2. Bagian mesin bubut yang berfungsi memutar benda kerja dan memuat susunan gearbox kecepatan putar adalah...
+A. Apron    B. Tailstock    C. Headstock    D. Toolpost    E. Bed mesin
+3. Alat pendukung yang dipasang pada kepala lepas untuk menahan ujung benda kerja panjang agar tidak lentur adalah...
+A. Senter Putar (Revolving Center)    B. Collet Chuck    C. Face Plate    D. Follower Rest    E. Lathe Dog
+4. Untuk melakukan pembubutan muka (facing) meratakan ujung poros, eretan yang digerakkan adalah...
+A. Eretan Atas    B. Eretan Melintang    C. Eretan Alas    D. Kepala Lepas    E. Feed Rod
+5. Jika sebuah baja ST 37 berdiameter 20 mm dibubut dengan kecepatan potong Cs = 25 m/menit, maka putaran mesin n teoritis adalah...
+A. 250 RPM    B. 398 RPM    C. 500 RPM    D. 796 RPM    E. 1000 RPM
+6. Tindakan keselamatan kerja (K3LH) yang PALING KRITIS dan WAJIB segera dilakukan setelah memasang benda pada chuck adalah...
+A. Menyalakan lampu kerja    B. Mencabut kunci chuck dari lubang adaptor    C. Menyiramkan coolant
+D. Menekan emergency stop    E. Memutar eretan ke paling kanan
+7. Poros berulir trapesium tebal yang hanya berputar dan menghubungkan gerak eretan saat membubut ulir adalah...
+A. Feed Rod    B. Main Spindle    C. Lead Screw (Poros Transportir)    D. Rack Gear    E. Spline Shaft
+8. Komponen yang dapat diputar sudutnya (-45 s.d. +45 derajat) untuk pembubutan tirus sudut luar adalah...
+A. Eretan Atas (Compound Rest)    B. Eretan Melintang    C. Toolpost    D. Apron    E. Tailstock
+9. Pada pembacaan jangka sorong dengan ketelitian 0.05 mm, jika garis 0 nonius melewati angka 14 mm dan garis nonius ke-6 segaris lurus dengan skala utama, hasil pembacaannya adalah...
+A. 14.06 mm    B. 14.30 mm    C. 14.60 mm    D. 14.05 mm    E. 14.65 mm
+10. Dokumen rekayasa manufaktur yang wajib disahkan guru sebelum siswa menyalakan mesin bubut disebut...
+A. Work Preparation (WP)    B. Job Sheet    C. Kartu Hadir    D. Laporan Praktik    E. Kartu Stok
+Kunci Jawaban Soal Diagnostik: 1-B, 2-C, 3-A, 4-B, 5-B, 6-B, 7-C, 8-A, 9-B, 10-A. (Tiap butir benar = 10 poin, skor total maksimal = 100).
+1.2 Angket Non-Kognitif Kesiapan Belajar & Gaya Belajar Siswa:
+Jawablah pertanyaan berikut dengan mencentang [v] pilihan yang paling menggambarkan dirimu:
+- 1. Gaya Belajar Favorit: [  ] Visual (Lebih cepat paham lewat gambar/sketsa)  [  ] Auditori (Lewat penjelasan lisan/diskusi)  [  ] Kinestetik (Langsung memegang alat dan mencoba di bengkel).
+- 2. Pengalaman Mesin Perkakas: [  ] Belum pernah mengoperasikan  [  ] Pernah melihat di lab/video  [  ] Sudah pernah mencoba membubut dasar di kelas X.
+- 3. Kesiapan Fisik & K3: [  ] Memiliki seragam wearpack & safety shoes lengkap  [  ] Tidak memiliki riwayat pusing/trauma terhadap suara mesin putar.
+BAGIAN 2. ASESMEN FORMATIF (SIKAP, LKPD, & DOKUMEN WP)
+2.1 Lembar Observasi Sikap & Dimensi Profil Lulusan (DPL):
+Dimensi Profil Lulusan
+Indikator Sikap yang Diamati
+Skor 4 (Sangat Baik)
+Skor 3 (Baik)
+Skor 1-2 (Perlu Bimbingan)
+DPL 1: Beriman & Bertakwa
+Berdoa dengan khusyuk sebelum/sesudah belajar, mensyukuri ilmu mekanik.
+Selalu berdoa tertib dan memimpin rekan secara mandiri.
+Berdoa dengan tertib bersama kelompok.
+Pasif atau bercanda saat sesi doa bersama.
+DPL 3: Penalaran Kritis
+Menganalisis relasi komponen mesin bubut dan menghitung RPM secara akurat.
+Menganalisis fungsi secara mendalam dan kalkulasi RPM 100% tepat.
+Mampu menjelaskan fungsi komponen dan kalkulasi benar.
+Kesulitan menghubungkan fungsi komponen mesin.
+DPL 5: Kolaborasi Tim
+Bekerja sama berpasangan, berbagi tugas foto, sketsa, dan perancangan WP.
+Kolaborasi sangat harmonis, saling melengkapi dan adil.
+Bekerja sama dengan baik dalam menyelesaikan tugas.
+Salah satu siswa mendominasi atau bersikap pasif.
+DPL 7: Kesehatan & K3LH
+Mengenakan APD lengkap, menaati jalur pedestrian bengkel saat UKK kelas XII.
+Disiplin APD 100%, menjaga zona aman, pelopor 5R bengkel.
+Mengenakan APD lengkap dan berjalan tertib.
+Perlu ditegur mengenai pemakaian APD di bengkel.
+2.2 Rubrik Penilaian Kinerja LKPD & Draf Work Preparation (WP):
+Kriteria Penilaian
+Bobot
+Deskripsi Capaian Kinerja Maksimal (Skor 86 - 100)
+Deskripsi Kinerja Cukup (Skor 70 - 85)
+Kelengkapan Foto Observasi (Bagian A)
+20%
+Foto 5 bagian utama tajam, sudut pandang jelas, checklist terisi 100%.
+Foto lengkap 5 bagian, sudut pandang cukup, checklist terisi 80%.
+Sketsa Manual Mesin Bubut (Bagian B)
+30%
+Sketsa manual 2D proporsional, rapi, notasi nomor 1-15 lengkap dan tepat.
+Sketsa manual cukup rapi, penomoran komponen 10-14 bagian.
+Kedalaman Analisis Fungsi (Bagian B)
+25%
+Deskripsi fungsi teknis sangat akurat dan mengaitkan relasi gerak potong.
+Deskripsi fungsi benar namun belum menguraikan relasi gerak secara lengkap.
+Draf Work Preparation (WP) (Bagian C)
+25%
+Alur operasi runtut, alat potong tepat, kalkulasi RPM benar, K3LH terintegrasi.
+Alur operasi cukup runtut, kalkulasi RPM benar dengan sedikit koreksi.
+BAGIAN 3. ASESMEN SUMATIF (POST-TEST TERTULIS REFLEKTIF)
+Soal Esai Terstruktur Post-Test Pertemuan 1 (Waktu: 15 Menit):
+1. Uraikan fungsi mekanik dari Headstock (Kepala Tetap) dan jelaskan mengapa pemilihan kombinasi tuas RPM yang tepat sangat berpengaruh terhadap hasil pembubutan! (Bobot: 20 poin)
+2. Jelaskan perbedaan mendasar fungsi operasional antara Eretan Melintang (Cross Slide) dengan Eretan Atas (Compound Rest) pada mesin bubut! (Bobot: 20 poin)
+3. Mesin bubut memiliki dua buah poros panjang di bagian depan meja, yaitu Poros Transportir dan Poros Pembawa. Jelaskan perbedaan fungsi dan jenis pekerjaan yang menggunakan masing-masing poros tersebut! (Bobot: 20 poin)
+4. Sebuah benda kerja baja ST 37 berdiameter 18 mm akan dibubut muka dengan kecepatan potong Cs = 25 m/menit. Hitunglah putaran spindel mesin (n/RPM) yang harus disetel pada tuas mesin! (Bobot: 20 poin)
+5. Mengapa seorang operator di industri manufaktur tidak diperbolehkan menyalakan mesin sebelum dokumen Work Preparation (WP) disahkan oleh instruktur/supervisor? Jelaskan ditinjau dari aspek keselamatan dan kualitas produk! (Bobot: 20 poin)
+Rubrik Skor Post-Test: Tiap soal bernilai maksimal 20 poin. Nilai Total = Soal 1 + Soal 2 + Soal 3 + Soal 4 + Soal 5 (Skor Maksimal 100). KKTP Minimal = 75.
+BAGIAN 4. INSTRUMEN REFLEKSI SISWA & GURU
+4.1 Lembar Refleksi Siswa (Exit Ticket 3-2-1):
+- Tuliskan 3 konsep atau bagian mesin baru yang paling berkesan bagimu hari ini:
+  1. .........................................................................................................................................
+  2. .........................................................................................................................................
+  3. .........................................................................................................................................
+- Tuliskan 2 hal mengenai mesin bubut atau penyusunan WP yang menurutmu masih memerlukan latihan lebih banyak:
+  1. .........................................................................................................................................
+  2. .........................................................................................................................................
+- Tuliskan 1 komitmen keselamatan dan kesiapanmu untuk praktik di bengkel minggu depan:
+  1. .........................................................................................................................................
+4.2 Lembar Refleksi Jurnal Guru:
+- 1. Manajemen Waktu 20 JP: Apakah pembagian waktu antara teori kelas, pengondisian observasi foto bengkel, pengerjaan LKPD, dan perancangan WP sudah proporsional?
+- 2. Kedisiplinan K3 Bengkel: Sejauh mana peserta didik mematuhi protokol observasi saat mesin sedang dipakai UKK kelas XII? Apakah ada insiden pelanggaran batas garis kerja?
+- 3. Efektivitas Belajar Berpasangan: Apakah pembagian peran 2 orang per kelompok berjalan adil atau ada siswa yang pasif?
+- 4. Rencana Diferensiasi Pertemuan 2: Kelompok mana yang membutuhkan scaffolding intensif dalam membaca tabel RPM dan menyetel eretan mesin minggu depan?

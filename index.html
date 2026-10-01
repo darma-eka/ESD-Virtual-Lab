@@ -46,6 +46,190 @@
   <!-- Mobile Sidebar Overlay Backdrop -->
   <div id="sidebar-overlay" onclick="App.toggleSidebar()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden md:hidden"></div>
 
+  <!-- ==================== WELCOME & LOGIN SCREEN (MODAL OVERLAY) ==================== -->
+  <div id="welcome-screen" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto transition-all duration-300">
+    <div class="w-full max-w-lg mat-card shadow-2xl p-5 sm:p-7 bg-white dark:bg-[#151e2e] border-slate-200 dark:border-slate-700 my-auto">
+      
+      <!-- Brand & Header -->
+      <div class="flex flex-col items-center text-center mb-5">
+        <!-- Animated ESD V-Lab Brand Logo with Theme-Aware Adaptive White Base -->
+        <div class="relative w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 select-none mb-3 esd-brand-logo-login">
+          <!-- Dark Theme White Contour Base (Automatically hidden in Light Theme) -->
+          <img src="img/logo-esd-dark-base.png" class="esd-logo-dark-base" alt="">
+          <div class="esd-logo-gear-layer">
+            <img src="img/logo-esd-gear.png" class="esd-gear-rotate" alt="Roda Gigi">
+          </div>
+          <img src="img/logo-esd-inner.png" class="absolute inset-0 w-full h-full object-contain pointer-events-none" alt="Mesin Bubut & Frais">
+          <img src="img/logo-esd-foreground.png" class="relative z-10 w-full h-full object-contain pointer-events-none" alt="ESD V-Lab">
+        </div>
+        <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-[11px] font-semibold mb-1.5">
+          <i data-lucide="sparkles" class="w-3 h-3 text-blue-600 dark:text-blue-400"></i>
+          <span>Portal Praktikum Virtual SMK — Fase F</span>
+        </div>
+        <h1 class="text-xl sm:text-2xl font-black text-slate-800 dark:text-white tracking-tight">
+          ESD V-Lab Pemesinan
+        </h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm leading-relaxed">
+          Laboratorium Virtual Pemesinan Bubut & Frais SMK. Silakan masukkan identitas untuk memulai sesi praktikum.
+        </p>
+      </div>
+
+      <!-- Login Form -->
+      <form id="form-login" onsubmit="App.handleLoginForm(event)" class="space-y-3.5">
+        
+        <!-- Input Nama Siswa with Datalist -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+            Nama Lengkap Siswa:
+          </label>
+          <div class="relative">
+            <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none"></i>
+            <input 
+              id="login-name" 
+              list="student-names-list" 
+              type="text" 
+              required
+              autocomplete="off"
+              placeholder="Ketik atau pilih nama siswa..." 
+              class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all"
+              oninput="App.onStudentNameInput(this.value)"
+            >
+            <datalist id="student-names-list">
+              <!-- Dynamically populated from AppData.students (including Siswa test account) -->
+            </datalist>
+          </div>
+          <!-- Auto-detected Student Info Pill (NIS & Kelompok) -->
+          <div id="login-student-badge" class="hidden mt-1.5 text-[11px] p-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 flex items-center justify-between font-mono">
+            <span id="badge-nis-text">NIS: -</span>
+            <span id="badge-group-text" class="font-bold">Kelompok: -</span>
+          </div>
+        </div>
+
+        <!-- Row: Kelas & Tahun Ajaran -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- Kelas -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Kelas / Rombel:</label>
+            <div class="relative">
+              <i data-lucide="graduation-cap" class="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none"></i>
+              <select 
+                id="login-class" 
+                class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
+              >
+                <option value="11 TP A" selected>11 TP A (Pemesinan)</option>
+                <option value="11 TP B">11 TP B (Pemesinan)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Tahun Ajaran -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tahun Ajaran:</label>
+            <div class="relative">
+              <i data-lucide="calendar" class="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none"></i>
+              <select 
+                id="login-year" 
+                class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
+              >
+                <option value="2026/2027" selected>2026/2027</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tombol Masuk -->
+        <button 
+          type="submit" 
+          class="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-xs shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 transition-all cursor-pointer mt-1"
+        >
+          <i data-lucide="log-in" class="w-4 h-4"></i>
+          <span>Masuk ke Laboratorium Virtual</span>
+        </button>
+      </form>
+
+      <!-- Akses Khusus Guru / Penguji -->
+      <div class="mt-5 pt-4 border-t border-slate-200 dark:border-slate-700/80">
+        <span class="text-[11px] font-semibold text-slate-400 dark:text-slate-500 block text-center mb-2.5">
+          Atau Masuk Khusus Guru / Penguji:
+        </span>
+        
+        <!-- Single Button Trigger for Admin Login -->
+        <button 
+          type="button" 
+          id="btn-trigger-admin-login"
+          onclick="App.showAdminPasswordSection()" 
+          class="w-full py-2.5 px-3 rounded-xl border border-amber-300 dark:border-amber-700/60 bg-amber-50/70 hover:bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+          title="Masuk sebagai Guru / Penguji ESDVLab"
+        >
+          <span>👑</span>
+          <span class="font-extrabold">Masuk Sebagai Admin ESDVLab</span>
+        </button>
+
+        <!-- Admin Password Verification Section (Hidden by default) -->
+        <div id="admin-password-section" class="hidden mt-3 p-3.5 rounded-xl border border-amber-300 dark:border-amber-700/70 bg-amber-50/90 dark:bg-amber-950/50 space-y-2.5 transition-all">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+              <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
+              <span>Verifikasi Kata Sandi Admin</span>
+            </span>
+            <button type="button" onclick="App.hideAdminPasswordSection()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5" title="Batal">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+          
+          <p class="text-[11px] text-amber-800 dark:text-amber-300">
+            Masukkan kata sandi guru untuk membuka hak akses Lab Admin:
+          </p>
+
+          <div class="relative">
+            <i data-lucide="key" class="w-4 h-4 text-amber-600 dark:text-amber-400 absolute left-3 top-2.5 pointer-events-none"></i>
+            <input 
+              id="admin-password-input" 
+              type="password" 
+              autocomplete="current-password"
+              placeholder="Masukkan kata sandi Admin..."
+              class="w-full pl-9 pr-10 py-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-xs font-mono outline-none focus:ring-2 focus:ring-amber-500"
+              onkeydown="if(event.key === 'Enter'){ event.preventDefault(); App.verifyAdminPassword(); }"
+            >
+            <button 
+              type="button" 
+              id="btn-reveal-admin-password"
+              onclick="App.toggleAdminPasswordVisibility()" 
+              class="absolute right-2 top-2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              title="Lihat / Sembunyikan Kata Sandi"
+            >
+              <i data-lucide="eye" id="icon-reveal-password" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <div id="admin-password-error" class="hidden text-[11px] text-red-600 dark:text-red-400 font-semibold flex items-center gap-1">
+            <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+            <span>Kata sandi salah! Akses ditolak.</span>
+          </div>
+
+          <div class="flex items-center gap-2 pt-1">
+            <button 
+              type="button" 
+              onclick="App.hideAdminPasswordSection()" 
+              class="w-1/3 py-2 px-3 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+            >
+              Batal
+            </button>
+            <button 
+              type="button" 
+              onclick="App.verifyAdminPassword()" 
+              class="w-2/3 py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white text-xs font-bold shadow-md shadow-amber-900/20 flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <i data-lucide="shield-check" class="w-4 h-4"></i>
+              <span>Verifikasi & Masuk</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ==================== MATERIALLY LEFT SIDEBAR ==================== -->
   <aside id="main-sidebar" class="mat-sidebar -translate-x-full md:translate-x-0 no-print">
     
@@ -53,7 +237,9 @@
     <div class="h-16 flex items-center px-4 border-b border-slate-200 justify-between">
       <div class="flex items-center space-x-3 cursor-pointer" onclick="App.navigateTo('screen-home')" title="Kembali ke Dashboard Utama">
         <!-- Animated ESD V-Lab Brand Logo -->
-        <div class="relative w-11 h-11 flex-shrink-0 select-none">
+        <div class="relative w-11 h-11 flex-shrink-0 select-none esd-brand-logo-sidebar">
+          <!-- Dark Theme White Contour Base -->
+          <img src="img/logo-esd-dark-base.png" class="esd-logo-dark-base" alt="">
           <div class="esd-logo-gear-layer">
             <img src="img/logo-esd-gear.png" class="esd-gear-rotate" alt="Roda Gigi">
           </div>
@@ -117,13 +303,21 @@
         <i data-lucide="help-circle" class="w-4 h-4 nav-icon"></i>
         <span>Uji Kompetensi Mandiri</span>
       </div>
-      <div class="sidebar-nav-item" onclick="App.printLKPD()">
+      <div class="sidebar-nav-item admin-only-feature" id="nav-item-print-lkpd" onclick="App.printLKPD()" title="Cetak LKPD Siswa (Khusus Guru/Admin)">
         <i data-lucide="printer" class="w-4 h-4 nav-icon"></i>
         <span>Cetak LKPD Siswa (PDF)</span>
+      </div>
+      <div class="sidebar-nav-item admin-only-feature" id="nav-item-sync-sheet" onclick="SyncManager.openModal()" title="Pengaturan Sinkronisasi Google Sheets (Khusus Guru/Admin)">
+        <i data-lucide="file-spreadsheet" class="w-4 h-4 nav-icon text-emerald-600 dark:text-emerald-400"></i>
+        <span>Sinkron Google Sheets</span>
       </div>
       <div class="sidebar-nav-item" onclick="App.toggleTheme()" title="Beralih Tema Gelap / Terang">
         <i data-lucide="moon" id="sidebar-theme-icon" class="w-4 h-4 nav-icon"></i>
         <span id="sidebar-theme-label">Tema Gelap</span>
+      </div>
+      <div class="sidebar-nav-item text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer" onclick="App.logout()" title="Keluar / Ganti Akun">
+        <i data-lucide="log-out" class="w-4 h-4 nav-icon"></i>
+        <span>Keluar / Ganti Akun</span>
       </div>
 
     </div>
@@ -131,7 +325,7 @@
     <!-- Student Profile Widget (Sidebar Footer) -->
     <div class="p-3 border-t border-slate-200 bg-slate-50/60">
       <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white border border-transparent hover:border-slate-200 transition-all cursor-pointer" onclick="App.showProfileModal()">
-        <div class="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+        <div id="hud-user-avatar" class="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
           AR
         </div>
         <div class="flex-1 min-w-0">
@@ -188,10 +382,24 @@
           <i data-lucide="moon" class="w-4 h-4"></i>
         </button>
 
-        <!-- LKPD Quick Print Action -->
-        <button onclick="App.printLKPD()" class="mat-btn mat-btn-outline hidden sm:inline-flex text-xs py-1.5 px-3">
+        <!-- User Role Badge -->
+        <div id="hud-role-badge" class="hidden sm:inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold select-none"></div>
+
+        <!-- LKPD Quick Print Action (Admin Only) -->
+        <button id="btn-header-print-lkpd" onclick="App.printLKPD()" class="mat-btn mat-btn-outline hidden sm:inline-flex text-xs py-1.5 px-3 admin-only-feature" title="Cetak Dokumen LKPD (Khusus Guru/Admin)">
           <i data-lucide="printer" class="w-3.5 h-3.5"></i>
           <span>Cetak LKPD</span>
+        </button>
+
+        <!-- Google Sheets Sync Action (Admin Only) -->
+        <button id="btn-header-sync" onclick="SyncManager.openModal()" class="mat-btn mat-btn-outline hidden sm:inline-flex text-xs py-1.5 px-3 admin-only-feature" title="Pengaturan Sinkronisasi Google Sheets">
+          <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
+          <span>Google Sheets</span>
+        </button>
+
+        <!-- Logout Button -->
+        <button id="btn-header-logout" onclick="App.logout()" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs flex items-center justify-center transition-colors cursor-pointer" title="Keluar / Ganti Akun">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
         </button>
 
       </div>
@@ -229,7 +437,9 @@
           </div>
 
           <!-- Hero Dynamic Animated Logo -->
-          <div class="relative w-44 h-44 sm:w-52 sm:h-52 flex-shrink-0 select-none drop-shadow-md">
+          <div class="relative w-44 h-44 sm:w-52 sm:h-52 flex-shrink-0 select-none drop-shadow-md esd-brand-logo-hero">
+            <!-- Dark Theme White Contour Base -->
+            <img src="img/logo-esd-dark-base.png" class="esd-logo-dark-base" alt="">
             <div class="esd-logo-gear-layer">
               <img src="img/logo-esd-gear.png" class="esd-gear-rotate" alt="Roda Gigi">
             </div>
@@ -1206,10 +1416,14 @@
             <h2 class="text-xl font-bold text-slate-800">Uji Kompetensi Mandiri & Unduh LKPD</h2>
             <p class="text-xs text-slate-500">Uji kemampuan kognitif dan penerapan parameter pemesinan melalui studi kasus berikut.</p>
           </div>
-          <button onclick="App.printLKPD()" class="mat-btn mat-btn-primary self-start">
+          <button id="btn-quiz-print-lkpd" onclick="App.printLKPD()" class="mat-btn mat-btn-primary self-start admin-only-feature" title="Cetak LKPD Siswa (Khusus Guru/Admin)">
             <i data-lucide="printer" class="w-4 h-4"></i>
             <span>Cetak / Simpan LKPD (PDF)</span>
           </button>
+          <div id="student-quiz-note" class="self-start px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-medium flex items-center gap-1.5 hidden">
+            <i data-lucide="check-circle" class="w-4 h-4 text-blue-600"></i>
+            <span>Hasil evaluasi otomatis tercatat untuk Guru / Admin</span>
+          </div>
         </div>
 
         <div id="quiz-summary-box" class="hidden"></div>
@@ -1416,6 +1630,113 @@
     </div>
   </div>
 
+  <!-- Modal: Pengaturan Sinkronisasi Google Sheets (Khusus Guru / Admin) -->
+  <div id="sheet-sync-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-[#151e2e] border border-slate-200 dark:border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+      
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5 mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-slate-800 dark:text-white">Sinkronisasi Google Sheets</h3>
+            <p class="text-[11px] text-slate-400">Rekapitulasi otomatis nilai siswa kelas 11 TP A</p>
+          </div>
+        </div>
+        <button onclick="SyncManager.closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        
+        <!-- Status Box -->
+        <div id="sheet-sync-status-box" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <span class="text-slate-500">Memeriksa status konfigurasi...</span>
+        </div>
+
+        <!-- Input Webhook URL -->
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+            Google Apps Script Web App URL:
+          </label>
+          <div class="relative">
+            <input 
+              id="input-sheet-url" 
+              type="url" 
+              placeholder="https://script.google.com/macros/s/.../exec" 
+              class="w-full pl-3 pr-24 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white font-mono text-[11px] outline-none focus:ring-2 focus:ring-blue-500"
+            >
+            <button 
+              type="button" 
+              onclick="testWebhookFromModal()" 
+              class="absolute right-1.5 top-1.5 bottom-1.5 px-3 rounded-lg bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-[10.5px] transition-all cursor-pointer"
+            >
+              Tes URL
+            </button>
+          </div>
+          <p class="text-[10.5px] text-slate-400 mt-1">
+            Dapatkan URL ini setelah menerapkan (Deploy) Apps Script sebagai Web App (Akses: <em>Anyone</em>).
+          </p>
+        </div>
+
+        <!-- Quick Action: Salin Kode Skrip Apps Script -->
+        <div class="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-bold text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
+              <i data-lucide="code" class="w-3.5 h-3.5"></i>
+              <span>Kode Google Apps Script</span>
+            </span>
+            <button 
+              type="button" 
+              onclick="SyncManager.copyScriptCode()" 
+              class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+            >
+              <i data-lucide="copy" class="w-3 h-3"></i>
+              <span>Salin Skrip</span>
+            </button>
+          </div>
+          <p class="text-[11px] text-blue-800 dark:text-blue-300 leading-relaxed">
+            Kode siap pakai yang bertugas mencocokkan NIS dan mengisikan nilai kuis, K3, dan simulasi langsung ke baris masing-masing 36 siswa.
+          </p>
+        </div>
+
+        <!-- Panduan Ringkas -->
+        <div class="rounded-xl border border-slate-200 dark:border-slate-700/80 p-3 bg-slate-50 dark:bg-slate-800/40 text-[11px] space-y-1.5 text-slate-600 dark:text-slate-300">
+          <div class="font-bold text-slate-800 dark:text-white flex items-center gap-1">
+            <i data-lucide="help-circle" class="w-3.5 h-3.5 text-blue-600"></i>
+            <span>Cara Setup dalam 3 Menit:</span>
+          </div>
+          <ol class="list-decimal list-inside space-y-1 text-slate-500 dark:text-slate-400">
+            <li>Buka file <strong>LABEL PENILAIAN.xlsx</strong> di Google Drive sebagai Google Spreadsheet.</li>
+            <li>Klik menu <strong>Extensions &gt; Apps Script</strong>, tempelkan kode skrip di atas, lalu Simpan.</li>
+            <li>Klik <strong>Deploy &gt; New deployment</strong>, pilih <em>Web app</em>, setel <em>Who has access</em> ke <strong>Anyone</strong>, lalu salin URL dan tempel ke kolom di atas.</li>
+          </ol>
+        </div>
+
+        <!-- Tombol Aksi Modal -->
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <button 
+            type="button" 
+            onclick="SyncManager.closeModal()" 
+            class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold cursor-pointer"
+          >
+            Tutup
+          </button>
+          <button 
+            type="button" 
+            onclick="SyncManager.saveModalUrl()" 
+            class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold cursor-pointer shadow-md shadow-blue-900/20"
+          >
+            Simpan URL Webhook
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- Printable LKPD Hidden Container -->
   <div id="printable-lkpd" class="print-only hidden"></div>
 
@@ -1424,6 +1745,7 @@
   <script src="js/OrbitControls.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/data.js"></script>
+  <script src="js/sync.js"></script>
   <script src="js/lathe3d.js"></script>
   <script src="js/simulation.js"></script>
   <script src="js/app.js"></script>

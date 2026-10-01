@@ -467,5 +467,55 @@ const AppData = {
       correct: 1,
       explanation: "Pada pemotongan alur (slotting) satu lintasan, lebar alur yang terbentuk pada permukaan benda kerja selalu sama persis dengan diameter luar pisau frais jari (End Mill) yang digunakan."
     }
-  ]
+  ],
+
+  classes: ["11 TP A", "11 TP B"],
+  academicYears: ["2026/2027"],
+
+  students: [
+    { no: 0, name: "Siswa", nis: "SISWA-TES", class: "11 TP A", group: "Akun Uji Coba" },
+    { no: 1, name: "ABYAN MAULANA", nis: "22188", class: "11 TP A", group: "12" },
+    { no: 2, name: "ADHISA DINO DEWANGGA", nis: "22189", class: "11 TP A", group: "12" },
+    { no: 3, name: "ADITYA PRAMANA PUTRA", nis: "22190", class: "11 TP A", group: "5" },
+    { no: 4, name: "ADITYA PUTRA WICAKSONO", nis: "22191", class: "11 TP A", group: "13" },
+    { no: 5, name: "AFKHAN RIZKI HANUUN", nis: "22192", class: "11 TP A", group: "1" },
+    { no: 6, name: "AGRA MANGGALA YOGA ADETAMA", nis: "22193", class: "11 TP A", group: "6" },
+    { no: 7, name: "AHMAD ZAKI MUCHLIS", nis: "22194", class: "11 TP A", group: "5" },
+    { no: 8, name: "ALBILAL ZHUKA ADYATMA", nis: "22195", class: "11 TP A", group: "1" },
+    { no: 9, name: "ALFINO WICAKSONO", nis: "22196", class: "11 TP A", group: "13" },
+    { no: 10, name: "ALIF IRVAN KHOIRUL RASYID", nis: "22197", class: "11 TP A", group: "11" },
+    { no: 11, name: "ALIFVIANO PUTRA PURNAWAN", nis: "22198", class: "11 TP A", group: "7" },
+    { no: 12, name: "ALVIN RAHMADTULLAH", nis: "22199", class: "11 TP A", group: "7" },
+    { no: 13, name: "ALVINO RIZKY MAHESSA", nis: "22200", class: "11 TP A", group: "3" },
+    { no: 14, name: "ANDREAS NAYAKA WIDRAJAD", nis: "22201", class: "11 TP A", group: "14" },
+    { no: 15, name: "ANDRIAN SURYA PUTRA", nis: "22202", class: "11 TP A", group: "11" },
+    { no: 16, name: "ANGGER TEGUH PRASETYO", nis: "22203", class: "11 TP A", group: "18" },
+    { no: 17, name: "APRILIAN NUR ADZANA", nis: "22204", class: "11 TP A", group: "10" },
+    { no: 18, name: "ARSYAD BINTANG PAMBUDI", nis: "22205", class: "11 TP A", group: "15" },
+    { no: 19, name: "ARUNA MUHAMMAD AHZA", nis: "22206", class: "11 TP A", group: "8" },
+    { no: 20, name: "ASYRAF FARELLEZA QOWIYYAN", nis: "22207", class: "11 TP A", group: "9" },
+    { no: 21, name: "BAGUS FADHIL FIRMANSYAH", nis: "22208", class: "11 TP A", group: "16" },
+    { no: 22, name: "BANYU RANGGAS TIRANI", nis: "22209", class: "11 TP A", group: "18" },
+    { no: 23, name: "CAESAR LANANG PUTRA SARJANA", nis: "22210", class: "11 TP A", group: "6" },
+    { no: 24, name: "DIKA AMARTA", nis: "22211", class: "11 TP A", group: "2" },
+    { no: 25, name: "DIMAS REZKY PRANATATAMA", nis: "22212", class: "11 TP A", group: "15" },
+    { no: 26, name: "DZAKWAN FAIZ FADHLURROHMAN", nis: "22213", class: "11 TP A", group: "2" },
+    { no: 27, name: "EKA ARDHITYA SAPUTRA", nis: "22214", class: "11 TP A", group: "4" },
+    { no: 28, name: "FANI NOVANDI SETYA WIDADA", nis: "22215", class: "11 TP A", group: "10" },
+    { no: 29, name: "FARHAN NURHIDAYAT", nis: "22216", class: "11 TP A", group: "17" },
+    { no: 30, name: "FAUZY RAKA KURNIANTO", nis: "22217", class: "11 TP A", group: "9" },
+    { no: 31, name: "FIRNANDA ALDI PRASETYO", nis: "22218", class: "11 TP A", group: "3" },
+    { no: 32, name: "FLORENTINUS BAGUS JALU WICAKSANA", nis: "22219", class: "11 TP A", group: "4" },
+    { no: 33, name: "GAVIN FATTAN FADLILLAH", nis: "22220", class: "11 TP A", group: "16" },
+    { no: 34, name: "GERARDO ALEXANDRO RANGGA KRISHANDA", nis: "22221", class: "11 TP A", group: "14" },
+    { no: 35, name: "GESANG DEMAS DIGDAYA", nis: "22222", class: "11 TP A", group: "8" },
+    { no: 36, name: "GHATFAN RAFIF WIKAN WIJANARKO", nis: "22223", class: "11 TP A", group: "17" }
+  ],
+
+  // Google Sheets Webhook Configuration
+  googleSheetConfig: {
+    webAppUrl: "", // Guru dapat memasukkan Web App URL di sini atau melalui dialog Pengaturan di Lab
+    defaultSpreadsheetName: "Rekap Nilai Siswa 11 TP A"
+  }
 };
+

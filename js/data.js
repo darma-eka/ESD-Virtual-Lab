@@ -975,7 +975,7 @@ const AppData = {
 
   // Google Sheets Webhook Configuration
   googleSheetConfig: {
-    webAppUrl: "", // Guru dapat memasukkan Web App URL di sini atau melalui dialog Pengaturan di Lab
+    webAppUrl: "https://script.google.com/macros/s/AKfycbxbDK8uEeJcEUkUtKeOI-rHg9hZffke_mMuc6f4xNHnHTc4jQ5LLRmdF48ZWDFweaj6zw/exec",
     defaultSpreadsheetName: "Rekap Nilai Siswa 11 TP A"
   }
 };

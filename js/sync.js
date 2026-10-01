@@ -4,7 +4,7 @@
  */
 const SyncManager = (function () {
   const STORAGE_KEY = "esd_google_sheet_webhook_url";
-  const DEFAULT_URL = ""; // Bisa diisi URL default jika sudah dideploy permanen
+  const DEFAULT_URL = "https://script.google.com/macros/s/AKfycbxbDK8uEeJcEUkUtKeOI-rHg9hZffke_mMuc6f4xNHnHTc4jQ5LLRmdF48ZWDFweaj6zw/exec";
 
   function getWebhookUrl() {
     try {
@@ -541,6 +541,41 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu("🚀 ESD V-Lab")
+    .addItem("📊 Siapkan Tab Quiz 1 (LK-1)", "menuSetupQuiz1Tab")
+    .addItem("📝 Siapkan Tab Pretest Diagnostik", "menuSetupDiagnosticTab")
+    .addToUi();
+}
+
+function menuSetupQuiz1Tab() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Quiz 1 (LK-1 Bubut)") || ss.insertSheet("Quiz 1 (LK-1 Bubut)", 0);
+  var headers = ["NO","WAKTU PENGERJAAN","NAMA LENGKAP SISWA","NIS","KELAS","KELOMPOK","SKOR QUIZ 1 (0-100)","BENAR / 10","STATUS KELULUSAN","RINCIAN JAWABAN (Q1-Q10)","STATUS LAMPIRAN","LINK GOOGLE DRIVE LAMPIRAN","TAHUN AJARAN"];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setBackground("#b45309").setFontColor("#ffffff").setFontWeight("bold").setHorizontalAlignment("center");
+  sheet.setRowHeight(1, 35);
+  sheet.setFrozenRows(1);
+  SpreadsheetApp.getUi().alert("Tab 'Quiz 1 (LK-1 Bubut)' telah siap!");
+}
+
+function menuSetupDiagnosticTab() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Pretest Diagnostik") || ss.insertSheet("Pretest Diagnostik", 1);
+  var headers = ["NO","WAKTU PENGERJAAN","NAMA LENGKAP SISWA","NIS","KELAS","KELOMPOK","SKOR KOGNITIF (0-100)","BENAR / 10","KATEGORI KESIAPAN","GAYA BELAJAR SISWA","PENGALAMAN MESIN","KESIAPAN FISIK & K3","RINCIAN JAWABAN (Q1-Q10)","TAHUN AJARAN"];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setBackground("#1e40af").setFontColor("#ffffff").setFontWeight("bold").setHorizontalAlignment("center");
+  sheet.setRowHeight(1, 35);
+  sheet.setFrozenRows(1);
+  SpreadsheetApp.getUi().alert("Tab 'Pretest Diagnostik' telah siap!");
+}
+
+function otorisasiIzinGoogleDrive() {
+  var folder = DriveApp.createFolder("ESD V-Lab - Lampiran LK-1 Siswa");
+  Logger.log("Izin Drive aktif: " + folder.getUrl());
 }`;
 
     navigator.clipboard.writeText(code).then(() => {

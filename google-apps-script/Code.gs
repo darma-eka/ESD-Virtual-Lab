@@ -525,3 +525,192 @@ function createJsonResponse(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+// ==============================================================================================
+// MENU OTOMATISASI GOOGLE SHEETS
+// Menambahkan menu di bilah atas Google Sheets saat dokumen dibuka oleh Guru
+// ==============================================================================================
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu("🚀 ESD V-Lab")
+    .addItem("📊 Siapkan / Rapikan Tab Quiz 1 (LK-1)", "menuSetupQuiz1Tab")
+    .addItem("📝 Siapkan / Rapikan Tab Pretest Diagnostik", "menuSetupDiagnosticTab")
+    .addSeparator()
+    .addItem("ℹ️ Panduan Singkat Sinkronisasi", "menuShowHelp")
+    .addToUi();
+}
+
+function menuSetupQuiz1Tab() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetName = "Quiz 1 (LK-1 Bubut)";
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName, 0);
+  }
+
+  var headers = [
+    "NO",
+    "WAKTU PENGERJAAN",
+    "NAMA LENGKAP SISWA",
+    "NIS",
+    "KELAS",
+    "KELOMPOK",
+    "SKOR QUIZ 1 (0-100)",
+    "BENAR / 10",
+    "STATUS KELULUSAN",
+    "RINCIAN JAWABAN (Q1-Q10)",
+    "STATUS LAMPIRAN",
+    "LINK GOOGLE DRIVE LAMPIRAN",
+    "TAHUN AJARAN"
+  ];
+
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  var headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange
+    .setBackground("#b45309")
+    .setFontColor("#ffffff")
+    .setFontWeight("bold")
+    .setHorizontalAlignment("center")
+    .setVerticalAlignment("middle");
+  sheet.setRowHeight(1, 35);
+  sheet.setFrozenRows(1);
+
+  // Jika tab 11 TP A ada, salin daftar siswa jika belum ada siswa
+  var sourceSheet = ss.getSheetByName("11 TP A");
+  if (sourceSheet && sheet.getLastRow() <= 1) {
+    var lastSourceRow = sourceSheet.getLastRow();
+    if (lastSourceRow >= 2) {
+      var sourceData = sourceSheet.getRange(2, 1, lastSourceRow - 1, 5).getValues();
+      var rowsToInsert = [];
+      for (var i = 0; i < sourceData.length; i++) {
+        var no = sourceData[i][0] || (i + 1);
+        var name = sourceData[i][1] || "";
+        var nis = sourceData[i][2] || "";
+        var cls = sourceData[i][3] || "11 TP A";
+        var grp = sourceData[i][4] || "-";
+        if (name) {
+          rowsToInsert.push([
+            no,
+            "-",
+            name,
+            nis,
+            cls,
+            grp,
+            "",
+            "",
+            "-",
+            "-",
+            "Belum Ada Lampiran",
+            "-",
+            "2026/2027"
+          ]);
+        }
+      }
+      if (rowsToInsert.length > 0) {
+        sheet.getRange(2, 1, rowsToInsert.length, headers.length).setValues(rowsToInsert);
+      }
+    }
+  }
+
+  sheet.autoResizeColumns(1, headers.length);
+  SpreadsheetApp.getUi().alert("Tab 'Quiz 1 (LK-1 Bubut)' telah berhasil disiapkan dan diformat!");
+}
+
+function menuSetupDiagnosticTab() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetName = "Pretest Diagnostik";
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName, 1);
+  }
+
+  var headers = [
+    "NO",
+    "WAKTU PENGERJAAN",
+    "NAMA LENGKAP SISWA",
+    "NIS",
+    "KELAS",
+    "KELOMPOK",
+    "SKOR KOGNITIF (0-100)",
+    "BENAR / 10",
+    "KATEGORI KESIAPAN",
+    "GAYA BELAJAR SISWA",
+    "PENGALAMAN MESIN",
+    "KESIAPAN FISIK & K3",
+    "RINCIAN JAWABAN (Q1-Q10)",
+    "TAHUN AJARAN"
+  ];
+
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  var headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange
+    .setBackground("#1e40af")
+    .setFontColor("#ffffff")
+    .setFontWeight("bold")
+    .setHorizontalAlignment("center")
+    .setVerticalAlignment("middle");
+  sheet.setRowHeight(1, 35);
+  sheet.setFrozenRows(1);
+
+  var sourceSheet = ss.getSheetByName("11 TP A");
+  if (sourceSheet && sheet.getLastRow() <= 1) {
+    var lastSourceRow = sourceSheet.getLastRow();
+    if (lastSourceRow >= 2) {
+      var sourceData = sourceSheet.getRange(2, 1, lastSourceRow - 1, 5).getValues();
+      var rowsToInsert = [];
+      for (var i = 0; i < sourceData.length; i++) {
+        var no = sourceData[i][0] || (i + 1);
+        var name = sourceData[i][1] || "";
+        var nis = sourceData[i][2] || "";
+        var cls = sourceData[i][3] || "11 TP A";
+        var grp = sourceData[i][4] || "-";
+        if (name) {
+          rowsToInsert.push([
+            no,
+            "-",
+            name,
+            nis,
+            cls,
+            grp,
+            "",
+            "",
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+            "2026/2027"
+          ]);
+        }
+      }
+      if (rowsToInsert.length > 0) {
+        sheet.getRange(2, 1, rowsToInsert.length, headers.length).setValues(rowsToInsert);
+      }
+    }
+  }
+
+  sheet.autoResizeColumns(1, headers.length);
+  SpreadsheetApp.getUi().alert("Tab 'Pretest Diagnostik' telah berhasil disiapkan dan diformat!");
+}
+
+function menuShowHelp() {
+  var ui = SpreadsheetApp.getUi();
+  ui.alert(
+    "Panduan ESD V-Lab",
+    "Spreadsheet ini terhubung secara otomatis dengan laboratorium virtual ESD V-Lab.\n\n" +
+    "1. Data Quiz 1 & tautan lampiran Google Drive akan masuk ke tab 'Quiz 1 (LK-1 Bubut)'.\n" +
+    "2. Data Asesmen Awal & Angket Gaya Belajar masuk ke tab 'Pretest Diagnostik'.\n" +
+    "3. Evaluasi K3 & Uji Kompetensi masuk ke tab '11 TP A'.\n\n" +
+    "Pastikan Webhook telah dideploy sebagai Web App dengan akses 'Anyone'.",
+    ui.ButtonSet.OK
+  );
+}
+
+// Fungsi pembantu untuk mengaktifkan izin Google Drive dengan 1 kali klik "Run / Jalankan" di editor Apps Script
+function otorisasiIzinGoogleDrive() {
+  var folderName = "ESD V-Lab - Lampiran LK-1 Siswa";
+  var folders = DriveApp.getFoldersByName(folderName);
+  var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
+  Logger.log("Izin Google Drive aktif! Folder siap digunakan: " + folder.getUrl());
+}
+
+

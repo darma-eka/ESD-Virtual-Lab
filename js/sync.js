@@ -124,13 +124,25 @@ const SyncManager = (function () {
     const summaryStr = summaryParts.join(", ");
 
     let attachmentPayload = null;
-    if (user.quiz1Attachment && user.quiz1Attachment.dataUrl) {
-      const base64Data = user.quiz1Attachment.dataUrl.split(",")[1] || user.quiz1Attachment.dataUrl;
+    const att = user.quiz1Attachment;
+    if (att && (att.fileData || att.dataUrl)) {
+      const rawData = att.fileData || att.dataUrl;
+      const base64Data = (typeof rawData === "string" && rawData.indexOf(",") > -1)
+        ? rawData.split(",")[1]
+        : rawData;
+
+      let sizeLabel = att.sizeFormatted;
+      if (!sizeLabel) {
+        const rawBytes = att.fileSize || att.size || 0;
+        const kb = Math.round(rawBytes / 1024);
+        sizeLabel = kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : (kb > 0 ? `${kb} KB` : "File");
+      }
+
       attachmentPayload = {
         hasAttachment: true,
-        fileName: user.quiz1Attachment.name,
-        fileType: user.quiz1Attachment.type,
-        fileSize: user.quiz1Attachment.sizeFormatted || `${Math.round(user.quiz1Attachment.size / 1024)} KB`,
+        fileName: att.fileName || att.name || "lampiran_lk1",
+        fileType: att.fileType || att.type || "application/octet-stream",
+        fileSize: sizeLabel || "File",
         fileData: base64Data
       };
     }

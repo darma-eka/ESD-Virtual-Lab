@@ -422,22 +422,28 @@ function handleQuiz1Submission(ss, payload) {
   var attachmentStatus = "Tidak Ada Lampiran";
   var attachmentUrl = "-";
 
-  if (payload.attachment && payload.attachment.fileData) {
+  if (payload.attachment && (payload.attachment.fileData || payload.attachment.dataUrl)) {
     try {
       var folderName = "ESD V-Lab - Lampiran LK-1 Siswa";
       var folders = DriveApp.getFoldersByName(folderName);
       var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
 
-      var decodedBytes = Utilities.base64Decode(payload.attachment.fileData);
-      var mimeType = payload.attachment.fileType || "application/octet-stream";
-      var cleanFileName = (nis ? nis + "_" : "") + name.replace(/[^a-zA-Z0-9]/g, "_") + "_LK1_" + (payload.attachment.fileName || "lampiran");
+      var rawData = (payload.attachment.fileData || payload.attachment.dataUrl).toString();
+      if (rawData.indexOf(",") > -1) {
+        rawData = rawData.split(",")[1];
+      }
+      var decodedBytes = Utilities.base64Decode(rawData);
+      var mimeType = payload.attachment.fileType || payload.attachment.type || "application/octet-stream";
+      var rawFileName = payload.attachment.fileName || payload.attachment.name || "lampiran";
+      var cleanFileName = (nis ? nis + "_" : "") + name.replace(/[^a-zA-Z0-9]/g, "_") + "_LK1_" + rawFileName;
       var blob = Utilities.newBlob(decodedBytes, mimeType, cleanFileName);
       var driveFile = folder.createFile(blob);
       driveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       attachmentUrl = driveFile.getUrl();
-      attachmentStatus = "Terlampir (" + (payload.attachment.fileSize || "File") + ")";
+      var sizeText = payload.attachment.fileSize || payload.attachment.size || "File";
+      attachmentStatus = "Terlampir (" + sizeText + ")";
     } catch (errDrive) {
-      attachmentStatus = "Tercatat di Lab (" + (payload.attachment.fileName || "File") + ")";
+      attachmentStatus = "Tercatat di Lab (" + (payload.attachment.fileName || payload.attachment.name || "File") + ")";
       attachmentUrl = "Catatan: Izin Google Drive belum aktif (" + errDrive.toString() + ")";
     }
   }
@@ -465,6 +471,10 @@ function handleQuiz1Submission(ss, payload) {
   }
 
   var rowNumber = targetRow > 0 ? sheet.getRange(targetRow, 1).getValue() : (lastRow >= 2 ? lastRow : 1);
+  var linkDisplay = (attachmentUrl && attachmentUrl.indexOf("http") === 0)
+    ? '=HYPERLINK("' + attachmentUrl + '", "Buka File Drive")'
+    : attachmentUrl;
+
   var rowValues = [
     rowNumber,
     timestamp,
@@ -477,7 +487,7 @@ function handleQuiz1Submission(ss, payload) {
     status,
     answersSummary,
     attachmentStatus,
-    attachmentUrl,
+    linkDisplay,
     year
   ];
 

@@ -2684,9 +2684,13 @@ const App = (function () {
         reader.onload = (e) => {
           resolve({
             fileName: file.name,
+            name: file.name,
             fileType: "application/pdf",
+            type: "application/pdf",
             fileSize: file.size,
+            size: file.size,
             fileData: e.target.result,
+            dataUrl: e.target.result,
             uploadedAt: new Date().toLocaleString("id-ID")
           });
         };
@@ -2729,12 +2733,17 @@ const App = (function () {
           const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.82);
           const base64Len = compressedDataUrl.length - (compressedDataUrl.indexOf(",") + 1);
           const estSize = Math.round((base64Len * 3) / 4);
+          const finalName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
 
           resolve({
-            fileName: file.name.replace(/\.[^/.]+$/, "") + ".jpg",
+            fileName: finalName,
+            name: finalName,
             fileType: "image/jpeg",
+            type: "image/jpeg",
             fileSize: estSize,
+            size: estSize,
             fileData: compressedDataUrl,
+            dataUrl: compressedDataUrl,
             uploadedAt: new Date().toLocaleString("id-ID")
           });
         };

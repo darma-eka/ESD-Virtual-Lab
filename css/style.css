@@ -1014,6 +1014,178 @@ html.dark .esd-brand-logo-login {
   filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.35));
 }
 
+/* ==========================================================================
+   FLOATING SYMBOL PALETTE & MINIMIZABLE FAB BUTTON (QUIZ 2 ESAI)
+   ========================================================================== */
+.fab-symbol-btn {
+  position: fixed;
+  bottom: 5.5rem;
+  right: 1.25rem;
+  z-index: 45;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.45), 0 8px 10px -6px rgba(37, 99, 235, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+@media (min-width: 768px) {
+  .fab-symbol-btn {
+    bottom: 2rem;
+    right: 2rem;
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+}
+
+.fab-symbol-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 14px 28px -4px rgba(37, 99, 235, 0.55), 0 10px 14px -6px rgba(37, 99, 235, 0.4);
+}
+
+.fab-symbol-btn:active {
+  transform: scale(0.95);
+}
+
+.fab-symbol-btn .fab-icon {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fab-symbol-btn.is-open {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.45);
+}
+
+.fab-symbol-btn.is-open .fab-icon {
+  transform: rotate(45deg);
+}
+
+/* Floating Palette Window */
+.floating-symbol-palette {
+  position: fixed;
+  bottom: 9.25rem;
+  right: 1rem;
+  z-index: 45;
+  width: calc(100vw - 2rem);
+  max-width: 380px;
+  max-height: calc(85vh - 10rem);
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 1.25rem;
+  padding: 1rem;
+  box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transform-origin: bottom right;
+  transition: opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1), transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .floating-symbol-palette {
+    bottom: 6rem;
+    right: 2rem;
+    max-width: 400px;
+  }
+}
+
+html.dark .floating-symbol-palette {
+  background: rgba(21, 30, 46, 0.96);
+  border-color: rgba(51, 65, 85, 0.9);
+  box-shadow: 0 25px 45px -10px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.floating-symbol-palette.palette-hidden {
+  opacity: 0;
+  transform: translateY(16px) scale(0.92);
+  pointer-events: none;
+}
+
+.floating-symbol-palette.palette-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+/* Symbol chip buttons */
+.symbol-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.6rem;
+  min-width: 2.25rem;
+  height: 2.1rem;
+  border-radius: 0.625rem;
+  font-size: 0.825rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid rgba(203, 213, 225, 0.8);
+  background: #ffffff;
+  color: #1e293b;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+html.dark .symbol-chip-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+.symbol-chip-btn:hover {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+html.dark .symbol-chip-btn:hover {
+  background: #1e3a8a;
+  border-color: #60a5fa;
+  color: #bfdbfe;
+}
+
+.symbol-chip-btn:active {
+  transform: scale(0.92);
+}
+
+.symbol-chip-btn.param-chip {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+html.dark .symbol-chip-btn.param-chip {
+  background: #064e3b;
+  border-color: #047857;
+  color: #a7f3d0;
+}
+
+.symbol-chip-btn.unit-chip {
+  background: #fefce8;
+  border-color: #fef08a;
+  color: #854d0e;
+  font-size: 0.75rem;
+}
+
+html.dark .symbol-chip-btn.unit-chip {
+  background: #451a03;
+  border-color: #78350f;
+  color: #fde68a;
+}
+
+
 
 
 

@@ -21,6 +21,10 @@ const App = (function () {
     quizAnswers: {},
     quiz1Answers: {},
     quiz1Attachment: null,
+    quiz2Assigned: null,
+    quiz2PgAnswers: {},
+    quiz2EssayAnswers: {},
+    quiz2Submitted: false,
     diagnosticCompleted: false,
     diagnosticData: null,
     activeScreen: "screen-home",
@@ -159,11 +163,19 @@ const App = (function () {
             userData.quizAnswers = (parsedAcc.quizAnswers && typeof parsedAcc.quizAnswers === "object") ? { ...parsedAcc.quizAnswers } : {};
             userData.quiz1Answers = (parsedAcc.quiz1Answers && typeof parsedAcc.quiz1Answers === "object") ? { ...parsedAcc.quiz1Answers } : {};
             userData.quiz1Attachment = (parsedAcc.quiz1Attachment && typeof parsedAcc.quiz1Attachment === "object") ? { ...parsedAcc.quiz1Attachment } : null;
+            userData.quiz2Assigned = (parsedAcc.quiz2Assigned && typeof parsedAcc.quiz2Assigned === "object") ? parsedAcc.quiz2Assigned : null;
+            userData.quiz2PgAnswers = (parsedAcc.quiz2PgAnswers && typeof parsedAcc.quiz2PgAnswers === "object") ? { ...parsedAcc.quiz2PgAnswers } : {};
+            userData.quiz2EssayAnswers = (parsedAcc.quiz2EssayAnswers && typeof parsedAcc.quiz2EssayAnswers === "object") ? { ...parsedAcc.quiz2EssayAnswers } : {};
+            userData.quiz2Submitted = parsedAcc.quiz2Submitted === true;
           } else {
             userData = { ...defaultUser, ...parsed, isLoggedIn: true };
             if (!userData.quizAnswers || typeof userData.quizAnswers !== "object") userData.quizAnswers = {};
             if (!userData.quiz1Answers || typeof userData.quiz1Answers !== "object") userData.quiz1Answers = {};
             if (!userData.quiz1Attachment || typeof userData.quiz1Attachment !== "object") userData.quiz1Attachment = null;
+            if (!userData.quiz2Assigned || typeof userData.quiz2Assigned !== "object") userData.quiz2Assigned = null;
+            if (!userData.quiz2PgAnswers || typeof userData.quiz2PgAnswers !== "object") userData.quiz2PgAnswers = {};
+            if (!userData.quiz2EssayAnswers || typeof userData.quiz2EssayAnswers !== "object") userData.quiz2EssayAnswers = {};
+            userData.quiz2Submitted = userData.quiz2Submitted === true;
             try {
               localStorage.setItem(accKey, JSON.stringify(userData));
             } catch (e) {}
@@ -2294,38 +2306,260 @@ const App = (function () {
     }
   }
 
+  function toggleQuiz2FormulaCard() {
+    const card = document.getElementById("quiz2-formula-card");
+    const txt = document.getElementById("btn-toggle-quiz2-formula-text");
+    if (!card) return;
+    const isHidden = card.classList.contains("hidden");
+    if (isHidden) {
+      card.classList.remove("hidden");
+      if (txt) txt.textContent = "Sembunyikan Rumus Acuan Frais";
+    } else {
+      card.classList.add("hidden");
+      if (txt) txt.textContent = "Lihat Rumus Acuan Frais";
+    }
+  }
+
+  // ==================== FITUR FLOATING SIMBOL & INPUT ESAI (QUIZ 2) ====================
+  let activeEssayTextarea = null;
+
+  function trackActiveEssayTextarea(el) {
+    activeEssayTextarea = el;
+  }
+
+  function toggleSymbolPalette(forceState) {
+    const palette = document.getElementById("floating-symbol-palette");
+    const btn = document.getElementById("fab-symbol-toggle");
+    if (!palette) return;
+
+    let willOpen;
+    if (typeof forceState === "boolean") {
+      willOpen = forceState;
+    } else {
+      willOpen = palette.classList.contains("palette-hidden");
+    }
+
+    if (willOpen) {
+      palette.classList.remove("palette-hidden");
+      palette.classList.add("palette-visible");
+      if (btn) btn.classList.add("is-open");
+    } else {
+      palette.classList.remove("palette-visible");
+      palette.classList.add("palette-hidden");
+      if (btn) btn.classList.remove("is-open");
+    }
+    try { SoundEngine.playClick(); } catch (e) {}
+  }
+
+  function insertSymbol(symbol) {
+    let ta = activeEssayTextarea;
+    if (!ta || !document.body.contains(ta)) {
+      ta = document.querySelector(".quiz2-essay-textarea");
+    }
+    if (!ta) {
+      showToast("Klik terlebih dahulu kolom jawaban esai yang ingin diisi simbol.", "info");
+      return;
+    }
+
+    ta.focus();
+    const start = ta.selectionStart !== undefined ? ta.selectionStart : ta.value.length;
+    const end = ta.selectionEnd !== undefined ? ta.selectionEnd : ta.value.length;
+    const currentVal = ta.value;
+
+    let nextVal = "";
+    let nextCursor = start + symbol.length;
+
+    if (symbol === "()" && start !== end) {
+      // Jika ada teks terseleksi, bungkus teks tersebut dengan kurung: (teks)
+      const selectedText = currentVal.substring(start, end);
+      nextVal = currentVal.substring(0, start) + "(" + selectedText + ")" + currentVal.substring(end);
+      nextCursor = end + 2;
+    } else if (symbol === "()") {
+      // Jika kursor biasa, sisipkan () dan letakkan kursor di tengah: (|)
+      nextVal = currentVal.substring(0, start) + "()" + currentVal.substring(end);
+      nextCursor = start + 1;
+    } else {
+      nextVal = currentVal.substring(0, start) + symbol + currentVal.substring(end);
+      nextCursor = start + symbol.length;
+    }
+
+    ta.value = nextVal;
+    ta.setSelectionRange(nextCursor, nextCursor);
+
+    // Memicu event input agar langsung autosave ke data siswa
+    ta.dispatchEvent(new Event("input", { bubbles: true }));
+    try { SoundEngine.playClick(); } catch (e) {}
+    showToast(`Simbol "${symbol.trim() || '()'}" disisipkan!`, "info");
+  }
+
+  // ==================== ALGORITMA ACAK SOAL & OPSI QUIZ 2 ====================
+  function shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function generateQuiz2SetForUser() {
+    const pool = (typeof AppData !== "undefined" && AppData.quiz2Pool) ? AppData.quiz2Pool : {};
+    const pgPool = pool.pgPool || [];
+    const essayPool = pool.essayPool || [];
+
+    // Acak dan pilih 6 soal PG dari pool 12 soal
+    const shuffledPg = shuffleArray(pgPool).slice(0, 6);
+    const assignedPg = shuffledPg.map((q, idx) => {
+      // Acak urutan opsi jawaban A, B, C, D, E untuk tiap soal PG
+      const origCorrectText = q.options[q.correct];
+      const shuffledOptions = shuffleArray(q.options);
+      const newCorrectIndex = shuffledOptions.indexOf(origCorrectText);
+      return {
+        ...q,
+        clientNo: idx + 1,
+        options: shuffledOptions,
+        correct: newCorrectIndex
+      };
+    });
+
+    // Acak dan pilih 4 soal Esai Hitungan dari pool 8 soal
+    const shuffledEssay = shuffleArray(essayPool).slice(0, 4);
+    const assignedEssay = shuffledEssay.map((q, idx) => {
+      return {
+        ...q,
+        clientNo: idx + 1
+      };
+    });
+
+    return {
+      pg: assignedPg,
+      essay: assignedEssay,
+      generatedAt: new Date().toISOString()
+    };
+  }
+
+  // ==================== EVALUATOR CERDAS ESAI HITUNGAN FRAIS ====================
+  function evaluateEssayAnswer(q, studentText) {
+    if (!studentText || !studentText.trim()) {
+      return {
+        score: 0,
+        isCorrect: false,
+        feedback: "Belum dijawab oleh siswa. Nilai: 0/10 poin."
+      };
+    }
+
+    const text = studentText.toLowerCase();
+    let score = 0;
+    const reasons = [];
+
+    // Ekstrak angka (mengubah koma desimal jadi titik)
+    const normalizedText = text.replace(/,/g, ".");
+    const numberMatches = normalizedText.match(/-?\d+(?:\.\d+)?/g) || [];
+    const parsedNumbers = numberMatches.map(Number);
+
+    const target1 = q.targetNumber;
+    const target2 = q.targetNumberAlt;
+    const tolerance = (q.tolerancePct || 3) / 100;
+
+    let numberFound = false;
+    for (const num of parsedNumbers) {
+      if (target1 !== undefined) {
+        const diff1 = Math.abs(num - target1);
+        const maxDiff1 = Math.max(0.2, Math.abs(target1) * tolerance);
+        if (diff1 <= maxDiff1) {
+          numberFound = true;
+          break;
+        }
+      }
+      if (target2 !== undefined) {
+        const diff2 = Math.abs(num - target2);
+        const maxDiff2 = Math.max(0.2, Math.abs(target2) * tolerance);
+        if (diff2 <= maxDiff2) {
+          numberFound = true;
+          break;
+        }
+      }
+    }
+
+    // Periksa kata kunci langkah rumus
+    let keywordCount = 0;
+    const keywords = q.keywords || [];
+    keywords.forEach((kw) => {
+      const kwLower = kw.toLowerCase();
+      if (text.includes(kwLower) || normalizedText.includes(kwLower.replace(/,/g, "."))) {
+        keywordCount++;
+      }
+    });
+
+    if (numberFound && keywordCount >= 2) {
+      score = 10;
+      reasons.push("Langkah perhitungan rumus lengkap dan hasil akhir presisi (10/10 pts).");
+    } else if (numberFound) {
+      score = 9;
+      reasons.push("Hasil akhir hitungan tepat sesuai toleransi (9/10 pts).");
+    } else if (keywordCount >= 3) {
+      score = 6;
+      reasons.push("Rumus dan komponen hitungan sudah ditulis benar, namun hasil akhir belum presisi (6/10 pts).");
+    } else if (keywordCount >= 1 || text.length >= 15) {
+      score = 4;
+      reasons.push("Terdapat upaya menulis rumus / parameter diketahui, perlu teliti dalam penyelesaian (4/10 pts).");
+    } else {
+      score = 2;
+      reasons.push("Penjelasan terlalu singkat / belum memuat langkah perhitungan (2/10 pts).");
+    }
+
+    return {
+      score: score,
+      isCorrect: score >= 8,
+      feedback: reasons.join(" ")
+    };
+  }
+
   function switchQuizPackage(tabId) {
     currentQuizTab = tabId || "quiz1";
 
     const tabLk1 = document.getElementById("tab-quiz-lk1");
+    const tabFrais = document.getElementById("tab-quiz-frais");
     const tabComp = document.getElementById("tab-quiz-comprehensive");
     const bannerLk1 = document.getElementById("quiz1-intro-banner");
-    const formulaCard = document.getElementById("quiz1-formula-card");
+    const bannerFrais = document.getElementById("quiz2-intro-banner");
+    const formulaCardLk1 = document.getElementById("quiz1-formula-card");
+    const formulaCardFrais = document.getElementById("quiz2-formula-card");
     const attachmentCard = document.getElementById("quiz1-attachment-card");
+    const fabSymbol = document.getElementById("fab-symbol-toggle");
     const titleEl = document.getElementById("quiz-screen-title");
     const subtitleEl = document.getElementById("quiz-screen-subtitle");
 
+    const activeClass = "flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-sm";
+    const inactiveClass = "flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white";
+
+    if (tabLk1) tabLk1.className = currentQuizTab === "quiz1" ? activeClass : inactiveClass;
+    if (tabFrais) tabFrais.className = currentQuizTab === "quiz2" ? activeClass : inactiveClass;
+    if (tabComp) tabComp.className = currentQuizTab === "comprehensive" ? activeClass : inactiveClass;
+
+    if (bannerLk1) bannerLk1.classList.toggle("hidden", currentQuizTab !== "quiz1");
+    if (bannerFrais) bannerFrais.classList.toggle("hidden", currentQuizTab !== "quiz2");
+    if (attachmentCard) attachmentCard.classList.toggle("hidden", currentQuizTab !== "quiz1");
+    if (formulaCardLk1) formulaCardLk1.classList.add("hidden");
+    if (formulaCardFrais) formulaCardFrais.classList.add("hidden");
+
+    // Tampilkan tombol floating simbol hanya saat membuka Quiz 2
+    if (fabSymbol) {
+      if (currentQuizTab === "quiz2") {
+        fabSymbol.classList.remove("hidden");
+      } else {
+        fabSymbol.classList.add("hidden");
+        toggleSymbolPalette(false);
+      }
+    }
+
     if (currentQuizTab === "quiz1") {
-      if (tabLk1) {
-        tabLk1.className = "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-sm";
-      }
-      if (tabComp) {
-        tabComp.className = "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white";
-      }
-      if (bannerLk1) bannerLk1.classList.remove("hidden");
-      if (attachmentCard) attachmentCard.classList.remove("hidden");
       if (titleEl) titleEl.textContent = "Quiz 1: Perhitungan Parameter Bubut (LK-1)";
       if (subtitleEl) subtitleEl.textContent = "Kerjakan 10 butir soal perhitungan parameter pemotongan poros ST-37, aluminium finishing, dan optimasi baja S45C.";
+    } else if (currentQuizTab === "quiz2") {
+      if (titleEl) titleEl.textContent = "Quiz 2: Parameter Pemotongan Mesin Frais";
+      if (subtitleEl) subtitleEl.textContent = "Paket acak individu: 6 Soal Pilihan Ganda + 4 Soal Esai Hitungan (opsi PG teracak). Ketik langkah jawaban esai langsung di lab.";
     } else {
-      if (tabLk1) {
-        tabLk1.className = "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white";
-      }
-      if (tabComp) {
-        tabComp.className = "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-sm";
-      }
-      if (bannerLk1) bannerLk1.classList.add("hidden");
-      if (formulaCard) formulaCard.classList.add("hidden");
-      if (attachmentCard) attachmentCard.classList.add("hidden");
       if (titleEl) titleEl.textContent = "Uji Kompetensi Mandiri (Teori & Kasus)";
       if (subtitleEl) subtitleEl.textContent = "Uji kemampuan kognitif K3, anatomi mesin, dan kalkulasi parameter bubut & frais secara komprehensif.";
     }
@@ -2351,6 +2585,12 @@ const App = (function () {
     if (tabId === "quiz1") {
       userData.quiz1Answers = {};
       showToast("Jawaban Quiz 1 berhasil direset. Silakan berlatih kembali!", "info");
+    } else if (tabId === "quiz2") {
+      userData.quiz2PgAnswers = {};
+      userData.quiz2EssayAnswers = {};
+      userData.quiz2Submitted = false;
+      userData.quiz2Assigned = generateQuiz2SetForUser();
+      showToast("Jawaban Quiz 2 direset & paket 6 PG + 4 Esai baru telah diacak ulang!", "info");
     } else {
       userData.quizAnswers = {};
       showToast("Jawaban Uji Kompetensi berhasil direset. Silakan berlatih kembali!", "info");
@@ -2359,8 +2599,12 @@ const App = (function () {
     renderQuizScreen();
   }
 
-  // Render Quiz Challenges (Mendukung Quiz 1: LK-1 Parameter Bubut & Uji Kompetensi Komprehensif)
+  // Render Quiz Challenges (Mendukung Quiz 1: LK-1, Quiz 2: Frais, & Uji Kompetensi)
   function renderQuizScreen() {
+    if (currentQuizTab === "quiz2") {
+      renderQuiz2Screen();
+      return;
+    }
     const container = document.getElementById("quiz-questions-container");
     const summaryEl = document.getElementById("quiz-summary-box");
     if (!container) return;
@@ -2623,7 +2867,448 @@ const App = (function () {
     }
   }
 
-  // Kirim nilai kuis & simulasi ke Google Sheets Webhook
+  // ==================== RENDERER KHUSUS QUIZ 2 (FRAIS: 6 PG + 4 ESAI) ====================
+  function renderQuiz2Screen() {
+    const container = document.getElementById("quiz-questions-container");
+    const summaryEl = document.getElementById("quiz-summary-box");
+    if (!container) return;
+    container.innerHTML = "";
+    if (summaryEl) {
+      summaryEl.classList.add("hidden");
+      summaryEl.innerHTML = "";
+    }
+
+    // Pastikan user memiliki paket acak 6 PG + 4 Esai yang tersimpan per akun
+    if (!userData.quiz2Assigned || !userData.quiz2Assigned.pg || userData.quiz2Assigned.pg.length !== 6 || !userData.quiz2Assigned.essay || userData.quiz2Assigned.essay.length !== 4) {
+      userData.quiz2Assigned = generateQuiz2SetForUser();
+      saveUserData();
+    }
+
+    if (!userData.quiz2PgAnswers || typeof userData.quiz2PgAnswers !== "object") userData.quiz2PgAnswers = {};
+    if (!userData.quiz2EssayAnswers || typeof userData.quiz2EssayAnswers !== "object") userData.quiz2EssayAnswers = {};
+
+    const assigned = userData.quiz2Assigned;
+    const pgQuestions = assigned.pg || [];
+    const essayQuestions = assigned.essay || [];
+    const pgAnswers = userData.quiz2PgAnswers;
+    const essayAnswers = userData.quiz2EssayAnswers;
+    const isSubmitted = userData.quiz2Submitted === true;
+
+    // --- BAGIAN A: HEADER PILIHAN GANDA ---
+    const secA = document.createElement("div");
+    secA.className = "p-4 sm:p-5 rounded-2xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/90 dark:border-blue-800/60 mb-4 shadow-xs";
+    secA.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center flex-shrink-0 shadow-sm">
+            PG
+          </div>
+          <div>
+            <h3 class="font-black text-sm sm:text-base text-blue-950 dark:text-blue-100">
+              Bagian A: Soal Pilihan Ganda (6 Butir Acak)
+            </h3>
+            <p class="text-xs text-blue-900/80 dark:text-blue-300/80">
+              Bobot: 10 poin per soal (Total 60 Poin). Soal dan opsi pilihan ganda diacak otomatis per akun.
+            </p>
+          </div>
+        </div>
+        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 flex-shrink-0">
+          6 Soal
+        </span>
+      </div>
+    `;
+    container.appendChild(secA);
+
+    // Render 6 PG Questions
+    pgQuestions.forEach((q, idx) => {
+      const card = document.createElement("div");
+      card.className = "mat-card mb-4";
+      const isAnswered = pgAnswers[q.id] !== undefined;
+      const selectedOpt = pgAnswers[q.id];
+
+      let optionsHtml = "";
+      q.options.forEach((opt, optIdx) => {
+        let optClass = "p-3 rounded-xl border text-xs font-medium cursor-pointer transition-all mb-2 flex items-center justify-between ";
+        if (isAnswered) {
+          if (optIdx === q.correct) {
+            optClass += "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-bold";
+          } else if (optIdx === selectedOpt) {
+            optClass += "bg-red-50 dark:bg-red-950/40 border-red-500 text-red-900 dark:text-red-200 font-bold";
+          } else {
+            optClass += "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-400 opacity-60";
+          }
+        } else {
+          optClass += "bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/40 dark:hover:bg-slate-800";
+        }
+
+        optionsHtml += `
+          <div class="${optClass}" data-qid="${q.id}" data-opt="${optIdx}">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center font-bold text-[11px] text-slate-700 dark:text-slate-200 flex-shrink-0">
+                ${String.fromCharCode(65 + optIdx)}
+              </span>
+              <span>${opt}</span>
+            </div>
+            ${
+              isAnswered && optIdx === q.correct
+                ? '<span class="text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center gap-1 flex-shrink-0"><i data-lucide="check" class="w-3.5 h-3.5"></i> Benar (+10)</span>'
+                : isAnswered && optIdx === selectedOpt
+                ? '<span class="text-red-600 dark:text-red-400 font-bold text-xs flex items-center gap-1 flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i> Salah</span>'
+                : ""
+            }
+          </div>
+        `;
+      });
+
+      card.innerHTML = `
+        <div class="p-5">
+          <div class="flex items-center justify-between mb-2">
+            <span class="mat-badge mat-badge-primary">
+              Quiz 2 Frais • ${q.category || "Pilihan Ganda"}
+            </span>
+            <span class="text-xs text-slate-400 font-medium">Soal PG ${idx + 1} dari 6</span>
+          </div>
+          <h4 class="font-bold text-sm text-slate-800 dark:text-white mb-3 leading-snug">${q.question}</h4>
+          <div class="options-group">${optionsHtml}</div>
+          ${
+            isAnswered && q.explanation
+              ? `<div class="mt-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                  <div class="font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-1.5">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5 text-blue-600"></i>
+                    <span>Pembahasan & Teori:</span>
+                  </div>
+                  <div class="whitespace-pre-line">${q.explanation}</div>
+                </div>`
+              : ""
+          }
+        </div>
+      `;
+
+      if (!isAnswered) {
+        card.querySelectorAll(".options-group > div").forEach((optEl) => {
+          optEl.onclick = () => {
+            const qid = optEl.dataset.qid;
+            const chosen = parseInt(optEl.dataset.opt);
+            pgAnswers[qid] = chosen;
+
+            if (chosen === q.correct) {
+              try { SoundEngine.playSuccess(); } catch (e) {}
+              addXP(50);
+              showToast("Jawaban Benar! +10 Poin (+50 XP)", "success");
+            } else {
+              try { SoundEngine.playWarning(); } catch (e) {}
+              showToast("Jawaban Kurang Tepat!", "danger");
+            }
+            saveUserData();
+            renderQuiz2Screen();
+          };
+        });
+      }
+
+      container.appendChild(card);
+    });
+
+    // --- BAGIAN B: HEADER ESAI HITUNGAN ---
+    const secB = document.createElement("div");
+    secB.className = "p-4 sm:p-5 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/90 dark:border-indigo-800/60 mb-4 mt-6 shadow-xs";
+    secB.innerHTML = `
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white font-black text-xs flex items-center justify-center flex-shrink-0 shadow-sm">
+            ESAI
+          </div>
+          <div>
+            <h3 class="font-black text-sm sm:text-base text-indigo-950 dark:text-indigo-100">
+              Bagian B: Soal Esai Hitungan (4 Butir Acak)
+            </h3>
+            <p class="text-xs text-indigo-900/80 dark:text-indigo-300/80">
+              Ketik langsung cara perhitungan dan jawaban akhir di kolom teks. Bobot: 10 poin per soal (Total 40 Poin).
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 text-[11px] text-indigo-800 dark:text-indigo-200 bg-white dark:bg-indigo-900/60 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-700 font-semibold self-start sm:self-auto shadow-2xs">
+          <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-indigo-600"></i>
+          <span>Tombol [+] di kanan bawah untuk simbol</span>
+        </div>
+      </div>
+    `;
+    container.appendChild(secB);
+
+    // Render 4 Essay Questions
+    essayQuestions.forEach((q, idx) => {
+      const card = document.createElement("div");
+      card.className = "mat-card mb-4";
+      const studentText = essayAnswers[q.id] || "";
+      const evalRes = evaluateEssayAnswer(q, studentText);
+
+      card.innerHTML = `
+        <div class="p-5">
+          <div class="flex items-center justify-between mb-2">
+            <span class="mat-badge mat-badge-secondary">
+              Esai ${idx + 1} • ${q.category || "Hitungan Frais"}
+            </span>
+            <span class="text-xs text-slate-400 font-medium">Soal Esai ${idx + 1} dari 4</span>
+          </div>
+          <h4 class="font-bold text-sm text-slate-800 dark:text-white mb-3 leading-snug">${q.question}</h4>
+
+          <!-- Area Tulis Lembar Jawaban Siswa -->
+          <div class="mt-3">
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="essay-input-${q.id}" class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5 text-blue-600"></i>
+                <span>Tuliskan Langkah Perhitungan & Jawaban Akhir:</span>
+              </label>
+              <span id="char-count-${q.id}" class="text-[11px] text-slate-400 font-mono">
+                ${studentText.length} karakter
+              </span>
+            </div>
+            <textarea 
+              id="essay-input-${q.id}"
+              data-qid="${q.id}"
+              rows="4" 
+              class="quiz2-essay-textarea w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-mono leading-relaxed"
+              placeholder="Ketik cara pengerjaan dan hasil akhir di sini... (Klik tombol [+] melayang di kanan bawah untuk menyisipkan simbol matematika/frais)"
+              ${isSubmitted ? "readonly" : ""}
+            >${studentText}</textarea>
+          </div>
+
+          ${
+            isSubmitted
+              ? `
+                <div class="mt-3.5 p-3.5 rounded-xl border ${evalRes.isCorrect ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200' : 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-200'} text-xs">
+                  <div class="flex items-center justify-between font-bold mb-1">
+                    <span class="flex items-center gap-1.5">
+                      <i data-lucide="${evalRes.isCorrect ? 'check-circle' : 'alert-circle'}" class="w-4 h-4 ${evalRes.isCorrect ? 'text-emerald-600' : 'text-amber-600'}"></i>
+                      <span>Koreksi & Skor Sistem:</span>
+                    </span>
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-black ${evalRes.isCorrect ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-200 text-amber-900'}">
+                      ${evalRes.score} / 10 Poin
+                    </span>
+                  </div>
+                  <p class="leading-relaxed mb-2">${evalRes.feedback}</p>
+                  
+                  <div class="mt-2.5 pt-2.5 border-t border-slate-200 dark:border-slate-700/60">
+                    <div class="font-bold text-slate-800 dark:text-white mb-1 flex items-center gap-1.5">
+                      <i data-lucide="book-open" class="w-3.5 h-3.5 text-blue-600"></i>
+                      <span>Kunci & Langkah Penyelesaian Resmi:</span>
+                    </div>
+                    <div class="p-2.5 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 text-[11.5px] font-mono whitespace-pre-line text-slate-700 dark:text-slate-300">
+                      ${q.solutionSteps || "-"}
+                    </div>
+                  </div>
+                </div>
+              `
+              : ""
+          }
+        </div>
+      `;
+
+      // Textarea input and tracking events
+      const textarea = card.querySelector(`#essay-input-${q.id}`);
+      if (textarea && !isSubmitted) {
+        textarea.addEventListener("focus", () => trackActiveEssayTextarea(textarea));
+        textarea.addEventListener("click", () => trackActiveEssayTextarea(textarea));
+        textarea.addEventListener("input", (e) => {
+          essayAnswers[q.id] = e.target.value;
+          saveUserData();
+          const charCounter = document.getElementById(`char-count-${q.id}`);
+          if (charCounter) charCounter.textContent = `${e.target.value.length} karakter`;
+        });
+      }
+
+      container.appendChild(card);
+    });
+
+    // --- BAGIAN SUBMIT & REKAPITULASI ---
+    renderQuiz2SubmissionAndSummary(container, summaryEl, pgQuestions, essayQuestions, pgAnswers, essayAnswers, isSubmitted);
+
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
+  }
+
+  function renderQuiz2SubmissionAndSummary(container, summaryEl, pgQuestions, essayQuestions, pgAnswers, essayAnswers, isSubmitted) {
+    const pgAnsweredCount = pgQuestions.filter(q => pgAnswers[q.id] !== undefined).length;
+    const essayAnsweredCount = essayQuestions.filter(q => (essayAnswers[q.id] || "").trim().length > 0).length;
+
+    if (!isSubmitted) {
+      // Tampilkan Tombol Selesaikan & Koreksi
+      const actionCard = document.createElement("div");
+      actionCard.className = "p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-blue-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 mt-6";
+      actionCard.innerHTML = `
+        <div>
+          <div class="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-1">
+            <i data-lucide="check-square" class="w-4 h-4 text-blue-600"></i>
+            <span>Kemajuan Pengerjaan Quiz 2:</span>
+          </div>
+          <div class="text-[11px] text-slate-500 dark:text-slate-400">
+            Pilihan Ganda: <strong class="${pgAnsweredCount === 6 ? 'text-emerald-600' : 'text-blue-600'}">${pgAnsweredCount}/6</strong> terjawab &bull; 
+            Esai Hitungan: <strong class="${essayAnsweredCount === 4 ? 'text-emerald-600' : 'text-indigo-600'}">${essayAnsweredCount}/4</strong> terisi
+          </div>
+        </div>
+        <button 
+          type="button" 
+          onclick="App.submitQuiz2Locally()" 
+          class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+        >
+          <i data-lucide="award" class="w-4 h-4"></i>
+          <span>Koreksi & Kunci Jawaban Quiz 2</span>
+        </button>
+      `;
+      container.appendChild(actionCard);
+    } else {
+      // Tampilkan Ringkasan Evaluasi Penuh
+      let pgCorrectCount = 0;
+      pgQuestions.forEach(q => {
+        if (pgAnswers[q.id] === q.correct) pgCorrectCount++;
+      });
+      const pgScore = Math.round((pgCorrectCount / 6) * 60);
+
+      let essayScore = 0;
+      essayQuestions.forEach(q => {
+        const text = (essayAnswers[q.id] || "").trim();
+        const evalRes = evaluateEssayAnswer(q, text);
+        essayScore += evalRes.score;
+      });
+
+      const totalScore = Math.min(100, Math.round(pgScore + essayScore));
+      const isPassed = totalScore >= 75;
+
+      if (summaryEl) {
+        summaryEl.classList.remove("hidden");
+        summaryEl.innerHTML = `
+          <div class="p-5 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/90 dark:bg-blue-950/40 text-blue-950 dark:text-blue-100 flex flex-col gap-4 shadow-sm animate-in fade-in duration-200 mb-6">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+              <div>
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 text-[11px] font-bold mb-1">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-blue-600"></i>
+                  <span>Quiz 2: Parameter Frais Selesai Dikoreksi</span>
+                </div>
+                <h4 class="font-extrabold text-base text-slate-900 dark:text-white">Hasil Evaluasi Individu</h4>
+                <p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                  Total Nilai: <strong class="text-emerald-700 dark:text-emerald-400 font-extrabold text-sm">${totalScore} / 100</strong>
+                  (PG: <strong>${pgScore}/60</strong>, Esai: <strong>${essayScore}/40</strong>) &bull; 
+                  Status: <span class="font-bold ${isPassed ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}">${isPassed ? 'LULUS (KOMPETEN)' : 'PERLU PENGAYAAN'}</span>
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button 
+                  type="button" 
+                  onclick="App.resetQuizAnswers('quiz2')" 
+                  class="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Ulangi dan acak paket soal baru untuk latihan lagi"
+                >
+                  <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                  <span>Ulangi (Paket Acak Baru)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Rekap Sinkronisasi Google Sheets -->
+            <div class="pt-3 border-t border-blue-200/80 dark:border-blue-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white/70 dark:bg-slate-900/40 p-3 rounded-xl">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold flex-shrink-0">
+                  <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-slate-800 dark:text-white">Rekapitulasi Nilai ke Spreadsheet Guru</div>
+                  <div id="sync-status-quiz2" class="text-[11px] text-slate-500 dark:text-slate-400">
+                    Kirim skor individu, rincian 6 PG, dan 4 jawaban esai lengkap siswa ke tab 'Quiz 2 (Frais)' di Google Sheets.
+                  </div>
+                </div>
+              </div>
+              <button 
+                id="btn-sync-grades-quiz2" 
+                onclick="App.sendQuiz2ToSpreadsheet()" 
+                class="self-stretch sm:self-auto py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <i data-lucide="send" class="w-4 h-4"></i>
+                <span>Kirim Nilai ke Spreadsheet Guru</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    }
+  }
+
+  function submitQuiz2Locally() {
+    const assigned = userData.quiz2Assigned || {};
+    const pgQuestions = assigned.pg || [];
+    const essayQuestions = assigned.essay || [];
+    const pgAnswers = userData.quiz2PgAnswers || {};
+    const essayAnswers = userData.quiz2EssayAnswers || {};
+
+    const pgAnsweredCount = pgQuestions.filter(q => pgAnswers[q.id] !== undefined).length;
+    const essayAnsweredCount = essayQuestions.filter(q => (essayAnswers[q.id] || "").trim().length > 0).length;
+
+    if (pgAnsweredCount < pgQuestions.length || essayAnsweredCount < essayQuestions.length) {
+      const confirmSubmit = confirm(
+        `Anda baru menjawab ${pgAnsweredCount}/${pgQuestions.length} Pilihan Ganda dan mengisi ${essayAnsweredCount}/${essayQuestions.length} Esai.\n\nApakah Anda yakin ingin menyelesaikan dan mengoreksi Quiz 2 sekarang?`
+      );
+      if (!confirmSubmit) return;
+    }
+
+    userData.quiz2Submitted = true;
+    saveUserData();
+    showToast("Quiz 2 berhasil dikoreksi! Silakan tinjau nilai & pembahasan.", "success");
+    try { SoundEngine.playSuccess(); } catch (e) {}
+    renderQuiz2Screen();
+    const summaryEl = document.getElementById("quiz-summary-box");
+    if (summaryEl) summaryEl.scrollIntoView({ behavior: "smooth" });
+  }
+
+  async function sendQuiz2ToSpreadsheet() {
+    const btn = document.getElementById("btn-sync-grades-quiz2");
+    const statusEl = document.getElementById("sync-status-quiz2");
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Sedang Mengirim ke Spreadsheet...</span>';
+      if (window.lucide) lucide.createIcons();
+    }
+    if (statusEl) {
+      statusEl.textContent = "Menghubungkan ke Google Sheets...";
+      statusEl.className = "text-[11px] text-blue-600 dark:text-blue-400 font-medium";
+    }
+
+    if (typeof SyncManager === "undefined" || !SyncManager.submitQuiz2) {
+      showToast("Modul sinkronisasi belum dimuat.", "danger");
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i><span>Kirim Nilai ke Spreadsheet</span>';
+      }
+      return;
+    }
+
+    const res = await SyncManager.submitQuiz2();
+
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i><span>Kirim Ulang ke Spreadsheet</span>';
+      if (window.lucide) lucide.createIcons();
+    }
+
+    if (res.success) {
+      showToast("Nilai Quiz 2 siswa berhasil direkap ke tab 'Quiz 2 (Frais)' di Google Sheets!", "success");
+      try { SoundEngine.playSuccess(); } catch (e) {}
+      if (statusEl) {
+        statusEl.innerHTML = '<span class="text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1"><i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-600"></i> Nilai individu berhasil tersinkron ke Spreadsheet Guru!</span>';
+        if (window.lucide) lucide.createIcons();
+      }
+    } else if (res.noUrl) {
+      showToast("URL Spreadsheet belum disetel oleh Guru. Nilai tersimpan di lab ini.", "info");
+      if (statusEl) {
+        statusEl.innerHTML = '<span class="text-amber-700 dark:text-amber-300 flex items-center gap-1"><i data-lucide="info" class="w-3.5 h-3.5"></i> Webhook Google Sheets belum diisi oleh Guru</span>';
+        if (window.lucide) lucide.createIcons();
+      }
+    } else {
+      showToast("Gagal mengirim nilai: " + res.message, "danger");
+      if (statusEl) {
+        statusEl.innerHTML = `<span class="text-red-600 dark:text-red-400 flex items-center gap-1"><i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Gagal: ${res.message}</span>`;
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+  }
   async function sendGradesToSpreadsheet() {
     const btn = document.getElementById("btn-sync-grades-quiz");
     const statusEl = document.getElementById("sync-status-quiz");
@@ -4198,6 +4883,13 @@ const App = (function () {
     printLKPD,
     switchQuizPackage,
     toggleQuiz1FormulaCard,
+    toggleQuiz2FormulaCard,
+    toggleSymbolPalette,
+    insertSymbol,
+    trackActiveEssayTextarea,
+    evaluateEssayAnswer,
+    submitQuiz2Locally,
+    sendQuiz2ToSpreadsheet,
     resetQuizAnswers,
     getCurrentQuizTab: () => currentQuizTab,
     handleQuiz1FileUpload,

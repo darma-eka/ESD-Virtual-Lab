@@ -60,6 +60,11 @@ function doPost(e) {
     if (payload.action === "submit_quiz1") {
       return handleQuiz1Submission(ss, payload);
     }
+
+    // Jika ini adalah pengiriman Quiz 2 (Parameter Frais: 6 PG + 4 Esai)
+    if (payload.action === "submit_quiz2") {
+      return handleQuiz2Submission(ss, payload);
+    }
     
     // Cari tab "11 TP A" terlebih dahulu, jika tidak ada gunakan tab aktif pertama
     var targetSheetName = payload.class || "11 TP A";
@@ -521,6 +526,144 @@ function handleQuiz1Submission(ss, payload) {
   }
 }
 
+// ==============================================================================================
+// PENANGANAN QUIZ 2: PARAMETER PEMOTONGAN MESIN FRAIS (ACAK 6 PG + 4 ESAI)
+// Merekap nilai per individu siswa (bukan kelompok), rincian PG, dan jawaban esai lengkap
+// ==============================================================================================
+function handleQuiz2Submission(ss, payload) {
+  var sheetName = "Quiz 2 (Frais)";
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+  }
+
+  // Header tabel khusus Quiz 2
+  var headers = [
+    "NO",
+    "WAKTU PENGERJAAN",
+    "NAMA LENGKAP SISWA",
+    "NIS",
+    "KELAS",
+    "KELOMPOK",
+    "SKOR TOTAL (0-100)",
+    "SKOR PG (0-60)",
+    "SKOR ESAI (0-40)",
+    "STATUS KOMPETENSI",
+    "RINCIAN PG (6 SOAL)",
+    "ESAI 1 (SOAL & JAWABAN)",
+    "ESAI 2 (SOAL & JAWABAN)",
+    "ESAI 3 (SOAL & JAWABAN)",
+    "ESAI 4 (SOAL & JAWABAN)",
+    "CATATAN EVALUASI",
+    "TAHUN AJARAN"
+  ];
+
+  if (sheet.getLastRow() < 1) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    var headerRange = sheet.getRange(1, 1, 1, headers.length);
+    headerRange
+      .setBackground("#1d4ed8") // Royal Blue for Milling
+      .setFontColor("#ffffff")
+      .setFontWeight("bold")
+      .setHorizontalAlignment("center")
+      .setVerticalAlignment("middle");
+    sheet.setRowHeight(1, 35);
+    sheet.setFrozenRows(1);
+  }
+
+  var name = (payload.name || "").toString().trim();
+  var nis = (payload.nis || "").toString().trim();
+  var className = (payload.class || "11 TP A").toString().trim();
+  var group = (payload.group || "-").toString().trim();
+  var year = (payload.academicYear || "2026/2027").toString().trim();
+
+  var totalScore = typeof payload.totalScore !== "undefined" ? Number(payload.totalScore) : 0;
+  var pgScore = typeof payload.pgScore !== "undefined" ? Number(payload.pgScore) : 0;
+  var essayScore = typeof payload.essayScore !== "undefined" ? Number(payload.essayScore) : 0;
+  var status = totalScore >= 75 ? "LULUS (KOMPETEN)" : "PERLU PENGAYAAN";
+  var pgSummary = (payload.pgSummary || "-").toString().trim();
+
+  var essays = payload.essays || [];
+  var essay1 = essays[0] ? (essays[0].question + "\n>>> JAWABAN: " + essays[0].answer + " (" + essays[0].score + "/10 pts)") : "-";
+  var essay2 = essays[1] ? (essays[1].question + "\n>>> JAWABAN: " + essays[1].answer + " (" + essays[1].score + "/10 pts)") : "-";
+  var essay3 = essays[2] ? (essays[2].question + "\n>>> JAWABAN: " + essays[2].answer + " (" + essays[2].score + "/10 pts)") : "-";
+  var essay4 = essays[3] ? (essays[3].question + "\n>>> JAWABAN: " + essays[3].answer + " (" + essays[3].score + "/10 pts)") : "-";
+
+  var evalNote = (payload.evaluationNote || "Pengerjaan 6 PG + 4 Esai").toString().trim();
+  var timestamp = payload.timestamp || new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
+
+  // Cari baris siswa yang cocok berdasarkan NIS atau Nama (dicatat per individu)
+  var lastRow = sheet.getLastRow();
+  var targetRow = -1;
+
+  if (lastRow >= 2) {
+    var nisRange = sheet.getRange(2, 4, lastRow - 1, 1).getValues();  // Kolom D: NIS
+    var nameRange = sheet.getRange(2, 3, lastRow - 1, 1).getValues(); // Kolom C: Nama
+
+    for (var i = 0; i < nameRange.length; i++) {
+      var rowNis = (nisRange[i][0] || "").toString().trim();
+      var rowName = (nameRange[i][0] || "").toString().trim().toLowerCase();
+
+      if (nis && rowNis && nis === rowNis) {
+        targetRow = i + 2;
+        break;
+      } else if (name && rowName && rowName === name.toLowerCase()) {
+        targetRow = i + 2;
+        break;
+      }
+    }
+  }
+
+  var rowNumber = targetRow > 0 ? sheet.getRange(targetRow, 1).getValue() : (lastRow >= 2 ? lastRow : 1);
+
+  var rowValues = [
+    rowNumber,
+    timestamp,
+    name,
+    nis,
+    className,
+    group,
+    totalScore,
+    pgScore,
+    essayScore,
+    status,
+    pgSummary,
+    essay1,
+    essay2,
+    essay3,
+    essay4,
+    evalNote,
+    year
+  ];
+
+  if (targetRow > 0) {
+    sheet.getRange(targetRow, 1, 1, rowValues.length).setValues([rowValues]);
+    var scoreCell = sheet.getRange(targetRow, 7);
+    formatQuizScoreCell(scoreCell, totalScore);
+    return createJsonResponse({
+      status: "success",
+      action: "updated",
+      row: targetRow,
+      student: name,
+      score: totalScore,
+      message: "Data Quiz 2 (Frais) siswa " + name + " berhasil diperbarui di baris " + targetRow + " tab 'Quiz 2 (Frais)'."
+    });
+  } else {
+    sheet.appendRow(rowValues);
+    var newRow = sheet.getLastRow();
+    var newScoreCell = sheet.getRange(newRow, 7);
+    formatQuizScoreCell(newScoreCell, totalScore);
+    return createJsonResponse({
+      status: "success",
+      action: "appended",
+      row: newRow,
+      student: name,
+      score: totalScore,
+      message: "Data Quiz 2 (Frais) baru untuk " + name + " berhasil ditambahkan di baris " + newRow + " tab 'Quiz 2 (Frais)'."
+    });
+  }
+}
+
 function formatQuizScoreCell(cell, score) {
   if (score >= 75) {
     cell.setBackground("#d1fae5").setFontColor("#065f46").setFontWeight("bold").setHorizontalAlignment("center");
@@ -543,6 +686,7 @@ function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu("🚀 ESD V-Lab")
     .addItem("📊 Siapkan / Rapikan Tab Quiz 1 (LK-1)", "menuSetupQuiz1Tab")
+    .addItem("⚙️ Siapkan / Rapikan Tab Quiz 2 (Frais)", "menuSetupQuiz2Tab")
     .addItem("📝 Siapkan / Rapikan Tab Pretest Diagnostik", "menuSetupDiagnosticTab")
     .addSeparator()
     .addItem("ℹ️ Panduan Singkat Sinkronisasi", "menuShowHelp")
@@ -622,7 +766,91 @@ function menuSetupQuiz1Tab() {
   }
 
   sheet.autoResizeColumns(1, headers.length);
-  SpreadsheetApp.getUi().alert("Tab 'Quiz 1 (LK-1 Bubut)' telah berhasil disiapkan dan diformat!");
+  ss.toast("Tab 'Quiz 1 (LK-1 Bubut)' telah berhasil disiapkan dan diformat!", "🚀 ESD V-Lab", 5);
+}
+
+function menuSetupQuiz2Tab() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetName = "Quiz 2 (Frais)";
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName, 1);
+  }
+
+  var headers = [
+    "NO",
+    "WAKTU PENGERJAAN",
+    "NAMA LENGKAP SISWA",
+    "NIS",
+    "KELAS",
+    "KELOMPOK",
+    "SKOR TOTAL (0-100)",
+    "SKOR PG (0-60)",
+    "SKOR ESAI (0-40)",
+    "STATUS KOMPETENSI",
+    "RINCIAN PG (6 SOAL)",
+    "ESAI 1 (SOAL & JAWABAN)",
+    "ESAI 2 (SOAL & JAWABAN)",
+    "ESAI 3 (SOAL & JAWABAN)",
+    "ESAI 4 (SOAL & JAWABAN)",
+    "CATATAN EVALUASI",
+    "TAHUN AJARAN"
+  ];
+
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  var headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange
+    .setBackground("#1d4ed8")
+    .setFontColor("#ffffff")
+    .setFontWeight("bold")
+    .setHorizontalAlignment("center")
+    .setVerticalAlignment("middle");
+  sheet.setRowHeight(1, 35);
+  sheet.setFrozenRows(1);
+
+  // Jika tab 11 TP A ada, salin daftar nama siswa agar slot per individu langsung siap
+  var sourceSheet = ss.getSheetByName("11 TP A");
+  if (sourceSheet && sheet.getLastRow() <= 1) {
+    var lastSourceRow = sourceSheet.getLastRow();
+    if (lastSourceRow >= 2) {
+      var sourceData = sourceSheet.getRange(2, 1, lastSourceRow - 1, 5).getValues();
+      var rowsToInsert = [];
+      for (var i = 0; i < sourceData.length; i++) {
+        var no = sourceData[i][0] || (i + 1);
+        var name = sourceData[i][1] || "";
+        var nis = sourceData[i][2] || "";
+        var cls = sourceData[i][3] || "11 TP A";
+        var grp = sourceData[i][4] || "-";
+        if (name) {
+          rowsToInsert.push([
+            no,
+            "-",
+            name,
+            nis,
+            cls,
+            grp,
+            "",
+            "",
+            "",
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+            "2026/2027"
+          ]);
+        }
+      }
+      if (rowsToInsert.length > 0) {
+        sheet.getRange(2, 1, rowsToInsert.length, headers.length).setValues(rowsToInsert);
+      }
+    }
+  }
+
+  sheet.autoResizeColumns(1, headers.length);
+  ss.toast("Tab 'Quiz 2 (Frais)' telah berhasil disiapkan dan diformat!", "🚀 ESD V-Lab", 5);
 }
 
 function menuSetupDiagnosticTab() {
@@ -699,7 +927,7 @@ function menuSetupDiagnosticTab() {
   }
 
   sheet.autoResizeColumns(1, headers.length);
-  SpreadsheetApp.getUi().alert("Tab 'Pretest Diagnostik' telah berhasil disiapkan dan diformat!");
+  ss.toast("Tab 'Pretest Diagnostik' telah berhasil disiapkan dan diformat!", "🚀 ESD V-Lab", 5);
 }
 
 function menuShowHelp() {

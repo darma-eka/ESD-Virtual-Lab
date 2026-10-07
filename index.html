@@ -409,6 +409,10 @@
         <i data-lucide="calculator" class="w-4 h-4 nav-icon text-amber-500"></i>
         <span>Quiz 1 (Parameter Bubut)</span>
       </div>
+      <div class="sidebar-nav-item" data-target="screen-quiz" data-quiz-tab="quiz2" onclick="App.switchQuizPackage('quiz2'); App.navigateTo('screen-quiz')" title="Quiz 2: Parameter Pemotongan Mesin Frais (Acak 6 PG + 4 Esai)">
+        <i data-lucide="layers" class="w-4 h-4 nav-icon text-blue-500"></i>
+        <span>Quiz 2 (Parameter Frais)</span>
+      </div>
       <div class="sidebar-nav-item" data-target="screen-quiz" data-quiz-tab="comprehensive" onclick="App.switchQuizPackage('comprehensive'); App.navigateTo('screen-quiz')" title="Uji Kompetensi Mandiri Teori & Kasus Pemesinan">
         <i data-lucide="help-circle" class="w-4 h-4 nav-icon"></i>
         <span>Uji Kompetensi Mandiri</span>
@@ -1580,24 +1584,33 @@
         </div>
 
         <!-- Quiz Package Switcher Tabs -->
-        <div class="flex items-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/80 max-w-xl">
+        <div class="flex items-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/80 max-w-2xl">
           <button 
             type="button" 
             id="tab-quiz-lk1" 
             onclick="App.switchQuizPackage('quiz1')" 
-            class="flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-sm"
+            class="flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-sm"
           >
-            <i data-lucide="calculator" class="w-4 h-4 text-amber-500"></i>
-            <span>Quiz 1: Parameter Bubut (LK-1)</span>
+            <i data-lucide="calculator" class="w-3.5 h-3.5 text-amber-500"></i>
+            <span>Quiz 1: Bubut (LK-1)</span>
+          </button>
+          <button 
+            type="button" 
+            id="tab-quiz-frais" 
+            onclick="App.switchQuizPackage('quiz2')" 
+            class="flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+          >
+            <i data-lucide="layers" class="w-3.5 h-3.5 text-blue-500"></i>
+            <span>Quiz 2: Frais (6 PG + 4 Esai)</span>
           </button>
           <button 
             type="button" 
             id="tab-quiz-comprehensive" 
             onclick="App.switchQuizPackage('comprehensive')" 
-            class="flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            class="flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           >
-            <i data-lucide="help-circle" class="w-4 h-4 text-blue-500"></i>
-            <span>Uji Kompetensi Mandiri</span>
+            <i data-lucide="help-circle" class="w-3.5 h-3.5 text-purple-500"></i>
+            <span>Uji Mandiri</span>
           </button>
         </div>
 
@@ -1627,6 +1640,74 @@
             <i data-lucide="info" class="w-3.5 h-3.5"></i>
             <span id="btn-toggle-formula-text">Lihat Rumus Acuan</span>
           </button>
+        </div>
+
+        <!-- Quiz 2 Context & Instructions Banner -->
+        <div id="quiz2-intro-banner" class="hidden p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div class="flex items-start gap-3">
+            <div class="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold flex-shrink-0">
+              <i data-lucide="layers" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-200 dark:bg-blue-900 text-blue-900 dark:text-blue-200">
+                  Quiz 2 Acak
+                </span>
+                <span class="text-xs font-bold text-blue-950 dark:text-blue-200">Parameter Pemotongan Mesin Frais (Fase F - SMK)</span>
+              </div>
+              <p class="text-xs text-blue-900/80 dark:text-blue-300/80 mt-1 leading-relaxed">
+                Setiap akun siswa menerima paket unik berisi <strong>6 Soal Pilihan Ganda</strong> + <strong>4 Soal Esai Hitungan</strong> yang dipilih secara acak (opsi PG juga teracak). Ketik langkah penyelesaian esai langsung di kolom yang tersedia. Gunakan tombol <strong>[+]</strong> di kanan bawah untuk menyisipkan simbol matematika/frais. Tetapan: <strong>π = 3,14</strong>.
+              </p>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            onclick="App.toggleQuiz2FormulaCard()" 
+            class="px-3 py-1.5 rounded-lg bg-blue-200/80 hover:bg-blue-300 dark:bg-blue-900/60 dark:hover:bg-blue-800 text-blue-900 dark:text-blue-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer flex-shrink-0"
+          >
+            <i data-lucide="function-square" class="w-3.5 h-3.5"></i>
+            <span id="btn-toggle-quiz2-formula-text">Lihat Rumus Acuan Frais</span>
+          </button>
+        </div>
+
+        <!-- Collapsible Formula & Reference Card for Quiz 2 -->
+        <div id="quiz2-formula-card" class="hidden p-4 rounded-2xl bg-white dark:bg-[#151e2e] border border-blue-200 dark:border-blue-800 shadow-sm">
+          <div class="text-xs font-bold text-slate-800 dark:text-white mb-2.5 flex items-center gap-1.5">
+            <i data-lucide="function-square" class="w-4 h-4 text-blue-600"></i>
+            <span>Rumus Acuan Parameter Mesin Frais (Bahan Ajar & Modul):</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <span class="text-[10px] font-bold text-slate-400 block uppercase">1. Kecepatan Potong (Vc)</span>
+              <div class="font-mono font-bold text-blue-700 dark:text-blue-400 text-sm mt-0.5">Vc = (π · d · n) / 1000</div>
+              <span class="text-[10.5px] text-slate-500">Satuan: m/menit (d: mm, n: rpm, π: 3,14)</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <span class="text-[10px] font-bold text-slate-400 block uppercase">2. Putaran Spindel (n)</span>
+              <div class="font-mono font-bold text-indigo-700 dark:text-indigo-400 text-sm mt-0.5">n = (1000 · Vc) / (π · d)</div>
+              <span class="text-[10.5px] text-slate-500">Satuan: RPM (rotasi per menit)</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <span class="text-[10px] font-bold text-slate-400 block uppercase">3. Kecepatan Pemakanan (Vf)</span>
+              <div class="font-mono font-bold text-emerald-700 dark:text-emerald-400 text-sm mt-0.5">Vf = fz · z · n</div>
+              <span class="text-[10.5px] text-slate-500">Satuan: mm/menit (fz: mm/gigi, z: mata gigi)</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <span class="text-[10px] font-bold text-slate-400 block uppercase">4. Gerak Makan per Gigi (fz)</span>
+              <div class="font-mono font-bold text-amber-700 dark:text-amber-400 text-sm mt-0.5">fz = Vf / (z · n)</div>
+              <span class="text-[10.5px] text-slate-500">Satuan: mm/gigi</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <span class="text-[10px] font-bold text-slate-400 block uppercase">5. Waktu Pemesinan Frais (tc)</span>
+              <div class="font-mono font-bold text-rose-700 dark:text-rose-400 text-sm mt-0.5">tc = (la + l + lu) / Vf</div>
+              <span class="text-[10.5px] text-slate-500">Satuan: menit (L = la + l + lu dalam mm)</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <span class="text-[10px] font-bold text-slate-400 block uppercase">6. Laju Geram (MRR)</span>
+              <div class="font-mono font-bold text-purple-700 dark:text-purple-400 text-sm mt-0.5">MRR = (w · ap · Vf) / 1000</div>
+              <span class="text-[10.5px] text-slate-500">Satuan: cm³/menit (atau w · ap · Vf mm³/min)</span>
+            </div>
+          </div>
         </div>
 
         <!-- Collapsible Formula & Reference Card for Quiz 1 -->
@@ -1772,6 +1853,101 @@
 
         <div id="quiz-summary-box" class="hidden"></div>
         <div id="quiz-questions-container" class="max-w-4xl mx-auto space-y-4"></div>
+
+        <!-- ==================== FLOATING SYMBOL BUTTON & PALETTE (KHUSUS QUIZ 2 ESAI) ==================== -->
+        <!-- Minimizable FAB Button with smooth rotation animation -->
+        <button 
+          type="button" 
+          id="fab-symbol-toggle" 
+          class="fab-symbol-btn hidden" 
+          onclick="App.toggleSymbolPalette()" 
+          title="Buka / Tutup Palet Simbol Matematika & Frais"
+          aria-label="Buka / Tutup Palet Simbol Matematika & Frais"
+        >
+          <i data-lucide="plus" class="w-6 h-6 fab-icon"></i>
+        </button>
+
+        <!-- Floating Palette Modal Window with smooth slide/fade -->
+        <div id="floating-symbol-palette" class="floating-symbol-palette palette-hidden" role="dialog" aria-labelledby="palette-heading">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700/80">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                <i data-lucide="sigma" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h4 id="palette-heading" class="font-bold text-xs text-slate-800 dark:text-white leading-tight">Palet Simbol & Rumus Frais</h4>
+                <span class="text-[10px] text-slate-500 dark:text-slate-400">Klik simbol untuk menyisipkan ke jawaban</span>
+              </div>
+            </div>
+            <button 
+              type="button" 
+              onclick="App.toggleSymbolPalette(false)" 
+              class="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              title="Tutup Palet (Minimize)"
+            >
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Kategori 1: Parameter Mesin Frais -->
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 block mb-1.5">Parameter Frais:</span>
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('Vc')">Vc</button>
+              <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('n')">n</button>
+              <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('Vf')">Vf</button>
+              <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('fz')">fz</button>
+              <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('z')">z</button>
+              <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('d')">d</button>
+              <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('ap')">ap</button>
+              <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('L')">L</button>
+              <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('tc')">tc</button>
+              <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('MRR')">MRR</button>
+            </div>
+          </div>
+
+          <!-- Kategori 2: Simbol Matematika & Operasi -->
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 block mb-1.5">Simbol & Operasi:</span>
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" class="symbol-chip-btn font-bold text-blue-700 dark:text-blue-400" onclick="App.insertSymbol('()')">( )</button>
+              <button type="button" class="symbol-chip-btn font-bold" onclick="App.insertSymbol('(')">(</button>
+              <button type="button" class="symbol-chip-btn font-bold" onclick="App.insertSymbol(')')">)</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol('π')">π</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol(' · ')">·</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol(' × ')">×</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol(' / ')">/</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol(' + ')">+</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol(' - ')">-</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol(' = ')">=</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol(' ≈ ')">≈</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol(' ± ')">±</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol('√')">√</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol('²')">²</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol('³')">³</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol('Δ')">Δ</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol('°')">°</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol(' ≤ ')">≤</button>
+              <button type="button" class="symbol-chip-btn" onclick="App.insertSymbol(' ≥ ')">≥</button>
+            </div>
+          </div>
+
+          <!-- Kategori 3: Satuan Teknis -->
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 block mb-1.5">Satuan Teknis:</span>
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" class="symbol-chip-btn unit-chip" onclick="App.insertSymbol(' rpm')">rpm</button>
+              <button type="button" class="symbol-chip-btn unit-chip" onclick="App.insertSymbol(' m/menit')">m/menit</button>
+              <button type="button" class="symbol-chip-btn unit-chip" onclick="App.insertSymbol(' mm/gigi')">mm/gigi</button>
+              <button type="button" class="symbol-chip-btn unit-chip" onclick="App.insertSymbol(' mm/menit')">mm/menit</button>
+              <button type="button" class="symbol-chip-btn unit-chip" onclick="App.insertSymbol(' mm³/menit')">mm³/menit</button>
+              <button type="button" class="symbol-chip-btn unit-chip" onclick="App.insertSymbol(' cm³/menit')">cm³/menit</button>
+              <button type="button" class="symbol-chip-btn unit-chip" onclick="App.insertSymbol(' menit')">menit</button>
+              <button type="button" class="symbol-chip-btn unit-chip" onclick="App.insertSymbol(' mm')">mm</button>
+              <button type="button" class="symbol-chip-btn unit-chip" onclick="App.insertSymbol(' kali')">kali</button>
+            </div>
+          </div>
+        </div>
 
       </section>
 

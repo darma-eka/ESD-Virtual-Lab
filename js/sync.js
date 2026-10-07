@@ -213,6 +213,120 @@ const SyncManager = (function () {
     }
   }
 
+  // Mengumpulkan data lengkap pengerjaan Quiz 2 (Parameter Frais: 6 PG + 4 Esai)
+  function gatherQuiz2Data() {
+    const user = typeof App !== "undefined" && App.getUserData ? App.getUserData() : {};
+    const assigned = user.quiz2Assigned || {};
+    const pgQuestions = assigned.pg || [];
+    const essayQuestions = assigned.essay || [];
+    const pgAnswers = user.quiz2PgAnswers || {};
+    const essayAnswers = user.quiz2EssayAnswers || {};
+
+    // Hitung Skor Pilihan Ganda (6 Soal x 10 = 60 Maks)
+    let pgCorrectCount = 0;
+    const pgParts = [];
+    pgQuestions.forEach((q, idx) => {
+      const studentOpt = pgAnswers[q.id];
+      const isCorrect = studentOpt === q.correct;
+      if (isCorrect) pgCorrectCount++;
+      const letter = (studentOpt !== undefined && studentOpt !== null) ? String.fromCharCode(65 + studentOpt) : "-";
+      const mark = isCorrect ? "✓" : "✗";
+      pgParts.push(`Q${idx + 1}:${letter}(${mark})`);
+    });
+    const pgScore = Math.round((pgCorrectCount / (pgQuestions.length || 6)) * 60);
+
+    // Hitung Skor Esai (4 Soal x 10 = 40 Maks)
+    let essayTotalScore = 0;
+    const essayRecords = [];
+    essayQuestions.forEach((q, idx) => {
+      const text = (essayAnswers[q.id] || "").trim();
+      const evalRes = (typeof App !== "undefined" && App.evaluateEssayAnswer) 
+        ? App.evaluateEssayAnswer(q, text) 
+        : { score: text ? 5 : 0, feedback: "-" };
+      essayTotalScore += evalRes.score;
+      essayRecords.push({
+        id: q.id,
+        number: idx + 1,
+        question: `Esai ${idx + 1} (${q.category || "Hitungan"}): ${q.question}`,
+        answer: text || "(Tidak dijawab)",
+        score: evalRes.score,
+        feedback: evalRes.feedback
+      });
+    });
+
+    const totalScore = Math.min(100, Math.round(pgScore + essayTotalScore));
+    const status = totalScore >= 75 ? "LULUS (KOMPETEN)" : "PERLU PENGAYAAN";
+    const pgSummaryStr = pgParts.join(", ");
+
+    return {
+      action: "submit_quiz2",
+      name: user.name || "Siswa Belterdaftar",
+      nis: user.nis || "-",
+      class: user.class || "11 TP A",
+      group: user.group || "-",
+      academicYear: user.academicYear || "2026/2027",
+      totalScore: totalScore,
+      pgScore: pgScore,
+      pgCorrect: pgCorrectCount,
+      pgTotal: pgQuestions.length || 6,
+      essayScore: essayTotalScore,
+      essayTotal: essayQuestions.length || 4,
+      status: status,
+      pgSummary: pgSummaryStr,
+      essays: essayRecords,
+      evaluationNote: `PG: ${pgCorrectCount}/${pgQuestions.length || 6} Benar (${pgScore} pts) | Esai: ${essayTotalScore}/40 pts`,
+      timestamp: new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
+    };
+  }
+
+  // Kirim hasil Quiz 2 (Frais) ke Google Sheets Webhook
+  async function submitQuiz2(customPayload = null) {
+    const webhookUrl = getWebhookUrl();
+    const payload = customPayload || gatherQuiz2Data();
+
+    if (!webhookUrl) {
+      try {
+        localStorage.setItem("esd_pending_quiz2", JSON.stringify(payload));
+      } catch (e) {}
+      return {
+        success: false,
+        noUrl: true,
+        message: "URL Google Apps Script belum disetel. Hasil Quiz 2 telah tersimpan secara lokal di browser."
+      };
+    }
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return {
+        success: result.status === "success",
+        data: result,
+        message: result.message || "Hasil Quiz 2 (Frais) berhasil disinkronkan ke Google Sheets!"
+      };
+    } catch (err) {
+      console.warn("Sinkronisasi Quiz 2 gagal:", err);
+      try {
+        localStorage.setItem("esd_pending_quiz2", JSON.stringify(payload));
+      } catch (e) {}
+      return {
+        success: false,
+        error: err.message,
+        message: "Gagal terhubung ke Google Sheets: " + err.message + ". Data tersimpan aman di browser."
+      };
+    }
+  }
+
   // Kirim nilai ke Google Sheets Webhook
   async function submitGrade(customPayload = null) {
     const webhookUrl = getWebhookUrl();
@@ -503,6 +617,56 @@ function doPost(e) {
       }
     }
 
+    // Jika Kuis 2 (Frais: 6 PG + 4 Esai)
+    if (payload.action === "submit_quiz2") {
+      var fSheet = ss.getSheetByName("Quiz 2 (Frais)") || ss.insertSheet("Quiz 2 (Frais)");
+      var fHeaders = ["NO", "WAKTU PENGERJAAN", "NAMA LENGKAP SISWA", "NIS", "KELAS", "KELOMPOK", "SKOR TOTAL (0-100)", "SKOR PG (0-60)", "SKOR ESAI (0-40)", "STATUS KOMPETENSI", "RINCIAN PG (6 SOAL)", "ESAI 1 (SOAL & JAWABAN)", "ESAI 2 (SOAL & JAWABAN)", "ESAI 3 (SOAL & JAWABAN)", "ESAI 4 (SOAL & JAWABAN)", "CATATAN EVALUASI", "TAHUN AJARAN"];
+      if (fSheet.getLastRow() < 1) {
+        fSheet.getRange(1, 1, 1, fHeaders.length).setValues([fHeaders]).setBackground("#1d4ed8").setFontColor("#ffffff").setFontWeight("bold").setHorizontalAlignment("center").setVerticalAlignment("middle");
+        fSheet.setRowHeight(1, 35);
+        fSheet.setFrozenRows(1);
+      }
+      var fName = (payload.name || "").toString().trim();
+      var fNis = (payload.nis || "").toString().trim();
+      var fScore = typeof payload.totalScore !== "undefined" ? Number(payload.totalScore) : 0;
+      var fPgScore = typeof payload.pgScore !== "undefined" ? Number(payload.pgScore) : 0;
+      var fEsScore = typeof payload.essayScore !== "undefined" ? Number(payload.essayScore) : 0;
+      var fStatus = fScore >= 75 ? "LULUS (KOMPETEN)" : "PERLU PENGAYAAN";
+      var fEssays = payload.essays || [];
+      var fEs1 = fEssays[0] ? (fEssays[0].question + "\n>>> JAWABAN: " + fEssays[0].answer + " (" + fEssays[0].score + "/10 pts)") : "-";
+      var fEs2 = fEssays[1] ? (fEssays[1].question + "\n>>> JAWABAN: " + fEssays[1].answer + " (" + fEssays[1].score + "/10 pts)") : "-";
+      var fEs3 = fEssays[2] ? (fEssays[2].question + "\n>>> JAWABAN: " + fEssays[2].answer + " (" + fEssays[2].score + "/10 pts)") : "-";
+      var fEs4 = fEssays[3] ? (fEssays[3].question + "\n>>> JAWABAN: " + fEssays[3].answer + " (" + fEssays[3].score + "/10 pts)") : "-";
+      var fTimestamp = payload.timestamp || new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
+      var fLastRow = fSheet.getLastRow();
+      var fTargetRow = -1;
+      if (fLastRow >= 2) {
+        var fNisRange = fSheet.getRange(2, 4, fLastRow - 1, 1).getValues();
+        var fNameRange = fSheet.getRange(2, 3, fLastRow - 1, 1).getValues();
+        for (var fi = 0; fi < fNameRange.length; fi++) {
+          if ((fNis && fNisRange[fi][0] && fNis === fNisRange[fi][0].toString().trim()) || (fName && fNameRange[fi][0] && fName.toLowerCase() === fNameRange[fi][0].toString().trim().toLowerCase())) {
+            fTargetRow = fi + 2;
+            break;
+          }
+        }
+      }
+      var fRowValues = [
+        fTargetRow > 0 ? fSheet.getRange(fTargetRow, 1).getValue() : (fLastRow >= 2 ? fLastRow : 1),
+        fTimestamp, fName, fNis, payload.class || "11 TP A", payload.group || "-",
+        fScore, fPgScore, fEsScore, fStatus, payload.pgSummary || "-", fEs1, fEs2, fEs3, fEs4, payload.evaluationNote || "-", payload.academicYear || "2026/2027"
+      ];
+      if (fTargetRow > 0) {
+        fSheet.getRange(fTargetRow, 1, 1, fRowValues.length).setValues([fRowValues]);
+        fSheet.getRange(fTargetRow, 7).setBackground(fScore >= 75 ? "#d1fae5" : "#fef3c7").setFontColor(fScore >= 75 ? "#065f46" : "#92400e").setFontWeight("bold");
+        return ContentService.createTextOutput(JSON.stringify({ status: "success", action: "updated", row: fTargetRow, student: fName, score: fScore, message: "Data Quiz 2 (Frais) siswa " + fName + " berhasil diperbarui di tab 'Quiz 2 (Frais)'." })).setMimeType(ContentService.MimeType.JSON);
+      } else {
+        fSheet.appendRow(fRowValues);
+        var fNewRow = fSheet.getLastRow();
+        fSheet.getRange(fNewRow, 7).setBackground(fScore >= 75 ? "#d1fae5" : "#fef3c7").setFontColor(fScore >= 75 ? "#065f46" : "#92400e").setFontWeight("bold");
+        return ContentService.createTextOutput(JSON.stringify({ status: "success", action: "appended", row: fNewRow, student: fName, score: fScore, message: "Data Quiz 2 (Frais) baru untuk " + fName + " berhasil ditambahkan di tab 'Quiz 2 (Frais)'." })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
     // Rekap Evaluasi Mandiri / Kuis Reguler
     var sheet = ss.getSheetByName(payload.class || "11 TP A") || ss.getSheetByName("11 TP A") || ss.getSheets()[0];
 
@@ -559,6 +723,7 @@ function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu("🚀 ESD V-Lab")
     .addItem("📊 Siapkan Tab Quiz 1 (LK-1)", "menuSetupQuiz1Tab")
+    .addItem("⚙️ Siapkan Tab Quiz 2 (Frais)", "menuSetupQuiz2Tab")
     .addItem("📝 Siapkan Tab Pretest Diagnostik", "menuSetupDiagnosticTab")
     .addToUi();
 }
@@ -571,18 +736,29 @@ function menuSetupQuiz1Tab() {
   sheet.getRange(1, 1, 1, headers.length).setBackground("#b45309").setFontColor("#ffffff").setFontWeight("bold").setHorizontalAlignment("center");
   sheet.setRowHeight(1, 35);
   sheet.setFrozenRows(1);
-  SpreadsheetApp.getUi().alert("Tab 'Quiz 1 (LK-1 Bubut)' telah siap!");
+  ss.toast("Tab 'Quiz 1 (LK-1 Bubut)' telah siap!", "🚀 ESD V-Lab", 5);
+}
+
+function menuSetupQuiz2Tab() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Quiz 2 (Frais)") || ss.insertSheet("Quiz 2 (Frais)", 1);
+  var headers = ["NO", "WAKTU PENGERJAAN", "NAMA LENGKAP SISWA", "NIS", "KELAS", "KELOMPOK", "SKOR TOTAL (0-100)", "SKOR PG (0-60)", "SKOR ESAI (0-40)", "STATUS KOMPETENSI", "RINCIAN PG (6 SOAL)", "ESAI 1 (SOAL & JAWABAN)", "ESAI 2 (SOAL & JAWABAN)", "ESAI 3 (SOAL & JAWABAN)", "ESAI 4 (SOAL & JAWABAN)", "CATATAN EVALUASI", "TAHUN AJARAN"];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setBackground("#1d4ed8").setFontColor("#ffffff").setFontWeight("bold").setHorizontalAlignment("center");
+  sheet.setRowHeight(1, 35);
+  sheet.setFrozenRows(1);
+  ss.toast("Tab 'Quiz 2 (Frais)' telah siap!", "🚀 ESD V-Lab", 5);
 }
 
 function menuSetupDiagnosticTab() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Pretest Diagnostik") || ss.insertSheet("Pretest Diagnostik", 1);
+  var sheet = ss.getSheetByName("Pretest Diagnostik") || ss.insertSheet("Pretest Diagnostik", 2);
   var headers = ["NO","WAKTU PENGERJAAN","NAMA LENGKAP SISWA","NIS","KELAS","KELOMPOK","SKOR KOGNITIF (0-100)","BENAR / 10","KATEGORI KESIAPAN","GAYA BELAJAR SISWA","PENGALAMAN MESIN","KESIAPAN FISIK & K3","RINCIAN JAWABAN (Q1-Q10)","TAHUN AJARAN"];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setBackground("#1e40af").setFontColor("#ffffff").setFontWeight("bold").setHorizontalAlignment("center");
   sheet.setRowHeight(1, 35);
   sheet.setFrozenRows(1);
-  SpreadsheetApp.getUi().alert("Tab 'Pretest Diagnostik' telah siap!");
+  ss.toast("Tab 'Pretest Diagnostik' telah siap!", "🚀 ESD V-Lab", 5);
 }
 
 function otorisasiIzinGoogleDrive() {
@@ -604,8 +780,10 @@ function otorisasiIzinGoogleDrive() {
     setWebhookUrl,
     gatherStudentData,
     gatherQuiz1Data,
+    gatherQuiz2Data,
     submitGrade,
     submitQuiz1,
+    submitQuiz2,
     submitDiagnostic,
     testConnection,
     openModal,

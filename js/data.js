@@ -691,6 +691,326 @@ const AppData = {
     }
   ],
 
+  // ==================== QUIZ 2: PARAMETER PEMOTONGAN MESIN FRAIS ====================
+  // Sumber: D:\PPG\Courses\Semester 2\Seminar\Mata Kuliah Semester 2\PTK\Soal_Latihan_Parameter_Pemotongan_Mesin_Frais.docx
+  // Terdiri dari pool 20 soal (12 Pilihan Ganda + 8 Esai Hitungan)
+  // Sistem mengacak 6 PG + 4 Esai per akun siswa, serta mengacak urutan opsi pilihan ganda.
+  quiz2Pool: {
+    title: "Quiz 2: Parameter Pemotongan Mesin Frais",
+    material: "Teknik Pemesinan Frais (Fase F - SMK)",
+    description: "Soal latihan komprehensif penentuan parameter pemotongan mesin frais (kecepatan potong Vc, putaran spindel n, kecepatan makan Vf, gerak makan per gigi fz, waktu pemesinan tc, dan laju pembuangan geram MRR). Gunakan tetapan π = 3,14.",
+    pgCountToSelect: 6,
+    essayCountToSelect: 4,
+    pgPool: [
+      {
+        id: "frais_pg1",
+        originalNo: 1,
+        type: "pg",
+        category: "Parameter Pemotongan",
+        question: "Berikut ini yang bukan merupakan parameter pemotongan pada mesin frais adalah ...",
+        options: [
+          "Kecepatan potong (Vc)",
+          "Gerak makan (fz / Vf)",
+          "Kedalaman potong (ap)",
+          "Putaran spindel (n)",
+          "Berat mesin"
+        ],
+        correct: 4,
+        explanation: "Parameter pemotongan pada mesin frais meliputi: kecepatan potong (Vc), putaran spindel (n), kecepatan pemakanan (Vf), gerak makan per gigi (fz), dan kedalaman potong (ap). Berat mesin adalah spesifikasi fisik konstruksi mesin perkakas, bukan parameter proses pemotongan geram."
+      },
+      {
+        id: "frais_pg2",
+        originalNo: 2,
+        type: "pg",
+        category: "Rumus Kecepatan Potong",
+        question: "Rumus kecepatan potong (Vc) pada mesin frais adalah ...",
+        options: [
+          "Vc = (π · d · n) / 1000",
+          "Vc = (1000 · d) / (π · n)",
+          "Vc = (π · n) / (1000 · d)",
+          "Vc = (d · n) / π",
+          "Vc = (π · d) / (1000 · n)"
+        ],
+        correct: 0,
+        explanation: "Rumus standar kecepatan potong mesin frais adalah Vc = (π · d · n) / 1000 (m/menit), dengan d adalah diameter pisau frais (mm) dan n adalah putaran spindel (rpm). Faktor pembagi 1000 berfungsi mengonversi milimeter menjadi meter."
+      },
+      {
+        id: "frais_pg3",
+        originalNo: 3,
+        type: "pg",
+        category: "Satuan Parameter",
+        question: "Satuan kecepatan potong (Vc) yang umum digunakan pada proses pemesinan frais adalah ...",
+        options: [
+          "mm/gigi",
+          "m/menit",
+          "rpm",
+          "mm/menit",
+          "mm/putaran"
+        ],
+        correct: 1,
+        explanation: "Satuan standar internasional kecepatan potong (cutting speed / Vc) adalah meter per menit (m/menit atau m/min)."
+      },
+      {
+        id: "frais_pg4",
+        originalNo: 4,
+        type: "pg",
+        category: "Hubungan Parameter",
+        question: "Jika kecepatan potong dijaga tetap konstan, sementara diameter cutter diperbesar, maka putaran spindel harus ...",
+        options: [
+          "Diperbesar",
+          "Tetap",
+          "Dihentikan",
+          "Diperkecil",
+          "Tidak berpengaruh"
+        ],
+        correct: 3,
+        explanation: "Berdasarkan rumus n = (1000 · Vc) / (π · d), putaran spindel (n) berbanding terbalik dengan diameter pisau frais (d). Jika diameter cutter membesar pada Vc yang sama, maka putaran spindel harus diperkecil."
+      },
+      {
+        id: "frais_pg5",
+        originalNo: 5,
+        type: "pg",
+        category: "Satuan Gerak Makan",
+        question: "Satuan gerak makan per mata sayat / gigi (fz) pada mesin frais adalah ...",
+        options: [
+          "m/menit",
+          "mm/menit",
+          "mm/gigi",
+          "mm/putaran",
+          "rpm"
+        ],
+        correct: 2,
+        explanation: "Gerak makan per gigi (feed per tooth) disimbolkan dengan fz dan dinyatakan dalam satuan mm/gigi (mm/tooth)."
+      },
+      {
+        id: "frais_pg6",
+        originalNo: 6,
+        type: "pg",
+        category: "Kecepatan Pemakanan",
+        question: "Hubungan antara kecepatan makan meja frais (Vf), gerak makan per gigi (fz), jumlah gigi (z), dan putaran spindel (n) dinyatakan dengan ...",
+        options: [
+          "Vf = fz + z + n",
+          "Vf = (fz · z) / n",
+          "Vf = n / (fz · z)",
+          "Vf = fz · z · n",
+          "Vf = (fz · n) / z"
+        ],
+        correct: 3,
+        explanation: "Kecepatan pemakanan meja frais (feed rate / table speed) dihitung dengan rumus: Vf = fz · z · n (mm/menit), di mana fz = feed/gigi (mm/gigi), z = jumlah gigi cutter, dan n = putaran spindel (rpm)."
+      },
+      {
+        id: "frais_pg7",
+        originalNo: 7,
+        type: "pg",
+        category: "Faktor Kecepatan Potong",
+        question: "Faktor utama yang memengaruhi pemilihan besarnya kecepatan potong (Vc) adalah ...",
+        options: [
+          "Jenis material benda kerja dan material cutter",
+          "Warna benda kerja",
+          "Merek ragum mesin frais",
+          "Ukuran ruangan bengkel",
+          "Jumlah operator di bengkel"
+        ],
+        correct: 0,
+        explanation: "Kecepatan potong (Vc) ditentukan oleh perpaduan material benda kerja (kekerasan, keuletan) dan material alat potong (HSS, Karbida, Keramik) guna menjamin umur pahat yang ekonomis dan hasil sayatan yang baik."
+      },
+      {
+        id: "frais_pg8",
+        originalNo: 8,
+        type: "pg",
+        category: "Sifat Material",
+        question: "Dengan cutter HSS, kecepatan potong (Vc) yang dianjurkan untuk mengefrais material aluminium dibandingkan baja karbon rendah adalah ...",
+        options: [
+          "Lebih rendah",
+          "Sama persis",
+          "Tidak boleh menggunakan kecepatan potong",
+          "Bergantung pada warna cutter",
+          "Lebih tinggi"
+        ],
+        correct: 4,
+        explanation: "Aluminium merupakan logam non-fero yang lunak dengan konduktivitas panas tinggi, sehingga memungkinkan kecepatan potong (Vc) yang jauh lebih tinggi dibandingkan baja karbon rendah."
+      },
+      {
+        id: "frais_pg9",
+        originalNo: 9,
+        type: "pg",
+        category: "Roughing vs Finishing",
+        question: "Pada pengefraisan kasar (roughing) dibandingkan pengefraisan halus (finishing), pengaturan parameter yang tepat adalah ...",
+        options: [
+          "Kedalaman potong kecil, gerak makan kecil",
+          "Kedalaman potong besar, gerak makan lebih besar",
+          "Kedalaman potong nol",
+          "Gerak makan nol",
+          "Kedalaman potong besar, gerak makan sangat kecil"
+        ],
+        correct: 1,
+        explanation: "Pengefraisan kasar (roughing) bertujuan membuang volume material sebanyak mungkin dalam waktu singkat, sehingga menyetel kedalaman potong (ap) yang besar dan gerak makan (fz/Vf) yang lebih besar."
+      },
+      {
+        id: "frais_pg10",
+        originalNo: 10,
+        type: "pg",
+        category: "Metode Pengefraisan",
+        question: "Pada pengefraisan konvensional (up milling), arah putaran cutter terhadap arah gerak makan meja benda kerja adalah ...",
+        options: [
+          "Searah",
+          "Berlawanan arah",
+          "Tegak lurus",
+          "Tidak ada hubungan",
+          "Sejajar dengan sumbu spindel"
+        ],
+        correct: 1,
+        explanation: "Pada pengefraisan konvensional (up milling), arah putaran mata sayat pisau frais berlawanan arah dengan arah laju pemakanan benda kerja, di mana ketebalan geram dimulai dari nol hingga maksimum saat mata sayat keluar."
+      },
+      {
+        id: "frais_pg11",
+        originalNo: 11,
+        type: "pg",
+        category: "Dampak Parameter",
+        question: "Akibat yang paling mungkin terjadi jika kecepatan potong (Vc) disetel terlalu tinggi adalah ...",
+        options: [
+          "Hasil pemotongan menjadi sangat halus tanpa risiko",
+          "Waktu pemesinan menjadi lebih lama",
+          "Cutter cepat panas dan cepat aus / tumpul",
+          "Putaran spindel berhenti sendiri",
+          "Benda kerja menjadi lebih dingin"
+        ],
+        correct: 2,
+        explanation: "Kecepatan potong yang melampaui batas rekomendasi menghasilkan panas gesekan ekstrem pada bidang kontak mata potong, menyebabkan cutter cepat panas, kehilangan kekerasan (thermal softening), dan cepat aus."
+      },
+      {
+        id: "frais_pg12",
+        originalNo: 12,
+        type: "pg",
+        category: "Fungsi Coolant",
+        question: "Fungsi utama cairan pendingin (coolant) pada proses pengefraisan adalah ...",
+        options: [
+          "Menambah berat benda kerja",
+          "Mengencangkan cekam benda kerja",
+          "Menaikkan putaran spindel",
+          "Memperbesar gaya potong",
+          "Mengurangi panas, melumasi bidang potong, dan membantu membuang geram"
+        ],
+        correct: 4,
+        explanation: "Cairan pendingin (coolant) berfungsi menurunkan temperatur pemotongan, melumasi bidang kontak gesek pahat dan benda kerja untuk memperpanjang usia pakai cutter, serta menyapu geram dari alur pemotongan."
+      }
+    ],
+    essayPool: [
+      {
+        id: "frais_es1",
+        originalNo: 13,
+        type: "essay",
+        category: "Putaran Spindel Face Mill",
+        question: "Sebuah face mill berdiameter 80 mm digunakan dengan kecepatan potong 25 m/menit. Hitung putaran spindel yang diperlukan! (Gunakan π = 3,14)",
+        formulaHint: "n = (1000 · Vc) / (π · d)",
+        unit: "rpm",
+        targetNumber: 99.5,
+        targetNumberAlt: 100,
+        tolerancePct: 3,
+        keywords: ["1000", "25", "3,14", "80", "99,5", "100", "rpm"],
+        solutionSteps: "Diketahui:\n• d = 80 mm\n• Vc = 25 m/menit\n• π = 3,14\n\nLangkah Perhitungan:\nn = (1000 · Vc) / (π · d)\nn = (1000 · 25) / (3,14 · 80)\nn = 25.000 / 251,2 ≈ 99,52 rpm\n\nJawaban Akhir: ≈ 99,5 rpm (dibulatkan menjadi 100 rpm)"
+      },
+      {
+        id: "frais_es2",
+        originalNo: 14,
+        type: "essay",
+        category: "Putaran Spindel End Mill",
+        question: "Sebuah end mill berdiameter 50 mm digunakan untuk mengefrais dengan kecepatan potong 30 m/menit. Hitung putaran spindelnya! (Gunakan π = 3,14)",
+        formulaHint: "n = (1000 · Vc) / (π · d)",
+        unit: "rpm",
+        targetNumber: 191,
+        targetNumberAlt: 191.08,
+        tolerancePct: 2.5,
+        keywords: ["1000", "30", "3,14", "50", "191", "rpm"],
+        solutionSteps: "Diketahui:\n• d = 50 mm\n• Vc = 30 m/menit\n• π = 3,14\n\nLangkah Perhitungan:\nn = (1000 · Vc) / (π · d)\nn = (1000 · 30) / (3,14 · 50)\nn = 30.000 / 157 ≈ 191,08 rpm\n\nJawaban Akhir: ≈ 191 rpm"
+      },
+      {
+        id: "frais_es3",
+        originalNo: 15,
+        type: "essay",
+        category: "Kecepatan Potong (Vc)",
+        question: "Cutter berdiameter 100 mm berputar pada 200 rpm. Hitung kecepatan potongnya! (Gunakan π = 3,14)",
+        formulaHint: "Vc = (π · d · n) / 1000",
+        unit: "m/menit",
+        targetNumber: 62.8,
+        targetNumberAlt: 62.8,
+        tolerancePct: 2,
+        keywords: ["3,14", "100", "200", "1000", "62,8", "62.8", "m/menit"],
+        solutionSteps: "Diketahui:\n• d = 100 mm\n• n = 200 rpm\n• π = 3,14\n\nLangkah Perhitungan:\nVc = (π · d · n) / 1000\nVc = (3,14 · 100 · 200) / 1000\nVc = 62.800 / 1000 = 62,8 m/menit\n\nJawaban Akhir: 62,8 m/menit"
+      },
+      {
+        id: "frais_es4",
+        originalNo: 16,
+        type: "essay",
+        category: "Kecepatan Pemakanan (Vf)",
+        question: "Sebuah cutter memiliki 6 gigi dan berputar pada 150 rpm dengan gerak makan per gigi 0,1 mm/gigi. Hitung kecepatan makan (Vf) meja frais!",
+        formulaHint: "Vf = fz · z · n",
+        unit: "mm/menit",
+        targetNumber: 90,
+        targetNumberAlt: 90,
+        tolerancePct: 2,
+        keywords: ["0,1", "0.1", "6", "150", "90", "mm/menit"],
+        solutionSteps: "Diketahui:\n• z = 6 gigi\n• n = 150 rpm\n• fz = 0,1 mm/gigi\n\nLangkah Perhitungan:\nVf = fz · z · n\nVf = 0,1 · 6 · 150\nVf = 0,6 · 150 = 90 mm/menit\n\nJawaban Akhir: 90 mm/menit"
+      },
+      {
+        id: "frais_es5",
+        originalNo: 17,
+        type: "essay",
+        category: "Gerak Makan per Gigi (fz)",
+        question: "Sebuah mesin frais disetel pada putaran 300 rpm dengan kecepatan makan 120 mm/menit. Jika cutter memiliki 4 gigi, hitung gerak makan per gigi (fz)!",
+        formulaHint: "fz = Vf / (z · n)",
+        unit: "mm/gigi",
+        targetNumber: 0.1,
+        targetNumberAlt: 0.1,
+        tolerancePct: 5,
+        keywords: ["120", "4", "300", "1200", "0,1", "0.1", "mm/gigi"],
+        solutionSteps: "Diketahui:\n• n = 300 rpm\n• Vf = 120 mm/menit\n• z = 4 gigi\n\nLangkah Perhitungan:\nfz = Vf / (z · n)\nfz = 120 / (4 · 300)\nfz = 120 / 1200 = 0,1 mm/gigi\n\nJawaban Akhir: 0,1 mm/gigi"
+      },
+      {
+        id: "frais_es6",
+        originalNo: 18,
+        type: "essay",
+        category: "Waktu Pemesinan (tc)",
+        question: "Panjang benda kerja yang difrais 200 mm, dengan jarak awal pemotongan 10 mm dan jarak lebih pemotongan 10 mm. Jika kecepatan makan 110 mm/menit, hitung waktu pemesinan satu kali pemotongan!",
+        formulaHint: "L = la + l + lu ; tc = L / Vf",
+        unit: "menit",
+        targetNumber: 2,
+        targetNumberAlt: 2,
+        tolerancePct: 3,
+        keywords: ["10", "200", "220", "110", "2", "menit"],
+        solutionSteps: "Diketahui:\n• Panjang benda (l) = 200 mm\n• Jarak awal (la) = 10 mm\n• Jarak lebih (lu) = 10 mm\n• Vf = 110 mm/menit\n\nLangkah Perhitungan:\nPanjang langkah total (L) = 10 + 200 + 10 = 220 mm\nWaktu pemesinan (tc) = L / Vf = 220 / 110 = 2 menit\n\nJawaban Akhir: 2 menit (atau 120 detik)"
+      },
+      {
+        id: "frais_es7",
+        originalNo: 19,
+        type: "essay",
+        category: "Total Waktu Multi-Pemotongan",
+        question: "Benda kerja sepanjang 150 mm difrais dengan jarak awal dan jarak lebih masing-masing 5 mm. Kecepatan makan 80 mm/menit. Tebal total material yang dibuang 6 mm dengan kedalaman potong 1,5 mm per pemotongan. Hitung jumlah pemotongan dan total waktu pemesinan!",
+        formulaHint: "i = total_tebal / ap ; L = 5 + 150 + 5 ; t_total = i · (L / Vf)",
+        unit: "menit",
+        targetNumber: 8,
+        targetNumberAlt: 4,
+        tolerancePct: 5,
+        keywords: ["4", "160", "80", "2", "8", "menit", "pemotongan"],
+        solutionSteps: "Diketahui:\n• Panjang benda (l) = 150 mm; la = 5 mm; lu = 5 mm\n• Kecepatan makan Vf = 80 mm/menit\n• Tebal total = 6 mm; kedalaman potong per sayatan (ap) = 1,5 mm\n\nLangkah Perhitungan:\n1. Jumlah langkah sayatan (i) = 6 mm / 1,5 mm = 4 kali pemotongan\n2. Panjang langkah total (L) = 5 + 150 + 5 = 160 mm\n3. Waktu per pemotongan = L / Vf = 160 / 80 = 2 menit\n4. Total waktu pemesinan = 4 kali x 2 menit = 8 menit\n\nJawaban Akhir: 4 kali pemotongan, total waktu 8 menit"
+      },
+      {
+        id: "frais_es8",
+        originalNo: 20,
+        type: "essay",
+        category: "Laju Pembuangan Geram (MRR)",
+        question: "Sebuah proses frais menggunakan lebar pemotongan 40 mm, kedalaman potong 3 mm, dan kecepatan makan 100 mm/menit. Hitung laju pembuangan material (MRR) dalam cm³/menit!",
+        formulaHint: "MRR = lebar · ap · Vf (konversi mm³ ke cm³ bagi 1000)",
+        unit: "cm³/menit",
+        targetNumber: 12,
+        targetNumberAlt: 12000,
+        tolerancePct: 3,
+        keywords: ["40", "3", "100", "12000", "12", "cm3", "cm³"],
+        solutionSteps: "Diketahui:\n• Lebar pemotongan (w) = 40 mm\n• Kedalaman potong (ap) = 3 mm\n• Kecepatan makan (Vf) = 100 mm/menit\n\nLangkah Perhitungan:\nMRR = w · ap · Vf\nMRR = 40 · 3 · 100 = 12.000 mm³/menit\nKonversi ke cm³/menit (1 cm³ = 1.000 mm³):\nMRR = 12.000 / 1.000 = 12 cm³/menit\n\nJawaban Akhir: 12 cm³/menit (atau 12.000 mm³/menit)"
+      }
+    ]
+  },
+
   // ==================== ASESMEN DIAGNOSTIK KOGNITIF & ANGKET NON-KOGNITIF ====================
   // Berdasarkan Dokumen 4_Instrumen_Asesmen_Pertemuan_1_Diagnostik_Formatif_Sumatif.docx
   diagnosticQuestions: [

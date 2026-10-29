@@ -2867,6 +2867,7 @@ const Lathe3D = (function () {
     let millingModel = null;
     let currentModel = null;
     let activeMachineType = "lathe";
+    let isAxesMinimized = false;
     let animId = null;
     let autoRotate = false;
 
@@ -3032,11 +3033,31 @@ const Lathe3D = (function () {
 
       // Toggle 3-Axis milling table jog controller overlay
       const axisOverlay = document.getElementById("anatomy-milling-axes");
+      const axisMinBtn = document.getElementById("anatomy-milling-axes-minimized");
       if (axisOverlay) {
         if (machineType === "milling") {
-          axisOverlay.classList.remove("hidden");
+          if (isAxesMinimized) {
+            axisOverlay.classList.add("hidden");
+            axisOverlay.classList.remove("flex");
+            if (axisMinBtn) {
+              axisMinBtn.classList.remove("hidden");
+              axisMinBtn.classList.add("flex");
+            }
+          } else {
+            axisOverlay.classList.remove("hidden");
+            axisOverlay.classList.add("flex");
+            if (axisMinBtn) {
+              axisMinBtn.classList.add("hidden");
+              axisMinBtn.classList.remove("flex");
+            }
+          }
         } else {
           axisOverlay.classList.add("hidden");
+          axisOverlay.classList.remove("flex");
+          if (axisMinBtn) {
+            axisMinBtn.classList.add("hidden");
+            axisMinBtn.classList.remove("flex");
+          }
         }
       }
     }
@@ -3108,10 +3129,12 @@ const Lathe3D = (function () {
     function createAxisControllerOverlay() {
       const existing = document.getElementById("anatomy-milling-axes");
       if (existing) existing.remove();
+      const existingMin = document.getElementById("anatomy-milling-axes-minimized");
+      if (existingMin) existingMin.remove();
 
       const overlay = document.createElement("div");
       overlay.id = "anatomy-milling-axes";
-      overlay.className = "absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex flex-wrap items-center justify-center gap-1.5 bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-2xl border border-slate-700/70 shadow-2xl text-xs select-none max-w-[95%]";
+      overlay.className = "absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex flex-wrap items-center justify-center gap-1.5 bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-2xl border border-slate-700/70 shadow-2xl text-xs select-none max-w-[95%] transition-all";
       overlay.innerHTML = `
         <div class="flex items-center gap-1.5 text-slate-300 font-bold px-1 text-[11px]">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -3120,30 +3143,72 @@ const Lathe3D = (function () {
         <!-- Sumbu X -->
         <div class="flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-700/60" title="Sumbu X: Gerak Memanjang Meja (Kiri / Kanan)">
           <span class="font-bold text-blue-400 font-mono">X:</span>
-          <button id="btn-anat-x-min" class="px-2 py-0.5 rounded-lg bg-blue-700 hover:bg-blue-600 active:scale-95 text-white font-mono font-bold shadow-xs">◀ X-</button>
-          <button id="btn-anat-x-pls" class="px-2 py-0.5 rounded-lg bg-blue-700 hover:bg-blue-600 active:scale-95 text-white font-mono font-bold shadow-xs">X+ ▶</button>
+          <button id="btn-anat-x-min" class="px-2 py-0.5 rounded-lg bg-blue-700 hover:bg-blue-600 active:scale-95 text-white font-mono font-bold shadow-xs cursor-pointer">◀ X-</button>
+          <button id="btn-anat-x-pls" class="px-2 py-0.5 rounded-lg bg-blue-700 hover:bg-blue-600 active:scale-95 text-white font-mono font-bold shadow-xs cursor-pointer">X+ ▶</button>
           <span id="txt-anat-x" class="font-mono text-emerald-400 font-bold min-w-[38px] text-right text-[11px]">0.0</span>
         </div>
         <!-- Sumbu Y -->
         <div class="flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-700/60" title="Sumbu Y: Gerak Melintang Sadel (Maju / Mundur)">
           <span class="font-bold text-cyan-400 font-mono">Y:</span>
-          <button id="btn-anat-y-min" class="px-2 py-0.5 rounded-lg bg-cyan-700 hover:bg-cyan-600 active:scale-95 text-white font-mono font-bold shadow-xs">▼ Y-</button>
-          <button id="btn-anat-y-pls" class="px-2 py-0.5 rounded-lg bg-cyan-700 hover:bg-cyan-600 active:scale-95 text-white font-mono font-bold shadow-xs">Y+ ▲</button>
+          <button id="btn-anat-y-min" class="px-2 py-0.5 rounded-lg bg-cyan-700 hover:bg-cyan-600 active:scale-95 text-white font-mono font-bold shadow-xs cursor-pointer">▼ Y-</button>
+          <button id="btn-anat-y-pls" class="px-2 py-0.5 rounded-lg bg-cyan-700 hover:bg-cyan-600 active:scale-95 text-white font-mono font-bold shadow-xs cursor-pointer">Y+ ▲</button>
           <span id="txt-anat-y" class="font-mono text-emerald-400 font-bold min-w-[38px] text-right text-[11px]">0.0</span>
         </div>
         <!-- Sumbu Z -->
         <div class="flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-700/60" title="Sumbu Z: Gerak Vertikal Lutut (Turun / Naik)">
           <span class="font-bold text-amber-400 font-mono">Z:</span>
-          <button id="btn-anat-z-min" class="px-2 py-0.5 rounded-lg bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-mono font-bold shadow-xs">⬇ Z-</button>
-          <button id="btn-anat-z-pls" class="px-2 py-0.5 rounded-lg bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-mono font-bold shadow-xs">Z+ ⬆</button>
+          <button id="btn-anat-z-min" class="px-2 py-0.5 rounded-lg bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-mono font-bold shadow-xs cursor-pointer">⬇ Z-</button>
+          <button id="btn-anat-z-pls" class="px-2 py-0.5 rounded-lg bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-mono font-bold shadow-xs cursor-pointer">Z+ ⬆</button>
           <span id="txt-anat-z" class="font-mono text-emerald-400 font-bold min-w-[38px] text-right text-[11px]">0.0</span>
         </div>
         <!-- Reset -->
-        <button id="btn-anat-reset-axes" class="px-2 py-1 rounded-xl bg-slate-700 hover:bg-slate-600 active:scale-95 text-slate-200 font-medium text-[11px] transition-all" title="Kembalikan meja ke posisi tengah">
+        <button id="btn-anat-reset-axes" class="px-2 py-1 rounded-xl bg-slate-700 hover:bg-slate-600 active:scale-95 text-slate-200 font-medium text-[11px] transition-all cursor-pointer" title="Kembalikan meja ke posisi tengah">
           Reset
         </button>
+        <!-- Tombol Hidden (Minimize) -->
+        <button id="btn-anat-axes-hide" type="button" class="px-2.5 py-1 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-amber-400 hover:text-amber-300 border border-slate-600/70 font-bold text-[11px] flex items-center gap-1 shadow-xs transition-all cursor-pointer" title="Minimize / Sembunyikan Kontrol Gerak Sumbu">
+          <span>Hidden</span>
+          <span class="text-[10px] text-slate-400">▾</span>
+        </button>
       `;
+
+      // Minimized pill button
+      const minBtn = document.createElement("button");
+      minBtn.id = "anatomy-milling-axes-minimized";
+      minBtn.type = "button";
+      minBtn.className = "absolute bottom-3 left-1/2 -translate-x-1/2 z-20 hidden items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/95 hover:bg-slate-800 text-white text-xs font-bold shadow-2xl border border-slate-700/80 backdrop-blur-md transition-all cursor-pointer active:scale-95 group";
+      minBtn.title = "Buka Kembali Kontrol Gerak Sumbu Meja (Klik untuk expand)";
+      minBtn.innerHTML = `
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="text-slate-200">Sumbu Meja</span>
+        <span id="txt-anat-mini-dro" class="font-mono text-emerald-400 text-[11px] bg-slate-950/80 px-2 py-0.5 rounded-md border border-slate-800">X:0.0 Y:0.0 Z:0.0</span>
+        <span class="px-2 py-0.5 rounded-full bg-blue-600 group-hover:bg-blue-500 text-white text-[10px] font-bold shadow-xs">Buka ▴</span>
+      `;
+
       container.appendChild(overlay);
+      container.appendChild(minBtn);
+
+      const btnHide = overlay.querySelector("#btn-anat-axes-hide");
+      if (btnHide) {
+        btnHide.onclick = () => {
+          isAxesMinimized = true;
+          overlay.classList.add("hidden");
+          overlay.classList.remove("flex");
+          minBtn.classList.remove("hidden");
+          minBtn.classList.add("flex");
+          try { if (window.SoundEngine) SoundEngine.playClick(); } catch (e) {}
+          updateReadout();
+        };
+      }
+
+      minBtn.onclick = () => {
+        isAxesMinimized = false;
+        minBtn.classList.add("hidden");
+        minBtn.classList.remove("flex");
+        overlay.classList.remove("hidden");
+        overlay.classList.add("flex");
+        try { if (window.SoundEngine) SoundEngine.playClick(); } catch (e) {}
+      };
 
       let curX = 0;
       let curY = 0;
@@ -3153,9 +3218,14 @@ const Lathe3D = (function () {
         const tx = overlay.querySelector("#txt-anat-x");
         const ty = overlay.querySelector("#txt-anat-y");
         const tz = overlay.querySelector("#txt-anat-z");
-        if (tx) tx.textContent = (curX * 25.0).toFixed(1);
-        if (ty) ty.textContent = (curY * 30.0).toFixed(1);
-        if (tz) tz.textContent = (curZ * 20.0).toFixed(1);
+        const xStr = (curX * 25.0).toFixed(1);
+        const yStr = (curY * 30.0).toFixed(1);
+        const zStr = (curZ * 20.0).toFixed(1);
+        if (tx) tx.textContent = xStr;
+        if (ty) ty.textContent = yStr;
+        if (tz) tz.textContent = zStr;
+        const miniDro = minBtn.querySelector("#txt-anat-mini-dro");
+        if (miniDro) miniDro.textContent = `X:${xStr} Y:${yStr} Z:${zStr}`;
       }
 
       function bindHold(btnId, fn) {
@@ -3205,10 +3275,26 @@ const Lathe3D = (function () {
           millingModel.setAxes(0, 0, 0);
         }
         updateReadout();
+        try { if (window.SoundEngine) SoundEngine.playClick(); } catch (e) {}
       };
 
-      if (activeMachineType !== "milling") {
+      if (activeMachineType === "milling") {
+        if (isAxesMinimized) {
+          overlay.classList.add("hidden");
+          overlay.classList.remove("flex");
+          minBtn.classList.remove("hidden");
+          minBtn.classList.add("flex");
+        } else {
+          overlay.classList.remove("hidden");
+          overlay.classList.add("flex");
+          minBtn.classList.add("hidden");
+          minBtn.classList.remove("flex");
+        }
+      } else {
         overlay.classList.add("hidden");
+        overlay.classList.remove("flex");
+        minBtn.classList.add("hidden");
+        minBtn.classList.remove("flex");
       }
     }
 

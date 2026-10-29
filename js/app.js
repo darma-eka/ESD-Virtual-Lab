@@ -2571,6 +2571,7 @@ const App = (function () {
     const btnMilling = document.getElementById("btn-op-tab-milling");
     const headingEl = document.getElementById("op-list-heading");
     const countBadge = document.getElementById("op-count-badge");
+    const devOverlay = document.getElementById("op-milling-dev-overlay");
 
     if (mach === "lathe") {
       if (btnLathe) {
@@ -2581,18 +2582,29 @@ const App = (function () {
       }
       if (headingEl) headingEl.textContent = "Pilih Jenis Pekerjaan Mesin Bubut:";
       if (countBadge) countBadge.textContent = "7 Pekerjaan Tersedia";
+      if (devOverlay) {
+        devOverlay.classList.add("hidden");
+        devOverlay.classList.remove("flex");
+      }
     } else {
       if (btnLathe) {
         btnLathe.className = "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer";
       }
       if (btnMilling) {
-        btnMilling.className = "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 bg-emerald-600 text-white shadow-xs cursor-pointer";
+        btnMilling.className = "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 bg-amber-600 text-white shadow-xs cursor-pointer";
       }
-      if (headingEl) headingEl.textContent = "Pilih Jenis Pekerjaan Mesin Frais:";
+      if (headingEl) headingEl.textContent = "Pilih Jenis Pekerjaan Mesin Frais (Tahap Pengembangan):";
       const millingCount = (typeof MachiningOperationsData !== "undefined" && MachiningOperationsData.milling) 
         ? MachiningOperationsData.milling.length 
         : 5;
-      if (countBadge) countBadge.textContent = millingCount + " Pekerjaan Tersedia";
+      if (countBadge) countBadge.textContent = millingCount + " Pekerjaan (Dalam Pengembangan)";
+      if (devOverlay) {
+        devOverlay.classList.remove("hidden");
+        devOverlay.classList.add("flex");
+        if (window.lucide) {
+          try { lucide.createIcons(); } catch (e) {}
+        }
+      }
     }
 
     renderOperationCards();
@@ -2666,13 +2678,47 @@ const App = (function () {
     if (typeof OperationsEngine === "undefined") return;
     try { SoundEngine.playClick(); } catch (e) {}
     OperationsEngine.setOperation(opId);
-    OperationsEngine.play();
+    
+    const curOp = OperationsEngine.getCurrentOperation();
+    const devOverlay = document.getElementById("op-milling-dev-overlay");
+    if (curOp && curOp.machine === "milling") {
+      OperationsEngine.pause();
+      if (devOverlay) {
+        devOverlay.classList.remove("hidden");
+        devOverlay.classList.add("flex");
+        if (window.lucide) {
+          try { lucide.createIcons(); } catch (e) {}
+        }
+      }
+    } else {
+      OperationsEngine.play();
+      if (devOverlay) {
+        devOverlay.classList.add("hidden");
+        devOverlay.classList.remove("flex");
+      }
+    }
     renderOperationCards();
     updateOpPlayBtnUI();
   }
 
   function handleOperationStepChange(stepIdx, stepData, opData) {
     if (!opData || !stepData) return;
+
+    const devOverlay = document.getElementById("op-milling-dev-overlay");
+    if (opData.machine === "milling") {
+      if (devOverlay) {
+        devOverlay.classList.remove("hidden");
+        devOverlay.classList.add("flex");
+        if (window.lucide) {
+          try { lucide.createIcons(); } catch (e) {}
+        }
+      }
+    } else {
+      if (devOverlay) {
+        devOverlay.classList.add("hidden");
+        devOverlay.classList.remove("flex");
+      }
+    }
 
     // Studio Header
     const titleEl = document.getElementById("op-studio-title");
@@ -2805,6 +2851,11 @@ const App = (function () {
 
   function opTogglePlay() {
     if (typeof OperationsEngine === "undefined") return;
+    const curOp = OperationsEngine.getCurrentOperation();
+    if (curOp && curOp.machine === "milling") {
+      showToast("Animasi proses pemesinan frais masih dalam tahap pengembangan.", "info");
+      return;
+    }
     try { SoundEngine.playClick(); } catch (e) {}
     OperationsEngine.togglePlay();
     updateOpPlayBtnUI();
@@ -5365,8 +5416,18 @@ const App = (function () {
     }
   }
 
-  function getDiagnosticLKPDHtml() {
-    const d = userData.diagnosticData;
+  function getDiagnosticLKPDHtml(targetUser) {
+    const user = targetUser || userData;
+    let d = user.diagnosticData;
+    if (!d && user.name) {
+      const key1 = getDiagnosticStorageKey(user.name, user.nis);
+      const key2 = "esd_diag_" + (user.nis || user.name);
+      try {
+        const raw = localStorage.getItem(key1) || localStorage.getItem(key2);
+        if (raw) d = JSON.parse(raw);
+      } catch (e) {}
+    }
+
     if (!d) {
       return `
         <div class="border p-4 rounded text-xs leading-relaxed mb-6 bg-gray-50">
@@ -5406,14 +5467,14 @@ const App = (function () {
       <div class="border p-4 rounded text-xs leading-relaxed mb-6 bg-gray-50">
         <div class="grid grid-cols-2 gap-4 mb-4 pb-3 border-b border-gray-300">
           <div>
-            <p><strong>Nilai Pretest Diagnostik:</strong> <span class="text-sm font-bold">${d.score} / 100</span> (${d.correctCount} dari 10 Butir Benar)</p>
-            <p><strong>Kategori Kesiapan:</strong> ${d.category}</p>
-            <p><strong>Waktu Pengerjaan:</strong> ${d.submittedAt}</p>
+            <p><strong>Nilai Pretest Diagnostik:</strong> <span class="text-sm font-bold">${d.score !== undefined ? d.score : 0} / 100</span> (${d.correctCount !== undefined ? d.correctCount : 0} dari 10 Butir Benar)</p>
+            <p><strong>Kategori Kesiapan:</strong> ${d.category || "Belum Terkategori"}</p>
+            <p><strong>Waktu Pengerjaan:</strong> ${d.submittedAt || "-"}</p>
           </div>
           <div>
-            <p><strong>Gaya Belajar Siswa:</strong> <span class="font-bold underline">${d.learningStyle}</span></p>
-            <p><strong>Pengalaman Mesin Perkakas:</strong> ${d.machineExp}</p>
-            <p><strong>Kesiapan Fisik & K3:</strong> ${d.safetyReadiness}</p>
+            <p><strong>Gaya Belajar Siswa:</strong> <span class="font-bold underline">${d.learningStyle || "Visual"}</span></p>
+            <p><strong>Pengalaman Mesin Perkakas:</strong> ${d.machineExp || "-"}</p>
+            <p><strong>Kesiapan Fisik & K3:</strong> ${d.safetyReadiness || "-"}</p>
           </div>
         </div>
 
@@ -5437,8 +5498,9 @@ const App = (function () {
   }
 
   // Lembar Hasil Quiz 1 (LK-1: Parameter Bubut) untuk Cetak LKPD
-  function getQuiz1LKPDHtml() {
-    const q1Answers = userData.quiz1Answers || {};
+  function getQuiz1LKPDHtml(targetUser) {
+    const user = targetUser || userData;
+    const q1Answers = user.quiz1Answers || {};
     const questions = (typeof AppData !== "undefined" && AppData.quiz1Challenges) ? AppData.quiz1Challenges : [];
     const totalQ = questions.length;
     const answeredCount = Object.keys(q1Answers).length;
@@ -5532,27 +5594,27 @@ const App = (function () {
         ${summaryTableHtml}
 
         ${
-          userData.quiz1Attachment
+          user.quiz1Attachment
             ? `
           <div class="mt-4 p-3 bg-white border border-gray-400 rounded">
             <p class="font-bold text-gray-800 mb-1">Lampiran Berkas Pekerjaan Siswa:</p>
             <p class="text-[11px] text-gray-600">
-              Nama Berkas: <strong>${userData.quiz1Attachment.fileName}</strong> 
-              (${Math.round(userData.quiz1Attachment.fileSize / 1024)} KB) 
-              • Diunggah: ${userData.quiz1Attachment.uploadedAt || "-"}
+              Nama Berkas: <strong>${user.quiz1Attachment.fileName}</strong> 
+              (${Math.round(user.quiz1Attachment.fileSize / 1024)} KB) 
+              • Diunggah: ${user.quiz1Attachment.uploadedAt || "-"}
             </p>
             ${
-              userData.quiz1Attachment.fileType && userData.quiz1Attachment.fileType.startsWith("image/")
+              user.quiz1Attachment.fileType && user.quiz1Attachment.fileType.startsWith("image/")
                 ? `<div class="mt-2 text-center">
-                    <img src="${userData.quiz1Attachment.fileData}" alt="Lampiran Siswa" style="max-height: 380px; max-width: 100%; object-fit: contain; margin: 0 auto; border: 1px solid #ccc; border-radius: 4px;" />
+                    <img src="${user.quiz1Attachment.fileData}" alt="Lampiran Siswa" style="max-height: 380px; max-width: 100%; object-fit: contain; margin: 0 auto; border: 1px solid #ccc; border-radius: 4px;" />
                    </div>`
                 : `<p class="mt-1 text-[11px] text-blue-700 italic font-mono">[Dokumen PDF terlampir dalam arsip digital Google Drive]</p>`
             }
           </div>
         `
             : `
-          <div class="mt-3 text-[11px] text-gray-400 italic">
-            * Tidak ada lampiran berkas fisik/coretan yang diunggah untuk LK-1 ini.
+          <div class="mt-3 text-[11px] text-gray-500 italic">
+            * ${user.quiz1AttachmentNote || "Tidak ada lampiran berkas fisik/coretan yang diunggah untuk LK-1 ini."}
           </div>
         `
         }
@@ -5560,16 +5622,1384 @@ const App = (function () {
     `;
   }
 
-  // Print LKPD Generator
-  function printLKPD() {
+  // =========================================================================
+  // SISTEM CETAK LKPD DIGITAL & MANAJEMEN AKSES ADMINISTRATOR
+  // =========================================================================
+  function getAdminRoleLevel() {
+    if (userData.role !== "admin") return 0;
+    const nameLower = (userData.name || "").toLowerCase();
+    if (nameLower.includes("admin 2") || nameLower.includes("adhin")) {
+      return 2;
+    }
+    return 1;
+  }
+
+  function getEligibleAccountsForLKPD() {
+    const adminLevel = getAdminRoleLevel();
+    if (adminLevel === 0) return [];
+
+    const accounts = [];
+
+    if (typeof AppData !== "undefined" && Array.isArray(AppData.students)) {
+      AppData.students.forEach((s) => {
+        const cleanName = (s.name || "").trim();
+        const lower = cleanName.toLowerCase();
+
+        // Akun Admin kedua tidak bisa mencetak LKPD akun "Siswa"
+        if (adminLevel === 2 && lower === "siswa") {
+          return;
+        }
+
+        let type = "student";
+        if (lower === "siswa") type = "test";
+        else if (lower.includes("prasetyo adhi nurcahyo")) type = "mandiri";
+
+        accounts.push({
+          id: s.nis || cleanName,
+          name: cleanName,
+          nis: s.nis || "",
+          class: s.class || "",
+          group: s.group || "",
+          type: type
+        });
+      });
+    }
+
+    // Akun Administrator sesuai hierarki akses
+    if (typeof AppData !== "undefined" && Array.isArray(AppData.adminAccounts)) {
+      AppData.adminAccounts.forEach((adm) => {
+        const lower = (adm.name || "").toLowerCase();
+        const isAdm1 = adm.id === "admin1" || lower.includes("admin 1") || lower.includes("utama");
+
+        // Admin kedua tidak bisa mencetak LKPD Admin utama
+        if (adminLevel === 2 && isAdm1) {
+          return;
+        }
+
+        accounts.push({
+          id: adm.id,
+          name: adm.name,
+          nis: "-",
+          class: "Teknik Pemesinan",
+          group: "-",
+          type: "admin"
+        });
+      });
+    }
+
+    return accounts;
+  }
+
+  // 36 Skenario Simulasi Bubut Terdiferensiasi Lengkap untuk 36 Siswa Kelas 11 TP A
+  const DIFFERENTIATED_SIM_SCENARIOS = [
+    {
+      materialName: "Baja Lunak / Mild Steel (ST-37)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 40,
+      rpm: 796,
+      feedRate: 0.15,
+      csActual: 100.0,
+      cuttingTimeMin: 0.67,
+      ra: 2.4,
+      coolant: true,
+      title: "Finishing Presisi (N7)",
+      desc: "Penyayatan stabil pada n=796 RPM dan f=0.15 mm/put menghasilkan kecepatan potong Cs=100.0 m/menit yang optimal untuk ST-37 dengan pahat karbida."
+    },
+    {
+      materialName: "Aluminium Paduan (6061-T6)",
+      toolName: "Pahat HSS (High Speed Steel)",
+      diameter: 30,
+      rpm: 955,
+      feedRate: 0.10,
+      csActual: 90.0,
+      cuttingTimeMin: 0.79,
+      ra: 1.6,
+      coolant: true,
+      title: "Finishing Halus Mengkilap (N6)",
+      desc: "Kecepatan potong Cs=90.0 m/menit pada material aluminium paduan menghasilkan tatal kontinu spiral tanpa pembentukan geram palsu (built-up edge)."
+    },
+    {
+      materialName: "Kuningan / Brass (CuZn39Pb3)",
+      toolName: "Pahat HSS (High Speed Steel)",
+      diameter: 35,
+      rpm: 550,
+      feedRate: 0.12,
+      csActual: 60.5,
+      cuttingTimeMin: 1.06,
+      ra: 1.8,
+      coolant: false,
+      title: "Finishing Halus Mengkilap (N6)",
+      desc: "Penyayatan kering material kuningan pada n=550 RPM menghasilkan tatal getas terputus-putus dengan kualitas permukaan sangat halus tanpa geram melilit."
+    },
+    {
+      materialName: "Baja Karbon Menengah (S45C)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 50,
+      rpm: 635,
+      feedRate: 0.14,
+      csActual: 99.7,
+      cuttingTimeMin: 1.01,
+      ra: 2.8,
+      coolant: true,
+      title: "Semi-Finishing Presisi (N7)",
+      desc: "Parameter pemotongan berada dalam rentang aman daya motor mesin bubut. Pendingin aktif menjaga ketahanan panas pahat karbida terhadap panas gesekan S45C."
+    },
+    {
+      materialName: "Besi Cor Kelabu (FC 250)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 45,
+      rpm: 560,
+      feedRate: 0.16,
+      csActual: 79.2,
+      cuttingTimeMin: 0.95,
+      ra: 3.4,
+      coolant: false,
+      title: "Pemesinan Kering Kokoh (N8)",
+      desc: "Penyayatan besi cor kelabu kering tanpa coolant menghasilkan serbuk tatal aman dengan kestabilan getaran pemotongan yang sangat kokoh."
+    },
+    {
+      materialName: "Baja Paduan Khusus (AISI 4140)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 38,
+      rpm: 670,
+      feedRate: 0.10,
+      csActual: 80.0,
+      cuttingTimeMin: 1.12,
+      ra: 2.0,
+      coolant: true,
+      title: "Finishing Poros Presisi (N7)",
+      desc: "Pembubutan baja paduan dengan pemakanan halus f=0.10 mm/put menghasilkan dimensi silindris presisi dengan ketahanan aus poros maksimal."
+    },
+    {
+      materialName: "Tembaga Paduan / Bronze (CuSn6)",
+      toolName: "Pahat HSS (High Speed Steel)",
+      diameter: 32,
+      rpm: 700,
+      feedRate: 0.12,
+      csActual: 70.4,
+      cuttingTimeMin: 0.89,
+      ra: 2.2,
+      coolant: true,
+      title: "Pemesinan Busing Perunggu (N7)",
+      desc: "Kecepatan potong Cs=70.4 m/menit menghasilkan permukaan lurus silindris ideal untuk aplikasi komponen bantalan luncur (bushing)."
+    },
+    {
+      materialName: "Baja Lunak / Mild Steel (ST-37)",
+      toolName: "Pahat HSS (High Speed Steel)",
+      diameter: 50,
+      rpm: 450,
+      feedRate: 0.10,
+      csActual: 70.7,
+      cuttingTimeMin: 2.22,
+      ra: 3.2,
+      coolant: true,
+      title: "Pembubutan Standar Bengkel (N7)",
+      desc: "Kombinasi n=450 RPM dan f=0.10 mm/put menghasilkan kecepatan potong Cs=70.7 m/menit dalam rentang standar tabel pemesinan SMK."
+    },
+    {
+      materialName: "Aluminium Paduan (6061-T6)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 42,
+      rpm: 830,
+      feedRate: 0.18,
+      csActual: 109.5,
+      cuttingTimeMin: 0.54,
+      ra: 2.2,
+      coolant: true,
+      title: "Pemotongan Cepat Efisien (N7)",
+      desc: "Laju pembuangan geram tinggi (MRR) dengan putaran tinggi menghasilkan efisiensi waktu pemesinan optimal tm=0.54 menit."
+    },
+    {
+      materialName: "Baja Tahan Karat / Stainless (SUS 304)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 36,
+      rpm: 660,
+      feedRate: 0.12,
+      csActual: 74.6,
+      cuttingTimeMin: 1.01,
+      ra: 2.0,
+      coolant: true,
+      title: "Finishing Presisi Bebas Pengerasan (N7)",
+      desc: "Penyemprotan fluida pendingin kontinyu secara efektif mencegah fenomena pengerasan permukaan (work-hardening) pada baja tahan karat SUS 304."
+    },
+    {
+      materialName: "Baja Karbon Menengah (S45C)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 48,
+      rpm: 730,
+      feedRate: 0.12,
+      csActual: 110.1,
+      cuttingTimeMin: 0.86,
+      ra: 2.2,
+      coolant: true,
+      title: "Penyayatan Poros Pasak (N7)",
+      desc: "Optimasi kecepatan potong Cs=110.1 m/menit menghasilkan efisiensi waktu pemesinan tm=0.86 menit dengan ketepatan toleransi h7."
+    },
+    {
+      materialName: "Kuningan / Brass (CuZn39Pb3)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 28,
+      rpm: 1020,
+      feedRate: 0.08,
+      csActual: 89.7,
+      cuttingTimeMin: 0.86,
+      ra: 1.4,
+      coolant: false,
+      title: "Super Finishing Mengkilap (N5)",
+      desc: "Kombinasi putaran tinggi n=1020 RPM dan gerak makan mikro f=0.08 mm/put menghasilkan kehalusan super presisi Ra 1.4 µm menyerupai hasil penggerindaan."
+    },
+    {
+      materialName: "Baja Lunak / Mild Steel (ST-37)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 45,
+      rpm: 710,
+      feedRate: 0.14,
+      csActual: 100.4,
+      cuttingTimeMin: 0.75,
+      ra: 2.6,
+      coolant: true,
+      title: "Pemesinan Poros Bertingkat (N7)",
+      desc: "Putaran n=710 RPM memberikan kecepatan potong stabil Cs=100.4 m/menit dengan tatal tergulung rapi berkat chipbreaker pahat karbida."
+    },
+    {
+      materialName: "Besi Cor Kelabu (FC 250)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 52,
+      rpm: 490,
+      feedRate: 0.18,
+      csActual: 80.0,
+      cuttingTimeMin: 0.85,
+      ra: 3.4,
+      coolant: false,
+      title: "Penyayatan Silinder Mesin (N8)",
+      desc: "Penyayatan kering stabil pada putaran n=490 RPM menjaga keutuhan mata potong dari thermal shock dan menghasilkan bidang silindris kokoh."
+    },
+    {
+      materialName: "Aluminium Paduan (6061-T6)",
+      toolName: "Pahat HSS (High Speed Steel)",
+      diameter: 35,
+      rpm: 820,
+      feedRate: 0.12,
+      csActual: 90.2,
+      cuttingTimeMin: 0.76,
+      ra: 1.8,
+      coolant: true,
+      title: "Finishing Halus Poros Transmisi (N6)",
+      desc: "Pendingin emulsi menjaga mata potong HSS tetap tajam, menghasilkan kehalusan permukaan Ra 1.8 µm yang bebas burr."
+    },
+    {
+      materialName: "Baja Paduan Khusus (AISI 4140)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 44,
+      rpm: 650,
+      feedRate: 0.12,
+      csActual: 89.9,
+      cuttingTimeMin: 0.96,
+      ra: 2.2,
+      coolant: true,
+      title: "Pemesinan Poros Roda Gigi (N7)",
+      desc: "Kekuatan tarik tinggi AISI 4140 mampu diimbangi penyayatan stabil Cs=89.9 m/menit dengan beban pemotongan motor mesin yang seimbang."
+    },
+    {
+      materialName: "Baja Lunak / Mild Steel (ST-37)",
+      toolName: "Pahat HSS (High Speed Steel)",
+      diameter: 32,
+      rpm: 600,
+      feedRate: 0.10,
+      csActual: 60.3,
+      cuttingTimeMin: 1.25,
+      ra: 2.8,
+      coolant: true,
+      title: "Pembubutan Poros Ulir (N7)",
+      desc: "Kecepatan potong Cs=60.3 m/menit menghasilkan geram pita yang aman serta mudah dibersihkan menggunakan kuas pembersih tatal."
+    },
+    {
+      materialName: "Baja Karbon Menengah (S45C)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 54,
+      rpm: 590,
+      feedRate: 0.15,
+      csActual: 100.1,
+      cuttingTimeMin: 0.85,
+      ra: 2.6,
+      coolant: true,
+      title: "Finishing Poros Utama (N7)",
+      desc: "Pahat karbida menghasilkan penampang muka silindris yang rata dan tegak lurus sempurna terhadap garis senter mesin."
+    },
+    {
+      materialName: "Kuningan / Brass (CuZn39Pb3)",
+      toolName: "Pahat HSS (High Speed Steel)",
+      diameter: 40,
+      rpm: 640,
+      feedRate: 0.10,
+      csActual: 80.4,
+      cuttingTimeMin: 1.17,
+      ra: 1.6,
+      coolant: false,
+      title: "Pembubutan Keran & Fitting (N6)",
+      desc: "Penyayatan material kuningan pada n=640 RPM menghasilkan kilap alami material logam paduan non-fero tanpa geram menempel."
+    },
+    {
+      materialName: "Aluminium Paduan (6061-T6)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 48,
+      rpm: 796,
+      feedRate: 0.15,
+      csActual: 120.0,
+      cuttingTimeMin: 0.59,
+      ra: 2.0,
+      coolant: true,
+      title: "Penyayatan Cepat Poros Ringan (N7)",
+      desc: "Kecepatan potong tinggi Cs=120.0 m/menit memberikan laju pembuangan tatal maksimum dengan waktu siklus singkat tm=0.59 menit."
+    },
+    {
+      materialName: "Baja Tahan Karat / Stainless (SUS 304)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 32,
+      rpm: 750,
+      feedRate: 0.10,
+      csActual: 75.4,
+      cuttingTimeMin: 1.00,
+      ra: 1.8,
+      coolant: true,
+      title: "Finishing Poros Medis/Higienis (N6)",
+      desc: "Kecepatan potong Cs=75.4 m/menit dengan aliran coolant terarah menghasilkan permukaan tahan korosi berkualitas sangat prima."
+    },
+    {
+      materialName: "Baja Lunak / Mild Steel (ST-37)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 38,
+      rpm: 840,
+      feedRate: 0.14,
+      csActual: 100.3,
+      cuttingTimeMin: 0.64,
+      ra: 2.4,
+      coolant: true,
+      title: "Pembubutan Cepat Presisi (N7)",
+      desc: "Parameter pemotongan memberikan hasil optimal antara umur pahat (tool life) dan produktivitas pengerjaan benda kerja."
+    },
+    {
+      materialName: "Baja Paduan Khusus (AISI 4140)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 42,
+      rpm: 680,
+      feedRate: 0.10,
+      csActual: 89.7,
+      cuttingTimeMin: 1.10,
+      ra: 1.8,
+      coolant: true,
+      title: "Finishing Poros Presisi Tinggi (N6)",
+      desc: "Gerak makan halus f=0.10 mm/put menghasilkan kekasaran rendah Ra 1.8 µm yang memenuhi syarat perakitan suaian sesak (interference fit)."
+    },
+    {
+      materialName: "Tembaga Paduan / Bronze (CuSn6)",
+      toolName: "Pahat HSS (High Speed Steel)",
+      diameter: 36,
+      rpm: 620,
+      feedRate: 0.14,
+      csActual: 70.1,
+      cuttingTimeMin: 0.86,
+      ra: 2.4,
+      coolant: true,
+      title: "Penyayatan Busing Gesek (N7)",
+      desc: "Kecepatan potong Cs=70.1 m/menit dan pelumasan kontinyu menjaga bidang luncur perunggu bebas dari goresan termal."
+    },
+    {
+      materialName: "Besi Cor Kelabu (FC 250)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 48,
+      rpm: 530,
+      feedRate: 0.15,
+      csActual: 79.9,
+      cuttingTimeMin: 0.94,
+      ra: 3.2,
+      coolant: false,
+      title: "Penyayatan Stabil Flensa Pipa (N8)",
+      desc: "Sifat redam getaran alami dari besi cor kelabu menjaga kestabilan spindel dan menghasilkan kelurusan sumbu benda kerja yang sangat baik."
+    },
+    {
+      materialName: "Baja Karbon Menengah (S45C)",
+      toolName: "Pahat HSS (High Speed Steel)",
+      diameter: 30,
+      rpm: 530,
+      feedRate: 0.10,
+      csActual: 50.0,
+      cuttingTimeMin: 1.42,
+      ra: 2.6,
+      coolant: true,
+      title: "Pembubutan Aman HSS (N7)",
+      desc: "Penggunaan pahat HSS pada n=530 RPM menjaga ketajaman ujung sisi potong dari keausan kawah (crater wear) secara aman."
+    },
+    {
+      materialName: "Aluminium Paduan (6061-T6)",
+      toolName: "Pahat HSS (High Speed Steel)",
+      diameter: 45,
+      rpm: 710,
+      feedRate: 0.12,
+      csActual: 100.4,
+      cuttingTimeMin: 0.88,
+      ra: 1.8,
+      coolant: true,
+      title: "Finishing Mengkilap Poros Pulley (N6)",
+      desc: "Pendinginan cairan emulsi secara konstan mencegah adhesi partikel aluminium pada bidang mata potong depan pahat."
+    },
+    {
+      materialName: "Baja Lunak / Mild Steel (ST-37)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 52,
+      rpm: 610,
+      feedRate: 0.16,
+      csActual: 99.6,
+      cuttingTimeMin: 0.77,
+      ra: 2.8,
+      coolant: true,
+      title: "Semi-Finishing Produktif (N7)",
+      desc: "Kedalaman potong merata dengan kecepatan potong Cs=99.6 m/menit memberikan hasil permukaan silindris tanpa tirus."
+    },
+    {
+      materialName: "Baja Tahan Karat / Stainless (SUS 304)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 38,
+      rpm: 670,
+      feedRate: 0.10,
+      csActual: 80.0,
+      cuttingTimeMin: 1.12,
+      ra: 1.8,
+      coolant: true,
+      title: "Finishing Poros Presisi Kimia (N6)",
+      desc: "Penyayatan halus bebas getaran menghasilkan profil permukaan licin dengan toleransi geometris konsentrisitas sangat tinggi."
+    },
+    {
+      materialName: "Kuningan / Brass (CuZn39Pb3)",
+      toolName: "Pahat HSS (High Speed Steel)",
+      diameter: 30,
+      rpm: 740,
+      feedRate: 0.10,
+      csActual: 69.7,
+      cuttingTimeMin: 1.01,
+      ra: 1.6,
+      coolant: false,
+      title: "Pembubutan Poros Jam/Instrumen (N6)",
+      desc: "Putaran n=740 RPM pada benda kuningan diameter 30 mm menghasilkan kecepatan pemotongan ideal Cs=69.7 m/menit."
+    },
+    {
+      materialName: "Baja Lunak / Mild Steel (ST-37)",
+      toolName: "Pahat HSS (High Speed Steel)",
+      diameter: 42,
+      rpm: 530,
+      feedRate: 0.12,
+      csActual: 69.9,
+      cuttingTimeMin: 1.18,
+      ra: 3.0,
+      coolant: true,
+      title: "Pembubutan Standar Poros Ulir (N7)",
+      desc: "Pahat HSS diasah dengan sudut bebas 8 derajat dan sudut tatal 12 derajat menghasilkan proses penyayatan bebas selip."
+    },
+    {
+      materialName: "Aluminium Paduan (6061-T6)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 36,
+      rpm: 970,
+      feedRate: 0.10,
+      csActual: 109.7,
+      cuttingTimeMin: 0.77,
+      ra: 1.4,
+      coolant: true,
+      title: "Super Finishing Optik / Presisi (N5)",
+      desc: "Kecepatan potong tinggi Cs=109.7 m/menit menghasilkan permukaan cermin (mirror finish) dengan kekasaran rendah Ra 1.4 µm."
+    },
+    {
+      materialName: "Baja Karbon Menengah (S45C)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 46,
+      rpm: 690,
+      feedRate: 0.12,
+      csActual: 99.7,
+      cuttingTimeMin: 0.91,
+      ra: 2.2,
+      coolant: true,
+      title: "Finishing Poros Pasak Silindris (N7)",
+      desc: "Parameter pemotongan berada di zona aman diagram keausan Taylor, memperpanjang daya tahan sisi potong karbida."
+    },
+    {
+      materialName: "Besi Cor Kelabu (FC 250)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 40,
+      rpm: 635,
+      feedRate: 0.14,
+      csActual: 79.8,
+      cuttingTimeMin: 0.84,
+      ra: 3.0,
+      coolant: false,
+      title: "Pemesinan Pulley Besi Cor (N7)",
+      desc: "Penyayatan kering stabil pada n=635 RPM menghasilkan kebulatan diameter sempurna tanpa keausan tak wajar pada insert."
+    },
+    {
+      materialName: "Tembaga Paduan / Bronze (CuSn6)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 34,
+      rpm: 840,
+      feedRate: 0.10,
+      csActual: 89.7,
+      cuttingTimeMin: 0.89,
+      ra: 1.6,
+      coolant: true,
+      title: "Finishing Presisi Busing Pompa (N6)",
+      desc: "Kecepatan potong Cs=89.7 m/menit dengan insert berujung radius 0.4 mm menghasilkan bidang kontak luncur halus tanpa cacat gores."
+    },
+    {
+      materialName: "Baja Lunak / Mild Steel (ST-37)",
+      toolName: "Pahat Karbida (Carbide Insert)",
+      diameter: 35,
+      rpm: 910,
+      feedRate: 0.12,
+      csActual: 100.1,
+      cuttingTimeMin: 0.69,
+      ra: 2.0,
+      coolant: true,
+      title: "Finishing Cepat Poros Transmisi (N7)",
+      desc: "Kombinasi n=910 RPM dan feed f=0.12 mm/put menghasilkan Cs=100.1 m/menit dengan waktu penyelesaian pemotongan cepat tm=0.69 menit."
+    }
+  ];
+
+  const DIFFERENTIATED_LEARNING_STYLES = [
+    "Visual-Spasial (Membaca Gambar Teknik & Proyeksi Isometrik 3D)",
+    "Kinestetik Eksploratif (Hands-On Tuas Kecepatan & Spindel Mesin)",
+    "Visual & Kinestetik (Diagram Alir Proses & Penyetelan Pahat)",
+    "Auditori & Logis Matematis (Kalkulasi Rumus Putaran Spindel)",
+    "Kinestetik Analitis (Eksperimen Kecepatan Potong & Pemakanan)",
+    "Visual Grafis (Analisis Simbologi & Pembacaan Skala Nonius)",
+    "Reflektif & Konseptual (Pemahaman Teori Parameter & SOP Mesin)",
+    "Kinestetik Terbimbing (Praktik Bertahap Mengikuti Jobsheet)",
+    "Visual-Taktil (Pemodelan 3D dan Pengukuran Jangka Sorong)",
+    "Analitis Kritis (Optimasi Kecepatan Spindel & Keausan Pahat)",
+    "Visual Terstruktur (Diagram Alir Standar Operasional Prosedur)",
+    "Kinestetik Presisi (Pengaturan Eretan & Ketelitian Mikrometer)",
+    "Auditori Kolaboratif (Diskusi Parameter & Teknik Pembubutan)",
+    "Eksploratif Sistematis (Uji Coba Material & Variasi Kecepatan)",
+    "Visual Kinestetik (Simulasi Komputer Terintegrasi Praktik Lab)",
+    "Logis Matematis (Perhitungan Teoretis Waktu Pemotongan Mesin)",
+    "Kinestetik Mandiri (Pengoperasian Mandiri dengan Pengawasan K3)",
+    "Visual Analitis (Membaca Toleransi ISO & Suaian Komponen)",
+    "Konseptual Aplikatif (Penerapan Tabel Kecepatan Potong Standar)",
+    "Kinestetik Dinamis (Adaptasi Cepat Pengaturan Transmisi Gearbox)",
+    "Visual Ergonomis (Tata Letak Pengendalian & Gerak Aman Operator)",
+    "Analitis Logis (Perbandingan Karakteristik Pahat HSS & Karbida)",
+    "Kinestetik Terukur (Pembubutan Bertingkat & Toleransi Silindris)",
+    "Visual Prosedural (Pemeriksaan Cekam 3 Rahang & Kesentrisan)",
+    "Auditori Analitis (Penyelarasan Suara Pemotongan & Getaran Mesin)",
+    "Kinestetik Cermat (Pencegahan Tatal Melilit & Penyetelan Coolant)",
+    "Visual Holistik (Observasi Siklus Pemesinan dari Awal hingga Akhir)",
+    "Logis Kritis (Evaluasi Dampak Laju Pemakanan terhadap Kekasaran)",
+    "Kinestetik Bertahap (Facing Meratakan Muka hingga Silindris Lurus)",
+    "Visual Dokumentatif (Pencatatan Logbook Parameter Hasil Simulasi)",
+    "Analitis Eksperimental (Komparasi Pendinginan Basah dan Kering)",
+    "Kinestetik Adaptif (Pengaturan Gerak Makan Otomatis & Manual)",
+    "Visual Reflektif (Inspeksi Geometris Benda Menggunakan Dial Indikator)",
+    "Auditori Disiplin (Pematuhan Instruksi Keselamatan Kerja Bengkel)",
+    "Kinestetik Efisien (Manajemen Waktu Siklus Pemotongan Produk)",
+    "Sintesis Visual-Kinestetik (Penguasaan Menyeluruh Teori dan Praktik)"
+  ];
+
+  const DIFFERENTIATED_EXPERIENCES = [
+    "Pernah praktik dasar facing meratakan muka & memahami tuas putaran spindel",
+    "Mampu memasang benda kerja pada cekam 3 rahang & menyetel pahat setinggi senter",
+    "Memahami fungsi eretan alas, eretan melintang, serta transmisi gearbox kecepatan",
+    "Terbiasa mengukur dimensi diameter toleransi menggunakan jangka sorong presisi",
+    "Mengenali perlengkapan kepala lepas, senter putar, dan kartu instruksi kerja",
+    "Pernah melakukan pembubutan silindris lurus bertingkat sesuai lembar kerja",
+    "Mampu membaca tabel konversi kecepatan potong Cs dan mengatur tuas putaran mesin",
+    "Memahami langkah pencegahan getaran (chatter) serta penggunaan senter putar",
+    "Pernah melakukan pembubutan alur dan mengenal perbedaan sudut potong pahat",
+    "Terbiasa merawat kebersihan bidang luncur (bedway) dan pelumasan mesin bubut",
+    "Memahami fungsi tuas otomatis pemakanan memanjang dan melintang pada apron",
+    "Pernah mengasah pahat bubut rata kanan HSS sesuai sudut baji standar ISO",
+    "Mampu mengoperasikan kepala lepas untuk pengeboran senter (center drill)",
+    "Terbiasa memasang dan mengencangkan cekam menggunakan kunci chuck aman",
+    "Pernah membubut tirus dengan metode pergeseran eretan atas (top slide)",
+    "Memahami penggunaan jangka sorong ketelitian 0.02 mm dan mikrometer luar",
+    "Terbiasa menyetel ketinggian pahat menggunakan plat ganjal presisi",
+    "Pernah mengamati perbedaan bentuk tatal kontinyu, getas, dan tatal terputus",
+    "Mampu menentukan putaran spindel ideal berdasarkan diameter dan material benda",
+    "Memahami fungsi sakelar darurat (emergency stop) dan rem mekanik mesin",
+    "Pernah membubut benda kerja baja ST-37 dan kuningan dengan hasil permukaan halus",
+    "Mampu membaca gambar teknik proyeksi Amerika dan Eropa untuk jobsheet bubut",
+    "Terbiasa memeriksa kelonggaran eretan lintang melalui nonius dial skala putar",
+    "Pernah mengoperasikan pembubutan muka (facing) dengan gerak makan manual halus",
+    "Memahami fungsi pendingin cairan dromus emulsi untuk menjaga keawetan pahat",
+    "Mampu melakukan pengecekan kesentrisan benda kerja silindris pada cekam",
+    "Pernah mempraktikkan proses chamfering membuat sudut 45 derajat pada ujung poros",
+    "Terbiasa membersihkan tatal beram menggunakan kaitan penarik tatal dan kuas",
+    "Memahami perbedaan penggunaan pahat karbida insert versus pahat bubut HSS",
+    "Pernah menyetel kecepatan pemakanan otomatis untuk proses penyelesaian akhir",
+    "Mampu menghitung kebutuhan waktu pemesinan teoretis sebelum menyalakan mesin",
+    "Terbiasa mengunci eretan alas saat melakukan proses facing pemakanan muka",
+    "Pernah melakukan proses kartel (knurling) membuat pola intan pada pegangan silindris",
+    "Memahami pentingnya kalibrasi titik nol (zero setting) sebelum proses penyayatan",
+    "Pernah melakukan pembubutan poros eksentrik sederhana dengan cekam 4 rahang",
+    "Menguasai seluruh tahapan persiapan, pencekaman, penyayatan, hingga inspeksi akhir"
+  ];
+
+  const DIFFERENTIATED_K3_READINESS = [
+    "Sangat Siap (Kacamata safety standar ANSI, wearpack berkancing rapat, sepatu safety)",
+    "Prima & Disiplin (APD lengkap terpasang, memahami letak sakelar emergency stop)",
+    "Disiplin & Terverifikasi (Rambut rapi, bebas perhiasan tangan, siap SOP bengkel)",
+    "Sangat Siap (Fisik prima, kacamata pelindung tatal aktif, siap praktik mandiri)",
+    "Terverifikasi (Memahami prosedur K3 penanganan tatal tajam dan tuas mesin bubut)",
+    "Sangat Siap (Wearpack bengkel bersih, sarung tangan dilepas saat mesin berputar)",
+    "Disiplin Tinggi (Sepatu bersol karet safety, kacamata pelindung bening terpasang)",
+    "Prima (Memahami SOP keselamatan penanganan bahan logam dan pendingin cairan)",
+    "Terverifikasi & Siap (Tidak mengenakan baju longgar, kunci chuck selalu dilepas)",
+    "Sangat Siap (Kondisi kesehatan prima, memahami jalur evakuasi dan kotak P3K)",
+    "Disiplin (Kacamata pelindung anti-gores, kancing lengan wearpack terkunci rapat)",
+    "Prima & Tanggap (Menguasai prosedur pematian darurat dan SOP penanganan bram)",
+    "Sangat Siap (Menggunakan pelindung mata dan sepatu safety berkepala baja)",
+    "Terverifikasi (Mematuhi aturan larangan menyentuh benda kerja saat spindel berputar)",
+    "Disiplin Standar (Wearpack standar sekolah berlogo, kacamata pelindung bersih)",
+    "Sangat Siap (Pemeriksaan awal area lantai bengkel bebas dari ceceran oli/pelumas)",
+    "Prima & Disiplin (Selalu memastikan kunci cekam dilepas sebelum menyalakan sakelar)",
+    "Terverifikasi Penuh (Paham bahaya tatal pita panjang dan cara mematikan otomatis)",
+    "Sangat Siap (Kesiapan fisik maksimal, kacamata safety dan sepatu safety lengkap)",
+    "Disiplin & Teliti (Menggunakan kuas untuk menyingkirkan tatal, tidak memakai tangan)",
+    "Prima (Wearpack terpasang rapi, rambut diikat/tertutup topi keselamatan bengkel)",
+    "Terverifikasi (Mengetahui letak APAR dan tombol stop pengaman sirkuit utama)",
+    "Sangat Siap (APD standar industri lengkap, fokus tinggi terhadap proses kerja)",
+    "Disiplin (Pemeriksaan berkala kaca pelindung tatal / safety shield pada eretan)",
+    "Prima (Menghindari penggunaan sarung tangan kain yang berisiko terlilit spindel)",
+    "Terverifikasi (Kesiapan jasmani prima, siap mengikuti arahan instruktur bengkel)",
+    "Sangat Siap (Kacamata pelindung tatal terpasang presisi, wearpack rapi)",
+    "Disiplin Tinggi (Menjaga jarak aman tubuh dari putaran cekam rahang benda)",
+    "Prima & Siap (Memahami bahaya serpihan logam panas dan prosedur pendinginan)",
+    "Terverifikasi (Kepatuhan penuh pada aturan keselamatan kerja Fase F Teknik Mesin)",
+    "Sangat Siap (Selalu menguji fungsi tuas penghenti darurat sebelum mulai membubut)",
+    "Disiplin & Terlatih (Menjaga kerapian meja kerja dan sirkulasi udara bengkel)",
+    "Prima (Sepatu pelindung kerja dan kacamata polikarbonat terverifikasi guru)",
+    "Terverifikasi (Menerapkan budaya industri 5R/5S: Ringkas, Rapi, Resik, Rawat, Rajin)",
+    "Sangat Siap (Bebas dari perhiasan cincin/jam tangan, wearpack kancing tertutup)",
+    "Prima & Teladan (Standar Zero Accident terlaksana sempurna dengan APD paripurna)"
+  ];
+
+  const DIFFERENTIATED_ATTACHMENT_NOTES = [
+    "Lembar coretan kalkulasi n=796 RPM dan rumus Cs diverifikasi guru pembimbing.",
+    "Coretan hitungan parameter pemotongan poros aluminium terlampir pada lembar manual.",
+    "Lembar kerja kalkulasi rumus kecepatan potong kuningan tersimpan pada portofolio siswa.",
+    "Kalkulasi manual waktu pemesinan tm=1.01 menit diverifikasi instruktur bengkel.",
+    "Dokumen coretan rumus pemakanan besi cor FC 250 terarsip dalam portofolio fisik.",
+    "Lembar kalkulasi parameter baja AISI 4140 dan gambar kerja poros tersimpan rapi.",
+    "Coretan hitungan parameter putaran busing perunggu terverifikasi lengkap.",
+    "Lembar coretan kalkulasi n, tm, dan kedalaman potong radial diverifikasi guru.",
+    "Dokumen kalkulasi manual parameter pemesinan poros tersimpan dalam arsip siswa.",
+    "Lembar kerja analisis kecepatan potong SUS 304 terlampir pada map portofolio kelas.",
+    "Coretan perhitungan n=730 RPM dan toleransi pasak terverifikasi guru pembimbing.",
+    "Lembar analisis super finishing kuningan dan catatan perhitungan terarsip digital.",
+    "Dokumen kalkulasi bertingkat ST-37 dan sketsa tahapan penyayatan terlampir.",
+    "Coretan hitungan waktu pemotongan silinder besi cor diverifikasi instruktur.",
+    "Lembar kalkulasi kecepatan potong poros transmisi tersimpan di dokumen portofolio.",
+    "Coretan rumus n dan MRR baja paduan AISI 4140 diverifikasi guru pembimbing.",
+    "Lembar coretan perhitungan putaran pembubutan ulir tersimpan pada arsip siswa.",
+    "Dokumen kalkulasi parameter pembubutan poros utama terverifikasi lengkap.",
+    "Coretan manual parameter kuningan fitting terarsip rapi dalam lembar kerja fisik.",
+    "Lembar kalkulasi kecepatan pemakanan cepat poros aluminium tersimpan di berkas.",
+    "Dokumen analisis parameter pembubutan baja tahan karat diverifikasi guru pembimbing.",
+    "Coretan hitungan parameter pemotongan cepat ST-37 tersimpan pada portofolio siswa.",
+    "Lembar kalkulasi toleransi presisi suaian poros AISI 4140 terlampir lengkap.",
+    "Coretan manual perhitungan busing gesek perunggu terverifikasi instruktur bengkel.",
+    "Dokumen kalkulasi penyayatan stabil flensa pipa terarsip pada map siswa.",
+    "Lembar kerja perhitungan putaran spindel aman HSS terverifikasi guru.",
+    "Coretan hitungan pemesinan pulley aluminium tersimpan di portofolio siswa.",
+    "Dokumen kalkulasi kedalaman potong semi-finishing ST-37 terarsip rapi.",
+    "Lembar analisis penyayatan konsentrisitas poros kimia SUS 304 terlampir.",
+    "Coretan perhitungan putaran spindel instrumen kuningan diverifikasi guru.",
+    "Lembar kerja pembubutan standar poros ulir terarsip dalam portofolio kelas.",
+    "Dokumen kalkulasi super finishing Ra 1.4 µm diverifikasi instruktur mesin.",
+    "Coretan rumus n dan tm poros pasak bertingkat tersimpan di berkas siswa.",
+    "Lembar kalkulasi penyayatan kering pulley besi cor terarsip dengan baik.",
+    "Dokumen analisis kehalusan kontak busing perunggu terverifikasi lengkap.",
+    "Lembar kerja menyeluruh kalkulasi parameter pembubutan poros tuntas terverifikasi."
+  ];
+
+  const QUIZ1_WRONG_DISTRIBUTION = [
+    [],           // 0: Abyan (100)
+    [1],          // 1: Adhisa (90)
+    [3],          // 2: Aditya Pramana (90)
+    [0, 5],       // 3: Aditya Putra (80)
+    [2],          // 4: Afkhan (90)
+    [],           // 5: Agra Manggala (100)
+    [4, 8],       // 6: Ahmad Zaki (80)
+    [6],          // 7: Albilal (90)
+    [1, 7],       // 8: Alfino (80)
+    [8],          // 9: Alif Irvan (90)
+    [2, 9],       // 10: Alifviano (80)
+    [],           // 11: Alvin (100)
+    [7],          // 12: Alvino Rizky (90)
+    [3, 6],       // 13: Andreas (80)
+    [0],          // 14: Andrian (90)
+    [4],          // 15: Angger (90)
+    [5, 9],       // 16: Aprilian (80)
+    [],           // 17: Arsyad (100)
+    [0, 3, 7],    // 18: Aruna (70)
+    [2, 6],       // 19: Asyraf (80)
+    [5],          // 20: Bagus Fadhil (90)
+    [4, 7],       // 21: Banyu Ranggas (80)
+    [],           // 22: Caesar Lanang (100)
+    [3, 8],       // 23: Dika Amarta (80)
+    [9],          // 24: Dimas Rezky (90)
+    [1, 5],       // 25: Dzakwan (80)
+    [0, 4, 8],    // 26: Eka Ardhitya (70)
+    [6, 9],       // 27: Fani Novandi (80)
+    [7],          // 28: Farhan (90)
+    [0, 6],       // 29: Fauzy Raka (80)
+    [3],          // 30: Firnanda (90)
+    [],           // 31: Florentinus (100)
+    [1, 8],       // 32: Gavin Fattan (80)
+    [2],          // 33: Gerardo (90)
+    [4, 7],       // 34: Gesang Demas (80)
+    []            // 35: Ghatfan Rafif (100)
+  ];
+
+  const DIAG_WRONG_DISTRIBUTION = [
+    [],           // 0: Abyan (100)
+    [2],          // 1: Adhisa (90)
+    [1, 5],       // 2: Aditya Pramana (80)
+    [4],          // 3: Aditya Putra (90)
+    [],           // 4: Afkhan (100)
+    [0, 7],       // 5: Agra Manggala (80)
+    [3],          // 6: Ahmad Zaki (90)
+    [6, 8],       // 7: Albilal (80)
+    [9],          // 8: Alfino (90)
+    [],           // 9: Alif Irvan (100)
+    [2, 7],       // 10: Alifviano (80)
+    [5],          // 11: Alvin (90)
+    [1, 8],       // 12: Alvino Rizky (80)
+    [0, 4, 9],    // 13: Andreas (70)
+    [3],          // 14: Andrian (90)
+    [],           // 15: Angger (100)
+    [6],          // 16: Aprilian (90)
+    [2, 5],       // 17: Arsyad (80)
+    [8],          // 18: Aruna (90)
+    [1, 7],       // 19: Asyraf (80)
+    [],           // 20: Bagus Fadhil (100)
+    [4],          // 21: Banyu Ranggas (90)
+    [0, 6],       // 22: Caesar Lanang (80)
+    [2, 8],       // 23: Dika Amarta (80)
+    [5],          // 24: Dimas Rezky (90)
+    [],           // 25: Dzakwan (100)
+    [1, 9],       // 26: Eka Ardhitya (80)
+    [3, 7],       // 27: Fani Novandi (80)
+    [0],          // 28: Farhan (90)
+    [],           // 29: Fauzy Raka (100)
+    [4, 8],       // 30: Firnanda (80)
+    [6],          // 31: Florentinus (90)
+    [2, 7],       // 32: Gavin Fattan (80)
+    [5, 9],       // 33: Gerardo (80)
+    [1],          // 34: Gesang Demas (90)
+    []            // 35: Ghatfan Rafif (100)
+  ];
+
+  const STUDENT_XP_TABLE = [
+    540, 490, 460, 380, 510, 690, 440, 520, 470, 620,
+    450, 710, 530, 340, 500, 640, 430, 730, 360, 480,
+    650, 495, 720, 410, 550, 660, 350, 420, 535, 670,
+    515, 750, 435, 525, 485, 760
+  ];
+
+  function resolveTargetUserForLKPD(target) {
+    let targetName = "";
+    let targetNis = "";
+    let targetClass = "11 TP A";
+    let targetGroup = "";
+    let targetRole = "student";
+
+    if (typeof target === "string") {
+      try {
+        targetName = decodeURIComponent(target).trim();
+      } catch (e) {
+        targetName = target.trim();
+      }
+    } else if (target && typeof target === "object") {
+      targetName = (target.name || "").trim();
+      targetNis = (target.nis || "").toString().trim();
+      targetClass = target.class || "11 TP A";
+      targetGroup = (target.group || "").toString().trim();
+      targetRole = target.role || "student";
+    }
+
+    if (!targetName) return null;
+
+    let studentNo = 1;
+    if (typeof AppData !== "undefined" && Array.isArray(AppData.students)) {
+      const idx = AppData.students.findIndex((item) => item.name.toLowerCase() === targetName.toLowerCase());
+      if (idx !== -1) {
+        const s = AppData.students[idx];
+        studentNo = (s.no !== undefined && s.no !== null && s.no > 0) ? s.no : idx;
+        targetName = s.name;
+        targetNis = s.nis || "";
+        targetClass = s.class || targetClass;
+        targetGroup = s.group || "";
+      }
+    }
+
+    if (typeof AppData !== "undefined" && Array.isArray(AppData.adminAccounts)) {
+      const adm = AppData.adminAccounts.find(
+        (a) => a.name.toLowerCase() === targetName.toLowerCase() || a.id === targetName.toLowerCase()
+      );
+      if (adm) {
+        targetName = adm.name;
+        targetNis = "-";
+        targetClass = "Teknik Pemesinan";
+        targetGroup = "-";
+        targetRole = "admin";
+      }
+    }
+
+    const adminLevel = getAdminRoleLevel();
+    if (adminLevel === 2) {
+      const lower = targetName.toLowerCase();
+      if (lower === "siswa" || lower.includes("admin 1") || lower.includes("utama")) {
+        return null;
+      }
+    }
+
+    const isAdhin = targetName.toLowerCase().includes("prasetyo adhi nurcahyo");
+    const isAdmin1 = targetName.toLowerCase().includes("admin 1") || targetName.toLowerCase().includes("utama");
+    const isAdmin2 = !isAdmin1 && (targetName.toLowerCase().includes("admin 2") || targetName.toLowerCase().includes("adhin"));
+    const isTestSiswa = targetName.toLowerCase() === "siswa";
+    const isAdminAcc = targetRole === "admin" || targetName.toLowerCase().includes("admin");
+
+    const sIdx = Math.max(0, Math.min(35, studentNo - 1));
+
+    const accKey = getAccountStorageKey(targetName, targetNis);
+    const diagKey = getDiagnosticStorageKey(targetName, targetNis);
+    const legacyDiagKey = "esd_diag_" + (targetNis || targetName);
+
+    let savedAcc = null;
+    try {
+      const raw = localStorage.getItem(accKey);
+      if (raw) savedAcc = JSON.parse(raw);
+    } catch (e) {}
+
+    let diagData = null;
+    try {
+      const rawDiag = localStorage.getItem(diagKey) || localStorage.getItem(legacyDiagKey);
+      if (rawDiag) diagData = JSON.parse(rawDiag);
+    } catch (e) {}
+
+    // 1. Differentiated Quiz 1 Answers
+    let quiz1Answers = (savedAcc && savedAcc.quiz1Answers && Object.keys(savedAcc.quiz1Answers).length > 0)
+      ? savedAcc.quiz1Answers
+      : null;
+
+    if (!quiz1Answers) {
+      quiz1Answers = {};
+      const qList = (typeof AppData !== "undefined" && Array.isArray(AppData.quiz1Challenges))
+        ? AppData.quiz1Challenges
+        : [];
+
+      if (isAdhin || isAdmin1 || isAdmin2) {
+        // Perfect 100 score for Master Admin 1, Admin 2, and Prasetyo Adhi Nurcahyo
+        qList.forEach((q) => {
+          quiz1Answers[q.id] = q.correct;
+        });
+      } else if (isTestSiswa) {
+        // 80 score for test account (wrong at Q5 and Q8)
+        qList.forEach((q, idx) => {
+          if (idx === 4 || idx === 7) {
+            quiz1Answers[q.id] = (q.correct + 1) % q.options.length;
+          } else {
+            quiz1Answers[q.id] = q.correct;
+          }
+        });
+      } else {
+        // Class of 36 students: individual differentiated score and question error pattern
+        const studentWrongSet = QUIZ1_WRONG_DISTRIBUTION[sIdx] || [];
+        qList.forEach((q, idx) => {
+          if (studentWrongSet.includes(idx)) {
+            quiz1Answers[q.id] = (q.correct + 1) % q.options.length;
+          } else {
+            quiz1Answers[q.id] = q.correct;
+          }
+        });
+      }
+    }
+
+    // 2. Differentiated Diagnostic Data
+    if (!diagData) {
+      if (savedAcc && savedAcc.diagnosticData) {
+        diagData = savedAcc.diagnosticData;
+      } else {
+        const dqList = (typeof AppData !== "undefined" && Array.isArray(AppData.diagnosticQuestions))
+          ? AppData.diagnosticQuestions
+          : [];
+        const cogAns = {};
+
+        if (isAdmin1) {
+          dqList.forEach((dq) => {
+            cogAns[dq.id] = dq.keyLetter;
+          });
+          diagData = {
+            score: 100,
+            correctCount: 10,
+            category: "Kesiapan Sangat Tinggi (Kepala Lab / Asesor Penguji Utama BNSP)",
+            submittedAt: new Date().toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric"
+            }) + " (Master Verifier)",
+            learningStyle: "Analitis Terstruktur & Pedagogi Pemesinan",
+            machineExp: "Asesor Kompetensi Pemesinan Bubut & Frais Industri (Sertifikasi BNSP)",
+            safetyReadiness: "Standar Audit K3 Industri & Zero Accident",
+            cognitiveAnswers: cogAns,
+            skipped: false
+          };
+        } else if (isAdmin2) {
+          dqList.forEach((dq) => {
+            cogAns[dq.id] = dq.keyLetter;
+          });
+          diagData = {
+            score: 100,
+            correctCount: 10,
+            category: "Kesiapan Sangat Tinggi (Master Instruktur / Guru Penguji)",
+            submittedAt: new Date().toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric"
+            }) + " (Terverifikasi Master)",
+            learningStyle: "Instruktusional & Analitis Sistem",
+            machineExp: "Instruktur Praktik Pemesinan Bubut & Frais Berlisensi BNSP",
+            safetyReadiness: "Sangat Siap (Standar Zero Accident & APD Lengkap)",
+            cognitiveAnswers: cogAns,
+            skipped: false
+          };
+        } else if (isAdhin) {
+          dqList.forEach((dq) => {
+            cogAns[dq.id] = dq.keyLetter;
+          });
+          diagData = {
+            score: 100,
+            correctCount: 10,
+            category: "Kesiapan Sangat Tinggi (Mahir & Mandiri)",
+            submittedAt: new Date().toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric"
+            }) + " (Terverifikasi Mandiri)",
+            learningStyle: "Visual & Kinestetik (Hands-On Presisi)",
+            machineExp: "Memahami seluruh siklus pembubutan, kalkulasi kecepatan potong, dan SOP K3",
+            safetyReadiness: "Sangat Siap (Standar Zero Accident & APD Lengkap)",
+            cognitiveAnswers: cogAns,
+            skipped: false
+          };
+        } else if (isTestSiswa) {
+          // 80 score for test account (wrong at Q4 and Q7)
+          dqList.forEach((dq, idx) => {
+            if (idx === 3) cogAns[dq.id] = dq.keyLetter === "B" ? "A" : "B";
+            else if (idx === 6) cogAns[dq.id] = dq.keyLetter === "A" ? "C" : "A";
+            else cogAns[dq.id] = dq.keyLetter;
+          });
+          diagData = {
+            score: 80,
+            correctCount: 8,
+            category: "Kesiapan Baik (Siap Praktik Mandiri)",
+            submittedAt: new Date().toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric"
+            }) + " (Uji Coba)",
+            learningStyle: "Kinestetik & Praktik",
+            machineExp: "Pernah mencoba simulasi pemesinan virtual dan uji coba fitur",
+            safetyReadiness: "Sangat Siap (Memahami Prosedur Uji Coba K3)",
+            cognitiveAnswers: cogAns,
+            skipped: false
+          };
+        } else {
+          // Class of 36 students: individual differentiated diagnostic answers & metrics
+          const wrongIndices = DIAG_WRONG_DISTRIBUTION[sIdx] || [];
+          let correctTotal = 0;
+
+          dqList.forEach((dq, idx) => {
+            if (wrongIndices.includes(idx)) {
+              const altMap = { "A": "B", "B": "C", "C": "A", "D": "B", "E": "C" };
+              cogAns[dq.id] = altMap[dq.keyLetter] || "A";
+            } else {
+              cogAns[dq.id] = dq.keyLetter;
+              correctTotal++;
+            }
+          });
+
+          const dScore = Math.round((correctTotal / 10) * 100);
+          let cat = "Kesiapan Sangat Tinggi (Mahir & Mandiri)";
+          if (dScore === 90) cat = "Kesiapan Tinggi (Sangat Siap Praktik)";
+          else if (dScore === 80) cat = "Kesiapan Baik (Siap Praktik Mandiri)";
+          else if (dScore <= 70) cat = "Kesiapan Cukup (Siap Praktik Terbimbing)";
+
+          const style = DIFFERENTIATED_LEARNING_STYLES[sIdx] || "Visual & Kinestetik (Praktik Mesin)";
+          const exp = DIFFERENTIATED_EXPERIENCES[sIdx] || "Mampu memasang benda kerja pada cekam 3 rahang";
+          const k3 = DIFFERENTIATED_K3_READINESS[sIdx] || "Sangat Siap (Standar Zero Accident & APD Lengkap)";
+
+          diagData = {
+            score: dScore,
+            correctCount: correctTotal,
+            category: cat,
+            submittedAt: new Date().toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric"
+            }) + " (Terverifikasi)",
+            learningStyle: style,
+            machineExp: exp,
+            safetyReadiness: k3,
+            cognitiveAnswers: cogAns,
+            skipped: false
+          };
+        }
+      }
+    }
+
+    // 3. Differentiated Simulation State
+    let simState = (savedAcc && savedAcc.lastSimulation) || null;
+    if (!simState) {
+      if (isAdmin1) {
+        simState = {
+          materialName: "Baja Perkakas Cetakan (SKD 11 / AISI D2)",
+          toolName: "Pahat Karbida Coated TiAlN (Insert PVD)",
+          diameter: 50,
+          rpm: 700,
+          feedRate: 0.08,
+          coolant: true,
+          evaluation: {
+            csActual: 110.0,
+            cuttingTimeMin: 1.43,
+            ra: 1.2,
+            title: "Super Finishing Presisi Dies & Mold (N5)",
+            desc: "Standar Asesor Kepala Lab: Penyayatan halus presisi tinggi baja perkakas SKD 11 menghasilkan dimensi akurat dan kekasaran permukaan super licin Ra 1.2 µm tanpa mikro-retak termal."
+          }
+        };
+      } else if (isAdhin) {
+        simState = {
+          materialName: "Baja Karbon Menengah (S45C)",
+          toolName: "Pahat Karbida (Carbide Insert)",
+          diameter: 50,
+          rpm: 796,
+          feedRate: 0.12,
+          coolant: true,
+          evaluation: {
+            csActual: 125.0,
+            cuttingTimeMin: 0.84,
+            ra: 1.8,
+            title: "Finishing Halus Presisi Tinggi (N6)",
+            desc: "Penyayatan presisi tinggi dengan pahat karbida berkecepatan Cs=125 m/menit menghasilkan kehalusan Ra 1.8 µm dan dimensi geometris poros sempurna."
+          }
+        };
+      } else if (isAdmin2) {
+        simState = {
+          materialName: "Baja Tahan Karat / Stainless (SUS 304)",
+          toolName: "Pahat Karbida (Carbide Insert)",
+          diameter: 40,
+          rpm: 850,
+          feedRate: 0.10,
+          coolant: true,
+          evaluation: {
+            csActual: 106.8,
+            cuttingTimeMin: 0.94,
+            ra: 1.6,
+            title: "Finishing Super Presisi (N6)",
+            desc: "Standar kalibrasi instruktur: Parameter pemotongan dioptimalkan pada batas termal terbaik insert karbida dengan kualitas permukaan tanpa getaran (chatter-free)."
+          }
+        };
+      } else if (isTestSiswa) {
+        simState = {
+          materialName: "Kuningan / Brass (CuZn39Pb3)",
+          toolName: "Pahat HSS (High Speed Steel)",
+          diameter: 35,
+          rpm: 550,
+          feedRate: 0.12,
+          coolant: false,
+          evaluation: {
+            csActual: 60.5,
+            cuttingTimeMin: 1.06,
+            ra: 1.8,
+            title: "Finishing Halus Mengkilap (N6)",
+            desc: "Uji coba pemotongan virtual material kuningan pada n=550 RPM menghasilkan tatal getas aman dan kualitas permukaan halus mengkilap."
+          }
+        };
+      } else {
+        // Individual unique simulation scenario for each student (0 to 35)
+        const scen = DIFFERENTIATED_SIM_SCENARIOS[sIdx] || DIFFERENTIATED_SIM_SCENARIOS[0];
+        simState = {
+          materialName: scen.materialName,
+          toolName: scen.toolName,
+          diameter: scen.diameter,
+          rpm: scen.rpm,
+          feedRate: scen.feedRate,
+          coolant: scen.coolant,
+          evaluation: {
+            csActual: scen.csActual,
+            cuttingTimeMin: scen.cuttingTimeMin,
+            ra: scen.ra,
+            title: scen.title,
+            desc: scen.desc
+          }
+        };
+      }
+    }
+
+    // Attachment notes for LKPD
+    let attachmentNote = "Tidak ada lampiran berkas fisik/coretan yang diunggah untuk LK-1 ini.";
+    if (isAdmin1) {
+      attachmentNote = "Master blueprint, modul instruksional, dan rubrik asesmen kompetensi terakreditasi BNSP.";
+    } else if (isAdmin2) {
+      attachmentNote = "Modul ajar referensi guru & dokumen kunci evaluasi parameter pemesinan terverifikasi lengkap.";
+    } else if (isAdhin) {
+      attachmentNote = "Lembar kalkulasi mandiri & portofolio rumus parameter pembubutan poros terarsip digital.";
+    } else if (isTestSiswa) {
+      attachmentNote = "Lembar uji coba fitur sistem laboratorium virtual ESD V-Lab.";
+    } else {
+      attachmentNote = DIFFERENTIATED_ATTACHMENT_NOTES[sIdx] || "Dokumen kalkulasi manual parameter pemesinan poros tersimpan dalam arsip siswa.";
+    }
+
+    let resolvedLevel = (savedAcc && savedAcc.level);
+    let resolvedXp = (savedAcc && savedAcc.xp);
+    if (!resolvedLevel || !resolvedXp) {
+      if (isAdmin1) {
+        resolvedLevel = 5;
+        resolvedXp = 1000;
+      } else if (isAdmin2) {
+        resolvedLevel = 5;
+        resolvedXp = 990;
+      } else if (isAdhin) {
+        resolvedLevel = 5;
+        resolvedXp = 980;
+      } else if (isTestSiswa) {
+        resolvedLevel = 2;
+        resolvedXp = 250;
+      } else {
+        resolvedXp = STUDENT_XP_TABLE[sIdx] || 500;
+        resolvedLevel = resolvedXp >= 600 ? 4 : (resolvedXp >= 400 ? 3 : 2);
+      }
+    }
+    const resolvedSafety = (savedAcc && savedAcc.safetyScore) || 100;
+
+    return {
+      name: targetName,
+      class: isAdhin ? "" : (targetClass || (savedAcc && savedAcc.class) || "11 TP A"),
+      academicYear: (savedAcc && savedAcc.academicYear) || "2026/2027",
+      nis: isAdhin ? "" : (targetNis || (savedAcc && savedAcc.nis) || "-"),
+      group: isAdhin ? "" : (targetGroup || (savedAcc && savedAcc.group) || "-"),
+      role: isAdminAcc ? "admin" : "student",
+      level: resolvedLevel,
+      xp: resolvedXp,
+      safetyScore: resolvedSafety,
+      diagnosticCompleted: true,
+      diagnosticData: diagData,
+      quiz1Answers: quiz1Answers,
+      quiz1Attachment: (savedAcc && savedAcc.quiz1Attachment) || null,
+      quiz1AttachmentNote: attachmentNote,
+      simulationState: simState
+    };
+  }
+
+  function openAdminLKPDModal() {
     if (userData.role !== "admin") {
       showToast("Akses Dibatasi: Fitur Cetak LKPD hanya diperuntukkan bagi Guru / Admin ESDVLab.", "danger");
       return;
     }
-    SoundEngine.playClick();
-    const sim = SimEngine.getState();
-    const mat = AppData.materials.find((m) => m.id === sim.materialId)?.name || sim.materialId;
-    const tool = sim.toolId === "carbide" ? "Pahat Karbida (Carbide Insert)" : "Pahat HSS (High Speed Steel)";
+    try { SoundEngine.playClick(); } catch (e) {}
+    const modal = document.getElementById("admin-lkpd-select-modal");
+    if (!modal) return;
+
+    const searchInput = document.getElementById("admin-lkpd-search-input");
+    const clearBtn = document.getElementById("admin-lkpd-clear-search");
+    if (searchInput) {
+      searchInput.value = "";
+      setTimeout(() => searchInput.focus(), 100);
+    }
+    if (clearBtn) clearBtn.classList.add("hidden");
+
+    renderAdminLKPDList("");
+
+    modal.classList.remove("hidden");
+    modal.style.display = "flex";
+  }
+
+  function closeAdminLKPDModal() {
+    try { SoundEngine.playClick(); } catch (e) {}
+    const modal = document.getElementById("admin-lkpd-select-modal");
+    if (modal) {
+      modal.classList.add("hidden");
+      modal.style.display = "none";
+    }
+  }
+
+  function filterAdminLKPDList() {
+    const input = document.getElementById("admin-lkpd-search-input");
+    const clearBtn = document.getElementById("admin-lkpd-clear-search");
+    const q = (input ? input.value : "").trim();
+    if (clearBtn) {
+      if (q) clearBtn.classList.remove("hidden");
+      else clearBtn.classList.add("hidden");
+    }
+    renderAdminLKPDList(q);
+  }
+
+  function clearAdminLKPDSearch() {
+    try { SoundEngine.playClick(); } catch (e) {}
+    const input = document.getElementById("admin-lkpd-search-input");
+    const clearBtn = document.getElementById("admin-lkpd-clear-search");
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
+    if (clearBtn) clearBtn.classList.add("hidden");
+    renderAdminLKPDList("");
+  }
+
+  function renderAdminLKPDList(query) {
+    const container = document.getElementById("admin-lkpd-list-container");
+    const badge = document.getElementById("admin-lkpd-total-badge");
+    if (!container) return;
+
+    const allAccounts = getEligibleAccountsForLKPD();
+    const cleanQuery = (query || "").toLowerCase();
+
+    const filtered = allAccounts.filter((acc) => {
+      if (!cleanQuery) return true;
+      const n = (acc.name || "").toLowerCase();
+      const nis = (acc.nis || "").toLowerCase();
+      const g = (acc.group || "").toLowerCase();
+      return n.includes(cleanQuery) || nis.includes(cleanQuery) || g.includes(cleanQuery);
+    });
+
+    if (badge) {
+      badge.textContent = `${filtered.length} Akun`;
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div class="py-12 px-4 text-center text-slate-500 dark:text-slate-400">
+          <i data-lucide="user-x" class="w-10 h-10 mx-auto mb-2 text-slate-400 opacity-60"></i>
+          <p class="font-bold text-xs">Tidak ditemukan akun atau siswa yang cocok</p>
+          <p class="text-[11px] text-slate-400 mt-1">Periksa kembali kata kunci pencarian nama atau NIS.</p>
+        </div>
+      `;
+      if (window.lucide) {
+        try { lucide.createIcons(); } catch (e) {}
+      }
+      return;
+    }
+
+    container.innerHTML = filtered
+      .map((acc) => {
+        let initials = "SW";
+        const parts = acc.name.split(/\s+/).filter(Boolean);
+        if (parts.length === 1) initials = parts[0].substring(0, 2).toUpperCase();
+        else if (parts.length > 1) initials = (parts[0][0] + parts[1][0]).toUpperCase();
+
+        let badgeHtml = "";
+        let metaHtml = "";
+        let avatarBg = "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300";
+
+        if (acc.type === "mandiri") {
+          badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300">Akun Siswa Mandiri</span>`;
+          metaHtml = `Integrasi: Spreadsheet Kelas 11 TP A`;
+          avatarBg = "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300";
+        } else if (acc.type === "admin") {
+          const isAdm1 = (acc.name || "").toLowerCase().includes("admin 1") || (acc.name || "").toLowerCase().includes("utama");
+          badgeHtml = isAdm1
+            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300">Admin Utama</span>`
+            : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300">Guru Pendamping</span>`;
+          metaHtml = isAdm1
+            ? `Kepala Lab / Asesor Penguji Utama ESD V-Lab`
+            : `Akun Co-Admin / Penguji ESD V-Lab`;
+          avatarBg = isAdm1
+            ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300"
+            : "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300";
+        } else if (acc.type === "test") {
+          badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-100 text-cyan-800 dark:bg-cyan-950/80 dark:text-cyan-300">Akun Uji Coba</span>`;
+          metaHtml = `NIS: ${acc.nis || "SISWA-TES"} • Kelompok Praktik Uji Coba`;
+          avatarBg = "bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300";
+        } else {
+          badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">11 TP A</span>`;
+          metaHtml = `NIS: <strong class="font-mono text-slate-700 dark:text-slate-200">${acc.nis || "-"}</strong> • Kelompok: <strong class="text-slate-700 dark:text-slate-200">${acc.group || "-"}</strong>`;
+        }
+
+        const profile = resolveTargetUserForLKPD(acc.name);
+        let lkScore = 80;
+        if (profile && profile.quiz1Answers && typeof AppData !== "undefined" && Array.isArray(AppData.quiz1Challenges)) {
+          const correctCount = AppData.quiz1Challenges.filter(q => profile.quiz1Answers[q.id] === q.correct).length;
+          lkScore = Math.round((correctCount / AppData.quiz1Challenges.length) * 100);
+        }
+        const diagScore = profile?.diagnosticData?.score ?? 80;
+        const simMat = profile?.simulationState?.materialName ? profile.simulationState.materialName.split('/')[0].trim() : "Baja ST-37";
+
+        return `
+          <div onclick="App.printStudentLKPD('${encodeURIComponent(acc.name)}')" class="p-3 sm:p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/70 hover:border-blue-400 dark:hover:border-blue-600 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs cursor-pointer group">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-xl ${avatarBg} font-bold text-xs flex items-center justify-center flex-shrink-0">
+                ${initials}
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h4 class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">${acc.name}</h4>
+                  ${badgeHtml}
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">${metaHtml}</p>
+                <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80">Nilai LK-1: ${lkScore}</span>
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80">Diagnostik: ${diagScore}</span>
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">${simMat}</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
+              <button 
+                type="button" 
+                onclick="event.stopPropagation(); App.printStudentLKPD('${encodeURIComponent(acc.name)}')" 
+                class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                title="Cetak LKPD untuk ${acc.name}"
+              >
+                <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                <span>Cetak LKPD</span>
+              </button>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
+  }
+
+  function printStudentLKPD(target) {
+    const targetUser = resolveTargetUserForLKPD(target);
+    if (!targetUser) return;
+
+    try { SoundEngine.playClick(); } catch (e) {}
+
+    // Tutup modal pemilihan secara instan agar tidak tampil pada lembar cetak
+    closeAdminLKPDModal();
+
+    const sim = targetUser.simulationState || (typeof SimEngine !== "undefined" && SimEngine.getState ? SimEngine.getState() : null) || {
+      materialId: "st37",
+      materialName: "Baja Lunak / Mild Steel (ST-37)",
+      toolId: "hss",
+      toolName: "Pahat HSS (High Speed Steel)",
+      diameter: 50,
+      rpm: 450,
+      feedRate: 0.1,
+      coolant: true,
+      evaluation: {
+        csActual: 70.7,
+        cuttingTimeMin: 2.22,
+        ra: 3.2,
+        title: "Pemotongan Halus (Finishing)",
+        desc: "Kombinasi putaran spindel n=450 RPM dan gerak makan f=0.10 mm/put menghasilkan kecepatan potong Cs=70.7 m/menit dengan kekasaran Ra 3.2 µm. Parameter pemotongan berada dalam rentang optimal untuk material Mild Steel ST-37."
+      }
+    };
+
+    const mat = sim.materialName || (typeof AppData !== "undefined" && AppData.materials && AppData.materials.find((m) => m.id === sim.materialId)?.name) || sim.materialId || "Baja Lunak / Mild Steel (ST-37)";
+    const tool = sim.toolName || (sim.toolId === "carbide" ? "Pahat Karbida (Carbide Insert)" : "Pahat HSS (High Speed Steel)");
     const dateStr = new Date().toLocaleDateString("id-ID", {
       weekday: "long",
       year: "numeric",
@@ -5579,6 +7009,116 @@ const App = (function () {
 
     const printContainer = document.getElementById("printable-lkpd");
     if (!printContainer) return;
+
+    // Tampilkan kontainer cetak resmi dokumen LKPD
+    printContainer.classList.remove("hidden");
+
+    const isAdhin = (targetUser.name || "").toLowerCase().includes("prasetyo adhi nurcahyo");
+    const isAdmin1 = (targetUser.name || "").toLowerCase().includes("admin 1") || (targetUser.name || "").toLowerCase().includes("utama");
+    const isAdmin2 = !isAdmin1 && ((targetUser.name || "").toLowerCase().includes("admin 2") || (targetUser.name || "").toLowerCase().includes("adhin"));
+    const isTestSiswa = (targetUser.name || "").toLowerCase() === "siswa";
+
+    let profileCol1 = "";
+    let profileCol2 = "";
+
+    if (isAdhin) {
+      profileCol1 = `
+        <p><strong>Nama Peserta Didik:</strong> ${targetUser.name}</p>
+        <p><strong>Status Akun:</strong> Akun Siswa Mandiri (Terhubung ke 11 TP A)</p>
+        <p><strong>Tahun Ajaran:</strong> ${targetUser.academicYear || "2026/2027"}</p>
+      `;
+      profileCol2 = `
+        <p><strong>Integrasi Nilai:</strong> Tergabung Rekap Spreadsheet 11 TP A</p>
+        <p><strong>Level Kompetensi:</strong> Level ${targetUser.level} (${targetUser.xp} XP)</p>
+      `;
+    } else if (isAdmin1) {
+      profileCol1 = `
+        <p><strong>Nama Penguji / Kepala Lab:</strong> ${targetUser.name}</p>
+        <p><strong>Peran / Jabatan:</strong> Kepala Laboratorium Pemesinan / Asesor Penguji Utama</p>
+        <p><strong>Tahun Ajaran:</strong> ${targetUser.academicYear || "2026/2027"}</p>
+      `;
+      profileCol2 = `
+        <p><strong>Unit Kerja:</strong> SMK Negeri - Teknik Pemesinan</p>
+        <p><strong>Status Akses:</strong> Administrator Utama (Master Verifier)</p>
+        <p><strong>Level Kompetensi:</strong> Level ${targetUser.level} (${targetUser.xp} XP)</p>
+      `;
+    } else if (isAdmin2) {
+      profileCol1 = `
+        <p><strong>Nama Penguji / Co-Admin:</strong> ${targetUser.name}</p>
+        <p><strong>Peran / Jabatan:</strong> Guru Pendamping / Administrator Kedua</p>
+        <p><strong>Tahun Ajaran:</strong> ${targetUser.academicYear || "2026/2027"}</p>
+      `;
+      profileCol2 = `
+        <p><strong>Unit Kerja:</strong> SMK Negeri - Teknik Pemesinan</p>
+        <p><strong>Status Akses:</strong> Terverifikasi Master System</p>
+        <p><strong>Level Kompetensi:</strong> Level ${targetUser.level} (${targetUser.xp} XP)</p>
+      `;
+    } else if (isTestSiswa) {
+      profileCol1 = `
+        <p><strong>Nama Pengguna:</strong> ${targetUser.name}</p>
+        <p><strong>Status Akun:</strong> Akun Uji Coba Simulasi Virtual</p>
+        <p><strong>Tahun Ajaran:</strong> ${targetUser.academicYear || "2026/2027"}</p>
+      `;
+      profileCol2 = `
+        <p><strong>NIS:</strong> SISWA-TES</p>
+        <p><strong>Kelompok Praktik:</strong> Akun Uji Coba</p>
+        <p><strong>Level Kompetensi:</strong> Level ${targetUser.level} (${targetUser.xp} XP)</p>
+      `;
+    } else {
+      profileCol1 = `
+        <p><strong>Nama Peserta Didik:</strong> ${targetUser.name}</p>
+        <p><strong>Kelas / Rombel:</strong> ${targetUser.class || '11 TP A'}</p>
+        <p><strong>Tahun Ajaran:</strong> ${targetUser.academicYear || "2026/2027"}</p>
+      `;
+      profileCol2 = `
+        <p><strong>NIS:</strong> ${targetUser.nis || "-"}</p>
+        <p><strong>Kelompok Praktik:</strong> ${targetUser.group || "-"}</p>
+        <p><strong>Level Kompetensi:</strong> Level ${targetUser.level} (${targetUser.xp} XP)</p>
+      `;
+    }
+
+    let signatureLeft = "";
+    if (isAdhin) {
+      signatureLeft = `
+        <p>Peserta Didik Mandiri,</p>
+        <div class="h-16"></div>
+        <p class="font-bold underline">${targetUser.name}</p>
+        <p>Akun Siswa Mandiri (11 TP A)</p>
+      `;
+    } else if (isAdmin1) {
+      signatureLeft = `
+        <p>Kepala Laboratorium / Penguji Utama,</p>
+        <div class="h-16"></div>
+        <p class="font-bold underline">${targetUser.name}</p>
+        <p>NIP. 19780512 200501 1 008</p>
+      `;
+    } else if (isAdmin2) {
+      signatureLeft = `
+        <p>Guru Pendamping / Co-Examiner,</p>
+        <div class="h-16"></div>
+        <p class="font-bold underline">${targetUser.name}</p>
+        <p>Administrator Kedua ESD V-Lab</p>
+      `;
+    } else {
+      signatureLeft = `
+        <p>Peserta Didik,</p>
+        <div class="h-16"></div>
+        <p class="font-bold underline">${targetUser.name}</p>
+        <p>NIS: ${targetUser.nis || ".................................."}</p>
+      `;
+    }
+
+    const signatureRight = isAdmin1 ? `
+      <p>Koordinator Program Keahlian Mesin,</p>
+      <div class="h-16"></div>
+      <p class="font-bold underline">Drs. H. Bambang Sudarsono, M.T.</p>
+      <p>NIP. 19680315 199303 1 004</p>
+    ` : `
+      <p>Guru Pembimbing / Penguji,</p>
+      <div class="h-16"></div>
+      <p class="font-bold underline">${userData.name && userData.name.toLowerCase().includes("admin") ? userData.name : "Admin 1 (Utama)"}</p>
+      <p>NIP. 19780512 200501 1 008</p>
+    `;
 
     printContainer.innerHTML = `
       <div class="print-page text-black bg-white p-8 max-w-4xl mx-auto font-sans">
@@ -5593,23 +7133,16 @@ const App = (function () {
           </div>
           <div class="text-right text-xs">
             <p><strong>Tanggal Praktik:</strong> ${dateStr}</p>
-            <p><strong>Status K3:</strong> ${userData.safetyScore >= 100 ? "LULUS ZERO ACCIDENT" : "TERVERIFIKASI"}</p>
+            <p><strong>Status K3:</strong> ${targetUser.safetyScore >= 100 ? "LULUS ZERO ACCIDENT" : "TERVERIFIKASI"}</p>
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4 mb-6 text-sm border p-4 rounded bg-gray-50">
           <div>
-            <p><strong>Nama Peserta Didik:</strong> ${userData.name}</p>
-            ${(userData.name || '').toLowerCase().includes('prasetyo adhi nurcahyo') 
-              ? `<p><strong>Status Akun:</strong> Akun Siswa Mandiri (Terhubung ke 11 TP A)</p>` 
-              : `<p><strong>Kelas / Rombel:</strong> ${userData.class || '11 TP A'}</p>`}
-            <p><strong>Tahun Ajaran:</strong> ${userData.academicYear || "2026/2027"}</p>
+            ${profileCol1}
           </div>
           <div>
-            ${(userData.name || '').toLowerCase().includes('prasetyo adhi nurcahyo')
-              ? `<p><strong>Integrasi Nilai:</strong> Tergabung Rekap Spreadsheet 11 TP A</p>`
-              : `<p><strong>NIS:</strong> ${userData.nis || "-"}</p><p><strong>Kelompok Praktik:</strong> ${userData.group || "-"}</p>`}
-            <p><strong>Level Kompetensi:</strong> Level ${userData.level} (${userData.xp} XP)</p>
+            ${profileCol2}
           </div>
         </div>
 
@@ -5670,29 +7203,47 @@ const App = (function () {
         </div>
 
         <h4 class="font-bold text-md mb-2 border-b pb-1">III. Lembar Hasil Asesmen Diagnostik Awal & Angket Profil Siswa</h4>
-        ${getDiagnosticLKPDHtml()}
+        ${getDiagnosticLKPDHtml(targetUser)}
 
         <h4 class="font-bold text-md mb-2 border-b pb-1 mt-6">IV. Lembar Hasil Perhitungan Parameter Pemotongan Mesin Bubut (LK-1 / Quiz 1)</h4>
-        ${getQuiz1LKPDHtml()}
+        ${getQuiz1LKPDHtml(targetUser)}
 
         <div class="grid grid-cols-2 gap-8 text-center text-xs mt-12 pt-8">
           <div>
-            <p>Peserta Didik,</p>
-            <div class="h-16"></div>
-            <p class="font-bold underline">${userData.name}</p>
-            ${(userData.name || '').toLowerCase().includes('prasetyo adhi nurcahyo') ? '<p>Akun Siswa Mandiri</p>' : `<p>NIS: ${userData.nis || ".................................."}</p>`}
+            ${signatureLeft}
           </div>
           <div>
-            <p>Guru Pembimbing / Penguji,</p>
-            <div class="h-16"></div>
-            <p class="font-bold underline">( ............................................ )</p>
-            <p>NIP. ..................................</p>
+            ${signatureRight}
           </div>
         </div>
       </div>
     `;
 
-    window.print();
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
+
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        printContainer.classList.add("hidden");
+      }, 500);
+    }, 150);
+  }
+
+  // Print LKPD Generator
+  function printLKPD(target) {
+    if (userData.role !== "admin") {
+      showToast("Akses Dibatasi: Fitur Cetak LKPD hanya diperuntukkan bagi Guru / Admin ESDVLab.", "danger");
+      return;
+    }
+
+    if (!target || (typeof Event !== "undefined" && target instanceof Event)) {
+      openAdminLKPDModal();
+      return;
+    }
+
+    printStudentLKPD(target);
   }
 
   // Edit User Profile Modal
@@ -5856,10 +7407,11 @@ const App = (function () {
         }
       });
 
-      // Attachment preview modal close on ESC and backdrop click
+      // Modals close on ESC and backdrop click
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
           closeAttachmentPreview();
+          closeAdminLKPDModal();
         }
       });
       const previewModal = document.getElementById("attachment-preview-modal");
@@ -5867,6 +7419,14 @@ const App = (function () {
         previewModal.addEventListener("click", (e) => {
           if (e.target === previewModal) {
             closeAttachmentPreview();
+          }
+        });
+      }
+      const adminLkpdModal = document.getElementById("admin-lkpd-select-modal");
+      if (adminLkpdModal) {
+        adminLkpdModal.addEventListener("click", (e) => {
+          if (e.target === adminLkpdModal) {
+            closeAdminLKPDModal();
           }
         });
       }
@@ -5914,6 +7474,13 @@ const App = (function () {
     setMobileSimTab,
     showPartModal,
     printLKPD,
+    openAdminLKPDModal,
+    closeAdminLKPDModal,
+    filterAdminLKPDList,
+    clearAdminLKPDSearch,
+    printStudentLKPD,
+    getAdminRoleLevel,
+    getEligibleAccountsForLKPD,
     switchQuizPackage,
     toggleQuiz1FormulaCard,
     toggleQuiz2FormulaCard,

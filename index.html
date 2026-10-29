@@ -2120,6 +2120,41 @@
             <!-- Canvas Container -->
             <div class="relative rounded-2xl overflow-hidden border border-slate-800/80 bg-slate-950 shadow-inner">
               <canvas id="canvas-operations" class="w-full h-[380px] sm:h-[450px] lg:h-[480px] block"></canvas>
+
+              <!-- Milling Machine Development Overlay -->
+              <div id="op-milling-dev-overlay" class="absolute inset-0 z-20 hidden flex-col items-center justify-center p-6 text-center bg-slate-950/90 backdrop-blur-md select-none transition-all duration-300">
+                <div class="max-w-md w-full p-6 sm:p-8 rounded-3xl bg-slate-900/95 border border-amber-500/40 shadow-2xl shadow-amber-500/10 flex flex-col items-center gap-4">
+                  <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-inner">
+                    <i data-lucide="wrench" class="w-8 h-8 sm:w-10 sm:h-10 text-amber-400"></i>
+                  </div>
+                  
+                  <div class="space-y-2">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                      <span>Modul Mesin Frais</span>
+                    </div>
+                    
+                    <h3 class="text-xl sm:text-2xl font-black text-white tracking-tight">
+                      Masih dalam tahap Pengembangan!
+                    </h3>
+                    
+                    <p class="text-xs sm:text-sm text-slate-300 max-w-sm leading-relaxed">
+                      Animasi visual interaktif proses pemesinan mesin frais saat ini disembunyikan sementara karena sedang dalam tahap penyempurnaan sistem kinematika & visualisasi teknis.
+                    </p>
+                  </div>
+
+                  <div class="pt-2 flex flex-wrap items-center justify-center gap-2">
+                    <button 
+                      type="button" 
+                      onclick="App.switchOperationMachine('lathe')" 
+                      class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
+                    >
+                      <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                      <span>Beralih ke Animasi Mesin Bubut</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Interactive Playback Controller Bar -->
@@ -2806,6 +2841,80 @@
           Tutup
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Admin LKPD Student Selector Modal -->
+  <div id="admin-lkpd-select-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[9998] hidden flex items-center justify-center p-3 sm:p-4 no-print">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0 shadow-xs">
+            <i data-lucide="printer" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+              <span>Cetak LKPD Digital Siswa</span>
+              <span id="admin-lkpd-total-badge" class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300"></span>
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Pilih peserta didik untuk mengunduh dan mencetak Lembar Kerja Praktik Pemesinan.</p>
+          </div>
+        </div>
+        <button 
+          type="button" 
+          onclick="App.closeAdminLKPDModal()" 
+          class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          title="Tutup Modal"
+        >
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Search & Filter Bar -->
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input 
+            type="text" 
+            id="admin-lkpd-search-input" 
+            placeholder="Cari berdasarkan nama siswa atau NIS..." 
+            oninput="App.filterAdminLKPDList()" 
+            class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-900 transition-all"
+          />
+          <button 
+            type="button" 
+            id="admin-lkpd-clear-search" 
+            onclick="App.clearAdminLKPDSearch()" 
+            class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
+            title="Hapus Pencarian"
+          >
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Student List Container -->
+      <div id="admin-lkpd-list-container" class="flex-1 overflow-y-auto p-4 space-y-2.5 min-h-[300px] max-h-[58vh]">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <span class="text-slate-500 dark:text-slate-400 text-[11px] flex items-center gap-1.5">
+          <i data-lucide="file-check" class="w-3.5 h-3.5 text-blue-600"></i>
+          Format dokumen otomatis disesuaikan untuk standar cetak A4 portofolio siswa.
+        </span>
+        <button 
+          type="button" 
+          onclick="App.closeAdminLKPDModal()" 
+          class="w-full sm:w-auto px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all cursor-pointer"
+        >
+          Tutup
+        </button>
+      </div>
+
     </div>
   </div>
 

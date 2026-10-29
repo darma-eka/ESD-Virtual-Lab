@@ -349,14 +349,62 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 /* Print Styling */
 @media print {
-  .no-print, .mat-sidebar, .mat-header {
+  /* Sembunyikan seluruh sidebar, header, main app, modal, dan elemen antarmuka */
+  .no-print,
+  .mat-sidebar,
+  .mat-header,
+  main,
+  #main-sidebar,
+  #sidebar-overlay,
+  #welcome-screen,
+  #diagnostic-modal,
+  #curriculum-modal,
+  #table-modal,
+  #part-detail-modal,
+  #profile-modal,
+  #sheet-sync-modal,
+  #quiz2-modal-popup,
+  #attachment-preview-modal,
+  #admin-lkpd-select-modal,
+  #mobile-sim-panel-switch,
+  #game-toast,
+  .fixed {
     display: none !important;
+    visibility: hidden !important;
   }
-  body {
+
+  body, html {
     background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
   }
+
+  /* Tampilkan hanya wadah cetak resmi lembar LKPD hasil belajar siswa */
+  #printable-lkpd {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    opacity: 1 !important;
+  }
+
   .print-only {
     display: block !important;
+  }
+
+  .print-page {
+    background: #ffffff !important;
+    color: #000000 !important;
+    page-break-after: always;
+    break-after: page;
   }
 }
 

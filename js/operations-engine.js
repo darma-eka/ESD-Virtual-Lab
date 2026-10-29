@@ -118,15 +118,7 @@ const OperationsEngine = (function () {
       const clickY = evt.clientY - rect.top;
 
       if (currentOperation && currentOperation.machine === "milling") {
-        const btnW = 160;
-        const btnH = 24;
-        const btnX = rect.width - btnW - 14;
-        const btnY = 82;
-        if (clickX >= btnX && clickX <= btnX + btnW && clickY >= btnY && clickY <= btnY + btnH) {
-          millingZoomMode = (millingZoomMode === "focus" ? "overview" : "focus");
-          render();
-          return;
-        }
+        return;
       }
     });
 
@@ -136,14 +128,8 @@ const OperationsEngine = (function () {
       const moveY = evt.clientY - rect.top;
 
       if (currentOperation && currentOperation.machine === "milling") {
-        const btnW = 160;
-        const btnH = 24;
-        const btnX = rect.width - btnW - 14;
-        const btnY = 82;
-        if (moveX >= btnX && moveX <= btnX + btnW && moveY >= btnY && moveY <= btnY + btnH) {
-          canvas.style.cursor = "pointer";
-          return;
-        }
+        canvas.style.cursor = "default";
+        return;
       }
       canvas.style.cursor = "default";
     });
@@ -844,28 +830,10 @@ const OperationsEngine = (function () {
         animState.spindleRpm = 0;
       }
     } else {
-      // Milling machine kinematics
-      const p = Math.min(1.0, Math.max(0.0, stepProgress));
-      if (currentStep.isCutting) {
-        animState.tableX = animState.startTableX + (animState.targetTableX - animState.startTableX) * p;
-        animState.tableY = animState.startTableY + (animState.targetTableY - animState.startTableY) * p;
-        animState.cutDepthProgress = Math.min(1.0, 0.2 + p * 0.8);
-
-        if (Math.random() < 0.65) {
-          spawnChip((Math.random() - 0.5) * 30, -5, (Math.random() - 0.5) * 60, -70, COLORS.sparkChip);
-        }
-      } else {
-        const lerpRate = Math.min(1.0, dt * 5.0 * playbackSpeed);
-        animState.tableX += (animState.targetTableX - animState.tableX) * lerpRate;
-        animState.tableY += (animState.targetTableY - animState.tableY) * lerpRate;
-        animState.quillZ += (animState.targetQuillZ - animState.quillZ) * lerpRate;
-      }
-
-      if (animState.cutterRotating) {
-        animState.cutterAngle += dt * 22.0;
-      } else {
-        animState.cutterAngle += dt * 3.5;
-      }
+      // Sembunyikan dan hentikan semua animasi proses pemesinan pada mesin frais
+      animState.spindleRpm = 0;
+      animState.spindleRunning = false;
+      return;
     }
 
     // Update Chips / Metal Particle System
@@ -933,25 +901,26 @@ const OperationsEngine = (function () {
 
     if (!currentOperation) return;
 
-    ctx.save();
-    // Center & scale coordinate system with ample space for HUD
-    const centerX = w * 0.46;
-    const centerY = h * 0.49;
-    ctx.translate(centerX, centerY);
-
     if (currentOperation.machine === "lathe") {
+      ctx.save();
+      // Center & scale coordinate system with ample space for HUD
+      const centerX = w * 0.46;
+      const centerY = h * 0.49;
+      ctx.translate(centerX, centerY);
+
       renderLatheAssembly();
+
+      // Render metal chips / sparks on top of machine
+      renderParticles();
+
+      ctx.restore();
+
+      // Render Canvas Top HUD & Interactive Overlays
+      renderCanvasHUD(w, h);
     } else {
-      renderMillingAssembly();
+      // Sembunyikan semua animasi proses pemesinan pada mesin frais
+      renderMillingDevelopmentScreen(w, h);
     }
-
-    // Render metal chips / sparks on top of machine
-    renderParticles();
-
-    ctx.restore();
-
-    // Render Canvas Top HUD & Interactive Overlays
-    renderCanvasHUD(w, h);
   }
 
   function renderTechnicalGrid(w, h) {
@@ -976,6 +945,114 @@ const OperationsEngine = (function () {
     ctx.moveTo(0, h * 0.52);
     ctx.lineTo(w, h * 0.52);
     ctx.stroke();
+  }
+
+  // =========================================================================
+  // MESIN FRAIS DEVELOPMENT SCREEN (PENGEMBANGAN)
+  // =========================================================================
+  function renderMillingDevelopmentScreen(w, h) {
+    ctx.save();
+
+    // 1. Technical backdrop
+    ctx.fillStyle = "#020617"; // slate-950
+    ctx.fillRect(0, 0, w, h);
+
+    // 2. Blueprint technical grid
+    ctx.strokeStyle = "rgba(30, 41, 59, 0.4)";
+    ctx.lineWidth = 1;
+    const gSize = 36;
+    ctx.beginPath();
+    for (let x = 0; x < w; x += gSize) {
+      ctx.moveTo(x, 0); ctx.lineTo(x, h);
+    }
+    for (let y = 0; y < h; y += gSize) {
+      ctx.moveTo(0, y); ctx.lineTo(w, y);
+    }
+    ctx.stroke();
+
+    // 3. Center development card
+    const cardW = Math.min(500, w * 0.88);
+    const cardH = 220;
+    const cardX = (w - cardW) / 2;
+    const cardY = (h - cardH) / 2;
+
+    ctx.fillStyle = "rgba(15, 23, 42, 0.94)"; // slate-900
+    ctx.strokeStyle = "rgba(245, 158, 11, 0.45)"; // amber-500
+    ctx.lineWidth = 1.5;
+
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(cardX, cardY, cardW, cardH, [20]);
+    } else {
+      ctx.rect(cardX, cardY, cardW, cardH);
+    }
+    ctx.fill();
+    ctx.stroke();
+
+    // Glowing amber accent header line
+    ctx.strokeStyle = "#f59e0b";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cardX + 28, cardY);
+    ctx.lineTo(cardX + cardW - 28, cardY);
+    ctx.stroke();
+
+    // Icon Circle
+    const iconCx = w / 2;
+    const iconCy = cardY + 46;
+    ctx.fillStyle = "rgba(245, 158, 11, 0.15)";
+    ctx.beginPath();
+    ctx.arc(iconCx, iconCy, 24, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(245, 158, 11, 0.5)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.font = "22px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("🛠️", iconCx, iconCy);
+
+    // Pill Badge
+    const badgeText = "MODUL MESIN FRAIS";
+    ctx.font = "bold 10px Inter, sans-serif";
+    const bMetrics = ctx.measureText(badgeText);
+    const bW = bMetrics.width + 18;
+    const bH = 20;
+    const bX = (w - bW) / 2;
+    const bY = iconCy + 32;
+
+    ctx.fillStyle = "rgba(245, 158, 11, 0.2)";
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(bX, bY, bW, bH, [10]);
+    } else {
+      ctx.rect(bX, bY, bW, bH);
+    }
+    ctx.fill();
+    ctx.strokeStyle = "rgba(245, 158, 11, 0.5)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = "#fbbf24";
+    ctx.fillText(badgeText, w / 2, bY + 10);
+
+    // Main Heading Text: "Masih dalam tahap Pengembangan!"
+    ctx.font = "bold 20px Inter, 'Segoe UI', sans-serif";
+    if (w < 480) ctx.font = "bold 16px Inter, 'Segoe UI', sans-serif";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Masih dalam tahap Pengembangan!", w / 2, cardY + 128);
+
+    // Subtitle
+    ctx.font = "12px Inter, 'Segoe UI', sans-serif";
+    ctx.fillStyle = "#cbd5e1";
+    ctx.fillText("Animasi proses pemesinan mesin frais saat ini disembunyikan sementara.", w / 2, cardY + 158);
+
+    ctx.font = "11px Inter, 'Segoe UI', sans-serif";
+    ctx.fillStyle = "#94a3b8";
+    ctx.fillText("Silakan beralih ke tab Mesin Bubut untuk melihat animasi proses lengkap.", w / 2, cardY + 180);
+
+    ctx.restore();
   }
 
   // =========================================================================

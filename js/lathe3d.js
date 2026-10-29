@@ -3791,6 +3791,11 @@ const Lathe3D = (function () {
       if (!latheModel) return;
       latheModel.root.visible = true;
 
+      const evalStatus = (simState.evaluation && simState.evaluation.status) ? simState.evaluation.status : "OPTIMAL";
+      const matColorHex = (typeof AppData !== "undefined" && AppData.materials)
+        ? (AppData.materials.find((m) => m.id === simState.materialId)?.colorHex || "#64748b")
+        : "#64748b";
+
       // 1. Spindle rotation speed (proportional to user RPM slider)
       const rpm = simState.rpm || 160;
       const spinSpeed = (rpm / 60) * 0.18;
@@ -3824,11 +3829,6 @@ const Lathe3D = (function () {
 
       // 4. Dynamic Workpiece Cutting (True Turned Contour Modeling)
       if (latheModel.contourWorkpiece && simState.contour) {
-        const matColorHex = (typeof AppData !== "undefined" && AppData.materials)
-          ? (AppData.materials.find((m) => m.id === simState.materialId)?.colorHex || "#64748b")
-          : "#64748b";
-        const evalStatus = simState.evaluation ? simState.evaluation.status : "OPTIMAL";
-
         updateContourMesh(
           latheModel.contourWorkpiece,
           simState.contour,

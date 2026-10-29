@@ -309,7 +309,34 @@ const SimEngine = (function () {
   }
 
   // Draw Lathe Simulation
-  function drawLathe(timestamp) {
+  function drawLathe(timestamp, dt = 0.016) {
+    // 1. Advance simulation physics & auto-feed (time-calibrated via dt)
+    if (isRunning && isAutoFeed && state.cutProgress < 1.0) {
+      // Auto-feed speed calibrated to real-world machining physics:
+      // Nominal speed (~600 RPM, 0.18 feed) takes ~18s for full longitudinal travel
+      // Dynamically scales with RPM and feed rate, completely frame-rate independent via dt!
+      const baselineFeedPerMin = 108; // nominal baseline (0.18 mm/rev * 600 RPM)
+      const actualFeedPerMin = Math.max(10, (state.feedRate || 0.18) * (state.rpm || 600));
+      const speedMultiplier = actualFeedPerMin / baselineFeedPerMin; // ~0.5x to 2.5x
+      const passDurationSec = Math.max(12.0, Math.min(28.0, 18.0 / speedMultiplier));
+      const dProg = dt / passDurationSec;
+
+      const prevProg = state.cutProgress;
+      state.cutProgress = Math.min(1.0, state.cutProgress + dProg);
+      const prevSlice = getToolSlice(prevProg);
+      const curSlice = getToolSlice(state.cutProgress);
+      applyToolCutting(prevSlice, curSlice);
+
+      if (state.cutProgress >= 1.0) {
+        state.cutProgress = 1.0;
+        isAutoFeed = false;
+        SimEngine.stop();
+        SoundEngine.playSuccess();
+      }
+    }
+
+    if (!canvas || !ctx) return;
+
     const w = canvas.width;
     const h = canvas.height;
     ctx.clearRect(0, 0, w, h);
@@ -656,7 +683,7 @@ const SimEngine = (function () {
       }
     }
 
-    // 7. Update and Draw Particles (Chips, Smoke) & Auto Feed Advance
+    // 7. Update and Draw Particles (Chips, Smoke)
     if (isRunning && isAutoFeed && state.cutProgress < 1) {
       // Tatal logam terlempar ke belakang/kanan menjauhi mata sayat
       const chipColor = state.evaluation.status === "BURNT" ? "#312e81" : rawMatColor;
@@ -667,20 +694,6 @@ const SimEngine = (function () {
       // Generate smoke if overheated
       if (state.evaluation.status === "BURNT") {
         state.smoke.push(new SmokeParticle(toolTipX, toolTipY));
-      }
-
-      // Advance cut progress (0 to 1) only during auto feed
-      const speedFactor = (state.feedRate * state.rpm) / 40000;
-      const prevProg = state.cutProgress;
-      state.cutProgress = Math.min(1.0, state.cutProgress + Math.max(0.0006, speedFactor));
-      const prevSlice = getToolSlice(prevProg);
-      const curSlice = getToolSlice(state.cutProgress);
-      applyToolCutting(prevSlice, curSlice);
-      if (state.cutProgress >= 1) {
-        state.cutProgress = 1;
-        isAutoFeed = false;
-        SimEngine.stop();
-        SoundEngine.playSuccess();
       }
     }
 
@@ -734,7 +747,56 @@ const SimEngine = (function () {
   }
 
   // Draw Milling Simulation
-  function drawMilling(timestamp) {
+  function drawMilling(timestamp, dt = 0.016) {
+    const pMm = state.workpieceP || 100;
+    const lMm = state.workpieceL || 40;
+    const tMm = state.workpieceT || 40;
+    const endmillDia = state.endmillDia || 12;
+
+    const rMm = (endmillDia || 12) / 2;
+    const halfP = pMm / 2;
+    const halfL = lMm / 2;
+    const curAxisZ = typeof state.axisZ === "number" ? state.axisZ : 0;
+    const activeDepthMm = isAutoFeed ? (state.depthOfCut || (curAxisZ > 0 ? curAxisZ : 0)) : (curAxisZ > 0 ? curAxisZ : 0);
+
+    // 1. Advance simulation kinematics & auto-feed (time-calibrated via dt)
+    if (isRunning && isAutoFeed && state.cutProgress < 1.0) {
+      const baselineFeedPerMin = 120;
+      const actualFeedPerMin = Math.max(15, (state.feedRate || 0.15) * (state.numTeeth || 4) * (state.rpm || 600));
+      const speedMultiplier = actualFeedPerMin / baselineFeedPerMin;
+      const passDurationSec = Math.max(12.0, Math.min(28.0, 18.0 / speedMultiplier));
+      const dProg = dt / passDurationSec;
+
+      state.cutProgress = Math.min(1.0, state.cutProgress + dProg);
+
+      // Auto-feed cycle starts slightly outside in the air, cuts across, and exits into the air
+      const leadClearanceMm = rMm + 6;
+      const startFeedX = -(halfP + leadClearanceMm);
+      const endFeedX = +(halfP + leadClearanceMm);
+      state.axisX = Math.round((startFeedX + state.cutProgress * (endFeedX - startFeedX)) * 10) / 10;
+
+      // Stamp material cut ONLY when the cutter actually intersects workpiece material
+      const feedX = state.axisX;
+      const feedY = state.axisY || 0;
+      const curOverX = (feedX + rMm > -halfP) && (feedX - rMm < halfP);
+      const curOverY = (feedY + rMm > -halfL) && (feedY - rMm < halfL);
+      if (curOverX && curOverY && activeDepthMm > 0) {
+        const u = 0.5 + (feedX / pMm);
+        const v = 0.5 + (feedY / lMm);
+        stampMillingCut(u, v, rMm, activeDepthMm);
+      }
+
+      if (state.cutProgress >= 1.0) {
+        state.cutProgress = 1.0;
+        state.axisX = Math.round(endFeedX * 10) / 10;
+        isAutoFeed = false;
+        SimEngine.stop();
+        SoundEngine.playSuccess();
+      }
+    }
+
+    if (!canvas || !ctx) return;
+
     const w = canvas.width;
     const h = canvas.height;
     ctx.clearRect(0, 0, w, h);
@@ -762,12 +824,6 @@ const SimEngine = (function () {
     const tableY = h * 0.72;
     const tableWidth = w * 0.82;
     const tableX = (w - tableWidth) / 2;
-
-    // Workpiece Dimensions (scaled from simulation state)
-    const pMm = state.workpieceP || 100;
-    const lMm = state.workpieceL || 40;
-    const tMm = state.workpieceT || 40;
-    const endmillDia = state.endmillDia || 12;
 
     const wpWidth = Math.max(140, Math.min(w * 0.62, (pMm / 100) * (w * 0.45)));
     const wpHeight = Math.max(30, Math.min(75, (tMm / 40) * 52));
@@ -816,51 +872,12 @@ const SimEngine = (function () {
     ctx.strokeStyle = "#64748b";
     ctx.strokeRect(wpX, tableY - 26 - 10, wpWidth, 10);
 
-    // Auto Feed Progress Advancement & Physical Workpiece Intersection
+    // Cutting physics overlap state
     const curAxisX = typeof state.axisX === "number" ? state.axisX : 0;
     const curAxisY = typeof state.axisY === "number" ? state.axisY : 0;
-    const curAxisZ = typeof state.axisZ === "number" ? state.axisZ : 0;
-    const rMm = (endmillDia || 12) / 2;
-    const halfP = pMm / 2;
-    const halfL = lMm / 2;
-
-    // Active cut penetration: axisZ > 0 penetrates workpiece; axisZ <= 0 is in the air
-    const activeDepthMm = isAutoFeed ? (state.depthOfCut || (curAxisZ > 0 ? curAxisZ : 0)) : (curAxisZ > 0 ? curAxisZ : 0);
-
-    // True physical overlap between rotating cutter cylinder and workpiece block
     const overlapsX = (curAxisX + rMm > -halfP) && (curAxisX - rMm < halfP);
     const overlapsY = (curAxisY + rMm > -halfL) && (curAxisY - rMm < halfL);
     const isTouchingWorkpiece = overlapsX && overlapsY && (activeDepthMm > 0);
-
-    if (isRunning && isAutoFeed && state.cutProgress < 1) {
-      const speedFactor = (state.feedRate * (state.numTeeth || 4) * state.rpm) / 50000;
-      state.cutProgress = Math.min(1.0, state.cutProgress + Math.max(0.0006, speedFactor));
-
-      // Auto-feed cycle starts slightly outside in the air, cuts across, and exits into the air
-      const leadClearanceMm = rMm + 6;
-      const startFeedX = -(halfP + leadClearanceMm);
-      const endFeedX = +(halfP + leadClearanceMm);
-      state.axisX = Math.round((startFeedX + state.cutProgress * (endFeedX - startFeedX)) * 10) / 10;
-
-      // Stamp material cut ONLY when the cutter actually intersects workpiece material
-      const feedX = state.axisX;
-      const feedY = state.axisY || 0;
-      const curOverX = (feedX + rMm > -halfP) && (feedX - rMm < halfP);
-      const curOverY = (feedY + rMm > -halfL) && (feedY - rMm < halfL);
-      if (curOverX && curOverY && activeDepthMm > 0) {
-        const u = 0.5 + (feedX / pMm);
-        const v = 0.5 + (feedY / lMm);
-        stampMillingCut(u, v, rMm, activeDepthMm);
-      }
-
-      if (state.cutProgress >= 1) {
-        state.cutProgress = 1;
-        state.axisX = Math.round(endFeedX * 10) / 10;
-        isAutoFeed = false;
-        SimEngine.stop();
-        SoundEngine.playSuccess();
-      }
-    }
 
     // 2. Draw Rectangular Block Workpiece with Persistent 2D Profile from millingGrid
     const rawMatColor = AppData.materials.find((m) => m.id === state.materialId)?.colorHex || "#94a3b8";
@@ -1220,11 +1237,16 @@ const SimEngine = (function () {
   }
 
   // Animation Loop
+  let lastLoopTimestamp = 0;
   function loop(timestamp) {
+    if (!lastLoopTimestamp) lastLoopTimestamp = timestamp;
+    const dt = Math.min(0.06, Math.max(0.001, (timestamp - lastLoopTimestamp) / 1000));
+    lastLoopTimestamp = timestamp;
+
     if (state.machineType === "milling") {
-      drawMilling(timestamp);
+      drawMilling(timestamp, dt);
     } else {
-      drawLathe(timestamp);
+      drawLathe(timestamp, dt);
     }
     animId = requestAnimationFrame(loop);
   }
@@ -1487,6 +1509,22 @@ const SimEngine = (function () {
     },
 
     start: (enableAutoFeed = true) => {
+      // If previous cut was already finished, automatically rewind cleanly to start
+      if (state.cutProgress >= 0.98) {
+        state.cutProgress = 0;
+        state.chips = [];
+        state.smoke = [];
+        if (state.contour) {
+          const initR = state.diameter / 2;
+          for (let i = 0; i < state.contour.length; i++) {
+            state.contour[i] = initR;
+          }
+        }
+        if (state.millingGrid) {
+          state.millingGrid.fill(0);
+          state.millingGridVersion = (state.millingGridVersion || 0) + 1;
+        }
+      }
       isRunning = true;
       if (enableAutoFeed) {
         isAutoFeed = true;
@@ -1554,13 +1592,31 @@ const SimEngine = (function () {
 
     toggleAutoFeed: () => {
       isAutoFeed = !isAutoFeed;
-      if (isAutoFeed && !isRunning) {
-        isRunning = true;
-        computeParameters();
-        SoundEngine.startSpindle(state.rpm);
-        SoundEngine.startCutting();
-        if (state.evaluation.status === "BURNT") {
-          SoundEngine.playAlarm();
+      if (isAutoFeed) {
+        // If cut was already finished, automatically rewind to start so full cutting animation plays
+        if (state.cutProgress >= 0.98) {
+          state.cutProgress = 0;
+          state.chips = [];
+          state.smoke = [];
+          if (state.contour) {
+            const initR = state.diameter / 2;
+            for (let i = 0; i < state.contour.length; i++) {
+              state.contour[i] = initR;
+            }
+          }
+          if (state.millingGrid) {
+            state.millingGrid.fill(0);
+            state.millingGridVersion = (state.millingGridVersion || 0) + 1;
+          }
+        }
+        if (!isRunning) {
+          isRunning = true;
+          computeParameters();
+          SoundEngine.startSpindle(state.rpm);
+          SoundEngine.startCutting();
+          if (state.evaluation.status === "BURNT") {
+            SoundEngine.playAlarm();
+          }
         }
       }
       return isAutoFeed;
@@ -1568,11 +1624,28 @@ const SimEngine = (function () {
 
     setAutoFeed: (val) => {
       isAutoFeed = !!val;
-      if (isAutoFeed && !isRunning) {
-        isRunning = true;
-        computeParameters();
-        SoundEngine.startSpindle(state.rpm);
-        SoundEngine.startCutting();
+      if (isAutoFeed) {
+        if (state.cutProgress >= 0.98) {
+          state.cutProgress = 0;
+          state.chips = [];
+          state.smoke = [];
+          if (state.contour) {
+            const initR = state.diameter / 2;
+            for (let i = 0; i < state.contour.length; i++) {
+              state.contour[i] = initR;
+            }
+          }
+          if (state.millingGrid) {
+            state.millingGrid.fill(0);
+            state.millingGridVersion = (state.millingGridVersion || 0) + 1;
+          }
+        }
+        if (!isRunning) {
+          isRunning = true;
+          computeParameters();
+          SoundEngine.startSpindle(state.rpm);
+          SoundEngine.startCutting();
+        }
       }
     },
 

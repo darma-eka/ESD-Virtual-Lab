@@ -391,6 +391,10 @@
       </div>
 
       <div class="sidebar-section-title">Laboratorium Virtual</div>
+      <div class="sidebar-nav-item" data-target="screen-operations" onclick="App.navigateTo('screen-operations')" title="Animasi Langkah demi Langkah Proses Pemesinan Bubut & Frais">
+        <i data-lucide="play-circle" class="w-4 h-4 nav-icon text-cyan-600 dark:text-cyan-400"></i>
+        <span>Animasi Operasi Pemesinan</span>
+      </div>
       <div class="sidebar-nav-item" data-target="screen-simulation" onclick="App.navigateTo('screen-simulation')">
         <i data-lucide="gauge" class="w-4 h-4 nav-icon"></i>
         <span>Lab Kecepatan Potong (Cs)</span>
@@ -543,6 +547,10 @@
                 <i data-lucide="shield-check" class="w-4 h-4"></i>
                 <span>Verifikasi K3 Operator</span>
               </button>
+              <button onclick="App.navigateTo('screen-operations')" class="mat-btn mat-btn-primary bg-cyan-600 hover:bg-cyan-500 text-white">
+                <i data-lucide="play-circle" class="w-4 h-4"></i>
+                <span>Animasi Operasi Pemesinan</span>
+              </button>
               <button onclick="App.navigateTo('screen-simulation')" class="mat-btn mat-btn-outline">
                 <i data-lucide="play" class="w-4 h-4"></i>
                 <span>Buka Lab Simulasi Kecepatan Potong</span>
@@ -648,7 +656,7 @@
         </div>
 
         <!-- Module Action Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           
           <div class="mat-card p-5 cursor-pointer hover:border-blue-300" onclick="App.navigateTo('screen-k3')">
             <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center mb-3">
@@ -692,11 +700,25 @@
             </div>
           </div>
 
+          <div class="mat-card p-5 cursor-pointer hover:border-cyan-300 dark:hover:border-cyan-700 transition-all" onclick="App.navigateTo('screen-operations')">
+            <div class="w-10 h-10 rounded-lg bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-400 flex items-center justify-center mb-3">
+              <i data-lucide="play-circle" class="w-5 h-5"></i>
+            </div>
+            <h3 class="font-bold text-sm text-slate-800 dark:text-white">04. Animasi Proses Pemesinan</h3>
+            <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              Panduan animasi langkah demi langkah pembubutan tirus, facing, alur, ulir, frais muka, dan alur pasak.
+            </p>
+            <div class="mt-4 text-xs font-semibold text-cyan-600 flex items-center gap-1">
+              <span>Buka Animasi</span>
+              <i data-lucide="arrow-right" class="w-3 h-3"></i>
+            </div>
+          </div>
+
           <div class="mat-card p-5 cursor-pointer hover:border-blue-300" onclick="App.navigateTo('screen-quiz')">
             <div class="w-10 h-10 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center mb-3">
               <i data-lucide="check-circle-2" class="w-5 h-5"></i>
             </div>
-            <h3 class="font-bold text-sm text-slate-800 dark:text-white">04. Quiz & Evaluasi Mandiri</h3>
+            <h3 class="font-bold text-sm text-slate-800 dark:text-white">05. Quiz & Evaluasi Mandiri</h3>
             <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
               Kerjakan kuis studi kasus industri dan cetak Lembar Kerja Siswa (LKPD) berformat PDF resmi.
             </p>
@@ -1951,6 +1973,256 @@
 
       </section>
 
+      <!-- ==================== SCREEN 5: ANIMASI PROSES PEMESINAN ==================== -->
+      <section id="screen-operations" class="app-screen hidden space-y-6">
+        
+        <!-- Header & Machine Switcher -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 text-[11px] font-bold mb-1">
+              <i data-lucide="play-circle" class="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400"></i>
+              <span>Prosedur Praktik Langkah Demi Langkah</span>
+            </div>
+            <h2 class="text-xl font-bold text-slate-800 dark:text-white">Animasi Jenis-Jenis Proses Pemesinan</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Simulasi visual mekanik 60 FPS tanpa tabrakan, dilengkapi panduan SOP, perhitungan teknis, dan alat kerja.</p>
+          </div>
+
+          <!-- Machine Type Switcher Tabs -->
+          <div class="flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 self-start md:self-auto">
+            <button 
+              type="button" 
+              id="btn-op-tab-lathe" 
+              onclick="App.switchOperationMachine('lathe')" 
+              class="px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 bg-blue-600 text-white shadow-xs cursor-pointer"
+            >
+              <i data-lucide="wrench" class="w-4 h-4"></i>
+              <span>Mesin Bubut (7 Proses)</span>
+            </button>
+            <button 
+              type="button" 
+              id="btn-op-tab-milling" 
+              onclick="App.switchOperationMachine('milling')" 
+              class="px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+            >
+              <i data-lucide="cpu" class="w-4 h-4"></i>
+              <span>Mesin Frais (6 Proses)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Operations Selection Cards (Horizontal Grid) -->
+        <div>
+          <div class="flex items-center justify-between mb-2.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+              <i data-lucide="list" class="w-3.5 h-3.5"></i>
+              <span id="op-list-heading">Pilih Jenis Pekerjaan Mesin Bubut:</span>
+            </h3>
+            <span id="op-count-badge" class="text-[11px] font-semibold text-blue-600 dark:text-blue-400">7 Pekerjaan Tersedia</span>
+          </div>
+          <div id="op-cards-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <!-- Rendered dynamically by App.renderOperationCards() -->
+          </div>
+        </div>
+
+        <!-- Main Animation Studio Section -->
+        <div class="space-y-4">
+          <!-- Canvas Viewer & Interactive Controls Card -->
+          <div class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            
+            <!-- Operation Title & Subtitle Banner -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div class="flex items-center gap-3">
+                <div id="op-studio-icon" class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold flex-shrink-0">
+                  <i data-lucide="play" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h3 id="op-studio-title" class="font-bold text-base text-slate-900 dark:text-white leading-tight">Pembubutan Tirus (Taper Turning)</h3>
+                  <p id="op-studio-subtitle" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Metode Pemiringan Eretan Atas (Compound Rest Swivel)</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 self-start sm:self-auto">
+                <span id="op-studio-difficulty" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                  Menengah
+                </span>
+                <span id="op-studio-time" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  ⏱️ 25 Menit
+                </span>
+              </div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="relative rounded-2xl overflow-hidden border border-slate-800/80 bg-slate-950 shadow-inner">
+              <canvas id="canvas-operations" class="w-full h-[380px] sm:h-[450px] lg:h-[480px] block"></canvas>
+            </div>
+
+            <!-- Interactive Playback Controller Bar -->
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex flex-wrap items-center justify-between gap-3">
+              <!-- Left: Prev / Play / Next / Reset -->
+              <div class="flex items-center gap-2">
+                <button 
+                  type="button" 
+                  id="btn-op-prev" 
+                  onclick="App.opPrevStep()" 
+                  class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+                  title="Langkah Sebelumnya"
+                >
+                  <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                  <span class="hidden sm:inline">Sebelumnya</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  id="btn-op-play" 
+                  onclick="App.opTogglePlay()" 
+                  class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95"
+                  title="Putar Otomatis atau Jeda"
+                >
+                  <i data-lucide="play" id="icon-op-play" class="w-4 h-4"></i>
+                  <span id="text-op-play">Putar Otomatis</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  id="btn-op-next" 
+                  onclick="App.opNextStep()" 
+                  class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+                  title="Langkah Berikutnya"
+                >
+                  <span class="hidden sm:inline">Berikutnya</span>
+                  <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+
+                <button 
+                  type="button" 
+                  id="btn-op-reset" 
+                  onclick="App.opReset()" 
+                  class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-all cursor-pointer shadow-xs"
+                  title="Ulangi dari Langkah 1"
+                >
+                  <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                </button>
+              </div>
+
+              <!-- Center: Step Indicator Text -->
+              <div class="text-xs font-bold text-slate-600 dark:text-slate-300">
+                <span id="op-step-indicator-text">Langkah 1 dari 8</span>
+              </div>
+
+              <!-- Right: Playback Speed Selector -->
+              <div class="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
+                <span class="text-[10px] text-slate-400 px-1.5 uppercase font-mono">Kecepatan:</span>
+                <button type="button" onclick="App.opSetSpeed(0.5, this)" class="op-speed-btn px-2 py-0.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">0.5x</button>
+                <button type="button" onclick="App.opSetSpeed(1.0, this)" class="op-speed-btn is-active px-2 py-0.5 rounded-lg bg-blue-600 text-white cursor-pointer">1x</button>
+                <button type="button" onclick="App.opSetSpeed(1.5, this)" class="op-speed-btn px-2 py-0.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">1.5x</button>
+                <button type="button" onclick="App.opSetSpeed(2.0, this)" class="op-speed-btn px-2 py-0.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">2x</button>
+              </div>
+            </div>
+
+            <!-- Stepper Timeline Pills Container (Clickable) -->
+            <div class="space-y-1.5 pt-2">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Pilih Langkah Langsung (Klik Bubble):</span>
+              <div id="op-stepper-container" class="flex flex-wrap gap-2">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Step Details & SOP Information Card -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            
+            <!-- Left 2 Cols: Step Narrative & SOP Guidance -->
+            <div class="lg:col-span-2 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <div class="flex items-center gap-2">
+                <span id="op-detail-badge" class="mat-badge mat-badge-primary">Langkah 1</span>
+                <h4 id="op-detail-title" class="font-bold text-sm text-slate-900 dark:text-white">Perhitungan Sudut Kemiringan Eretan Atas</h4>
+              </div>
+
+              <p id="op-detail-desc" class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
+                Deskripsi lengkap langkah pemesinan...
+              </p>
+
+              <!-- Important Callout Tip -->
+              <div id="op-detail-callout" class="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"></i>
+                <span id="op-detail-callout-text">Tips penting...</span>
+              </div>
+
+              <!-- Technical Formula / Parameters Box -->
+              <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
+                <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
+                  <i data-lucide="function-square" class="w-3.5 h-3.5 text-blue-600"></i>
+                  <span>Parameter Standar Rekomendasi:</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                    <span class="text-[10px] text-slate-400 block font-bold uppercase">Kecepatan Potong (Cs)</span>
+                    <strong id="op-param-cs" class="text-blue-600 dark:text-blue-400 font-mono text-xs">25 - 35 m/min</strong>
+                  </div>
+                  <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                    <span class="text-[10px] text-slate-400 block font-bold uppercase">Putaran Spindel (n)</span>
+                    <strong id="op-param-n" class="text-indigo-600 dark:text-indigo-400 font-mono text-xs">320 - 450 RPM</strong>
+                  </div>
+                  <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                    <span class="text-[10px] text-slate-400 block font-bold uppercase">Gerak Makan (f)</span>
+                    <strong id="op-param-f" class="text-emerald-600 dark:text-emerald-400 font-mono text-xs">0,1 mm/put</strong>
+                  </div>
+                  <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                    <span class="text-[10px] text-slate-400 block font-bold uppercase">Kedalaman Potong (ap)</span>
+                    <strong id="op-param-ap" class="text-amber-600 dark:text-amber-400 font-mono text-xs">0,5 - 1,0 mm</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pahat & Peralatan Tambahan / Alat Ukur Presisi Visual Gallery -->
+              <div id="op-tools-gallery-section" class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+                    <i data-lucide="wrench" class="w-3.5 h-3.5 text-blue-600"></i>
+                    <span>Pahat & Peralatan Tambahan / Alat Ukur:</span>
+                  </div>
+                  <span id="op-tools-gallery-count" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                    4 Peralatan Terkait
+                  </span>
+                </div>
+                
+                <!-- Dynamic Visual Cards Grid -->
+                <div id="op-tools-gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <!-- Rendered dynamically with vector SVG diagrams & technical specifications -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Right 1 Col: Tools & K3 Safety Notes -->
+            <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <!-- Tools Used List -->
+              <div>
+                <div class="text-xs font-bold text-slate-800 dark:text-white mb-2.5 flex items-center gap-1.5">
+                  <i data-lucide="tool" class="w-3.5 h-3.5 text-blue-600"></i>
+                  <span>Alat Potong & Alat Bantu:</span>
+                </div>
+                <div id="op-tools-list" class="space-y-2 text-xs">
+                  <!-- Rendered dynamically -->
+                </div>
+              </div>
+
+              <!-- Safety SOP Notes -->
+              <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
+                <div class="text-xs font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-1.5">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+                  <span>SOP Keselamatan Kerja (K3):</span>
+                </div>
+                <ul id="op-safety-list" class="space-y-1.5 text-[11px] text-slate-600 dark:text-slate-300 list-disc list-inside">
+                  <!-- Rendered dynamically -->
+                </ul>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </section>
+
       <!-- Extra visual clearance space on mobile devices so fixed bottom navigation bar never covers anything -->
       <div class="h-16 md:hidden pointer-events-none" aria-hidden="true"></div>
     </main>
@@ -1975,6 +2247,11 @@
       <button type="button" data-target="screen-simulation" onclick="App.navigateTo('screen-simulation')" class="mobile-nav-item flex-1 py-1.5 flex flex-col items-center justify-center text-slate-500 font-medium transition-all cursor-pointer">
         <i data-lucide="gauge" class="w-4 h-4 mb-0.5"></i>
         <span class="text-[10px] leading-tight">Simulasi</span>
+        <span class="mobile-nav-dot w-1 h-1 rounded-full bg-blue-600 mt-0.5 opacity-0 transition-opacity"></span>
+      </button>
+      <button type="button" data-target="screen-operations" onclick="App.navigateTo('screen-operations')" class="mobile-nav-item flex-1 py-1.5 flex flex-col items-center justify-center text-slate-500 font-medium transition-all cursor-pointer">
+        <i data-lucide="play-circle" class="w-4 h-4 mb-0.5"></i>
+        <span class="text-[10px] leading-tight">Animasi</span>
         <span class="mobile-nav-dot w-1 h-1 rounded-full bg-blue-600 mt-0.5 opacity-0 transition-opacity"></span>
       </button>
       <button type="button" data-target="screen-quiz" onclick="App.navigateTo('screen-quiz')" class="mobile-nav-item flex-1 py-1.5 flex flex-col items-center justify-center text-slate-500 font-medium transition-all cursor-pointer">
@@ -2321,6 +2598,121 @@
     </div>
   </div>
 
+  <!-- Quiz 2 Single-Question Popup Modal with Hover Animations -->
+  <div id="quiz2-modal-popup" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[9990] hidden flex items-center justify-center p-3 sm:p-5 transition-opacity">
+    <div class="quiz2-popup-card bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-900/60 rounded-3xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+      
+      <!-- Modal Header -->
+      <div class="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/60 flex flex-col gap-3">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center flex-shrink-0 shadow-sm shadow-blue-500/20">
+              <i data-lucide="layers" class="w-4 h-4"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-white truncate">
+                  Quiz 2: Parameter Pemotongan Mesin Frais
+                </span>
+                <span id="quiz2-modal-type-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300">
+                  Pilihan Ganda
+                </span>
+              </div>
+              <p id="quiz2-modal-student-info" class="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate">
+                Akun Siswa
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <button 
+              type="button" 
+              onclick="App.toggleQuiz2ModalFormula()" 
+              class="px-2.5 py-1.5 rounded-xl border border-blue-200 dark:border-blue-800/80 bg-blue-50/80 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Lihat rumus acuan mesin frais"
+            >
+              <i data-lucide="function-square" class="w-3.5 h-3.5 text-blue-600"></i>
+              <span class="hidden sm:inline">Rumus</span>
+            </button>
+            <button 
+              type="button" 
+              onclick="App.closeQuiz2Modal()" 
+              class="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700/60 transition-colors cursor-pointer"
+              title="Tutup Popup (Progres Tersimpan)"
+            >
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Formula collapsible dropdown inside modal -->
+        <div id="quiz2-modal-formula-box" class="hidden p-3 rounded-2xl bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 text-xs text-slate-700 dark:text-slate-200 shadow-sm animate-in fade-in duration-150">
+          <div class="text-[11px] font-bold text-blue-700 dark:text-blue-300 mb-1.5 flex items-center gap-1">
+            <i data-lucide="info" class="w-3 h-3"></i>
+            <span>Rumus Acuan Parameter Frais (π = 3,14):</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 font-mono text-[10.5px]">
+            <div class="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+              <strong class="text-blue-600">Vc</strong> = (π·d·n) / 1000
+            </div>
+            <div class="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+              <strong class="text-indigo-600">n</strong> = (1000·Vc) / (π·d)
+            </div>
+            <div class="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+              <strong class="text-emerald-600">Vf</strong> = fz · z · n
+            </div>
+            <div class="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+              <strong class="text-amber-600">fz</strong> = Vf / (z · n)
+            </div>
+            <div class="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+              <strong class="text-rose-600">tc</strong> = L / Vf
+            </div>
+            <div class="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+              <strong class="text-purple-600">MRR</strong> = (w·ap·Vf) / 1000
+            </div>
+          </div>
+        </div>
+
+        <!-- 10-Question Step Pills Navigator -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar" id="quiz2-modal-step-pills">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- Modal Body: Single Question Presentation -->
+      <div id="quiz2-modal-body" class="flex-1 overflow-y-auto p-5 sm:p-6 min-h-[320px]">
+        <!-- Rendered dynamically based on quiz2ActiveIndex -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-5 sm:px-6 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <span id="quiz2-modal-footer-status">Soal 1 dari 10</span>
+        </div>
+        <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+          <button 
+            type="button" 
+            id="quiz2-btn-prev" 
+            onclick="App.prevQuiz2Question()" 
+            class="quiz2-nav-btn px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            <span>Sebelumnya</span>
+          </button>
+          <button 
+            type="button" 
+            id="quiz2-btn-next" 
+            onclick="App.nextQuiz2Question()" 
+            class="quiz2-nav-btn px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-blue-500/25 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none"
+          >
+            <span id="quiz2-btn-next-label">Soal Berikutnya</span>
+            <i data-lucide="chevron-right" id="quiz2-btn-next-icon" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Attachment Preview Modal -->
   <div id="attachment-preview-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -2358,6 +2750,9 @@
   <script src="js/OrbitControls.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/data.js"></script>
+  <script src="js/operations-data.js"></script>
+  <script src="js/operations-tools.js"></script>
+  <script src="js/operations-engine.js"></script>
   <script src="js/sync.js"></script>
   <script src="js/lathe3d.js"></script>
   <script src="js/simulation.js"></script>

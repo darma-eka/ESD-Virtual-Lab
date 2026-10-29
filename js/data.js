@@ -1298,17 +1298,17 @@ const AppData = {
   adminAccounts: [
     {
       id: "admin1",
-      name: "Admin 1 (Utama)",
+      name: "Admin 1",
       role: "admin",
       password: "adminesd1",
-      description: "Akun Admin Utama / Guru Penguji ESD V-Lab"
+      description: "Akun Admin 1 ESD V-Lab"
     },
     {
       id: "admin2",
-      name: "Admin 2 (Adhin)",
+      name: "Admin 2",
       role: "admin",
       password: "adhin123",
-      description: "Akun Admin Kedua / Guru Pendamping (Prasetyo Adhi)"
+      description: "Akun Admin 2 ESD V-Lab"
     }
   ],
 

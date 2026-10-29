@@ -364,22 +364,22 @@ const App = (function () {
   // =========================================================================
   // SISTEM ADMINISTRATOR: PISAHKAN AKUN ADMIN 1 DAN ADMIN 2
   // =========================================================================
-  let selectedAdminIndex = 1; // 1 = Admin 1 (Utama), 2 = Admin 2 (Adhin)
+  let selectedAdminIndex = 1; // 1 = Admin 1, 2 = Admin 2
 
   const ADMIN_ACCOUNTS = {
     1: {
       id: "admin1",
-      name: "Admin 1 (Utama)",
+      name: "Admin 1",
       role: "admin",
       password: "adminesd1",
-      description: "Akun Admin Utama / Guru Penguji ESD V-Lab"
+      description: "Akun Admin 1 ESD V-Lab"
     },
     2: {
       id: "admin2",
-      name: "Admin 2 (Adhin)",
+      name: "Admin 2",
       role: "admin",
       password: "adhin123",
-      description: "Akun Admin Kedua / Guru Pendamping (Prasetyo Adhi)"
+      description: "Akun Admin 2 ESD V-Lab"
     }
   };
 
@@ -400,8 +400,8 @@ const App = (function () {
       if (btn2) {
         btn2.className = "py-1.5 px-2 rounded-lg font-semibold text-xs text-amber-800 dark:text-amber-300 hover:bg-amber-200/50 dark:hover:bg-amber-900/50 transition-all cursor-pointer text-center flex items-center justify-center gap-1.5";
       }
-      if (descEl) descEl.textContent = "Akun Admin Utama / Guru Penguji ESD V-Lab";
-      if (labelEl) labelEl.textContent = "Admin 1 (Utama)";
+      if (descEl) descEl.textContent = "";
+      if (labelEl) labelEl.textContent = "";
     } else {
       if (btn1) {
         btn1.className = "py-1.5 px-2 rounded-lg font-semibold text-xs text-amber-800 dark:text-amber-300 hover:bg-amber-200/50 dark:hover:bg-amber-900/50 transition-all cursor-pointer text-center flex items-center justify-center gap-1.5";
@@ -409,8 +409,8 @@ const App = (function () {
       if (btn2) {
         btn2.className = "py-1.5 px-2 rounded-lg font-bold text-xs bg-amber-600 text-white shadow-xs transition-all cursor-pointer text-center flex items-center justify-center gap-1.5";
       }
-      if (descEl) descEl.textContent = "Akun Admin Kedua / Guru Pendamping (Prasetyo Adhi)";
-      if (labelEl) labelEl.textContent = "Admin 2 (Adhin)";
+      if (descEl) descEl.textContent = "";
+      if (labelEl) labelEl.textContent = "";
     }
 
     const pwdInput = document.getElementById("admin-password-input");
@@ -6905,8 +6905,8 @@ const App = (function () {
         } else if (acc.type === "admin") {
           const isAdm1 = (acc.name || "").toLowerCase().includes("admin 1") || (acc.name || "").toLowerCase().includes("utama");
           badgeHtml = isAdm1
-            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300">Admin Utama</span>`
-            : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300">Guru Pendamping</span>`;
+            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300">Admin 1</span>`
+            : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300">Admin 2</span>`;
           metaHtml = isAdm1
             ? `Kepala Lab / Asesor Penguji Utama ESD V-Lab`
             : `Akun Co-Admin / Penguji ESD V-Lab`;

@@ -45,7 +45,7 @@ Media dapat diakses dengan lancar baik melalui **Komputer (PC/Laptop)** maupun *
 * **Perhitungan Matematis Pemesinan Nyata:**
   $$\text{Kecepatan Potong } Cs = \frac{\pi \cdot d \cdot n}{1000} \quad (\text{m/menit})$$
   $$\text{Putaran Spindel } n = \frac{1000 \cdot Cs}{\pi \cdot d} \quad (\text{RPM})$$
-  $$\text{Waktu Pemesinan } t_c = \frac{L}{f \cdot n} \quad (\text{menit})$$
+  $$\text{Waktu Pemesinan } t_m = \frac{L}{f \cdot n} \quad (\text{menit})$$
   $$\text{Kedalaman Pemakanan } a = \frac{d_{awal} - d_{akhir}}{2} \quad (\text{mm})$$
 * **Fitur Tombol "⚡ Hitung RPM Ideal":** Menghitung secara otomatis putaran spindel optimum berdasarkan standar kecepatan potong material dan diameter benda kerja.
 * **Variasi Material & Pahat:**

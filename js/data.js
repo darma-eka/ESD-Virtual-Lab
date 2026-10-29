@@ -22,7 +22,7 @@ const AppData = {
       {
         id: "TP-03",
         title: "Kalkulasi Parameter Pemotongan",
-        desc: "Menghitung putaran spindle (n), kecepatan potong (Cs), kecepatan pemakanan (f), dan durasi pembubutan/pengefraisan (tc).",
+        desc: "Menghitung putaran spindle (n), kecepatan potong (Cs), kecepatan pemakanan (f), dan durasi pembubutan/pengefraisan (tm).",
         icon: "calculator"
       },
       {
@@ -698,7 +698,7 @@ const AppData = {
   quiz2Pool: {
     title: "Quiz 2: Parameter Pemotongan Mesin Frais",
     material: "Teknik Pemesinan Frais (Fase F - SMK)",
-    description: "Soal latihan komprehensif penentuan parameter pemotongan mesin frais (kecepatan potong Vc, putaran spindel n, kecepatan makan Vf, gerak makan per gigi fz, waktu pemesinan tc, dan laju pembuangan geram MRR). Gunakan tetapan π = 3,14.",
+    description: "Soal latihan komprehensif penentuan parameter pemotongan mesin frais (kecepatan potong Vc, putaran spindel n, kecepatan makan Vf, gerak makan per gigi fz, waktu pemesinan tm, dan laju pembuangan geram MRR). Gunakan tetapan π = 3,14.",
     pgCountToSelect: 6,
     essayCountToSelect: 4,
     pgPool: [
@@ -970,15 +970,15 @@ const AppData = {
         id: "frais_es6",
         originalNo: 18,
         type: "essay",
-        category: "Waktu Pemesinan (tc)",
+        category: "Waktu Pemesinan (tm)",
         question: "Panjang benda kerja yang difrais 200 mm, dengan jarak awal pemotongan 10 mm dan jarak lebih pemotongan 10 mm. Jika kecepatan makan 110 mm/menit, hitung waktu pemesinan satu kali pemotongan!",
-        formulaHint: "L = la + l + lu ; tc = L / Vf",
+        formulaHint: "L = la + l + lu ; tm = L / Vf",
         unit: "menit",
         targetNumber: 2,
         targetNumberAlt: 2,
         tolerancePct: 3,
         keywords: ["10", "200", "220", "110", "2", "menit"],
-        solutionSteps: "Diketahui:\n• Panjang benda (l) = 200 mm\n• Jarak awal (la) = 10 mm\n• Jarak lebih (lu) = 10 mm\n• Vf = 110 mm/menit\n\nLangkah Perhitungan:\nPanjang langkah total (L) = 10 + 200 + 10 = 220 mm\nWaktu pemesinan (tc) = L / Vf = 220 / 110 = 2 menit\n\nJawaban Akhir: 2 menit (atau 120 detik)"
+        solutionSteps: "Diketahui:\n• Panjang benda (l) = 200 mm\n• Jarak awal (la) = 10 mm\n• Jarak lebih (lu) = 10 mm\n• Vf = 110 mm/menit\n\nLangkah Perhitungan:\nPanjang langkah total (L) = 10 + 200 + 10 = 220 mm\nWaktu pemesinan (tm) = L / Vf = 220 / 110 = 2 menit\n\nJawaban Akhir: 2 menit (atau 120 detik)"
       },
       {
         id: "frais_es7",
@@ -1254,7 +1254,7 @@ const AppData = {
   academicYears: ["2026/2027"],
 
   students: [
-    { no: 0, name: "Siswa", nis: "SISWA-TES", class: "11 TP A", group: "Akun Uji Coba" },
+    { no: 0, name: "Siswa", nis: "SISWA-TES", class: "11 TP A", group: "Akun Uji Coba", requiresPassword: true, password: "sesd1" },
     { no: 1, name: "ABYAN MAULANA", nis: "22188", class: "11 TP A", group: "12" },
     { no: 2, name: "ADHISA DINO DEWANGGA", nis: "22189", class: "11 TP A", group: "12" },
     { no: 3, name: "ADITYA PRAMANA PUTRA", nis: "22190", class: "11 TP A", group: "5" },
@@ -1290,7 +1290,26 @@ const AppData = {
     { no: 33, name: "GAVIN FATTAN FADLILLAH", nis: "22220", class: "11 TP A", group: "16" },
     { no: 34, name: "GERARDO ALEXANDRO RANGGA KRISHANDA", nis: "22221", class: "11 TP A", group: "14" },
     { no: 35, name: "GESANG DEMAS DIGDAYA", nis: "22222", class: "11 TP A", group: "8" },
-    { no: 36, name: "GHATFAN RAFIF WIKAN WIJANARKO", nis: "22223", class: "11 TP A", group: "17" }
+    { no: 36, name: "GHATFAN RAFIF WIKAN WIJANARKO", nis: "22223", class: "11 TP A", group: "17" },
+    { no: 37, name: "PRASETYO ADHI NURCAHYO", nis: "", class: "", group: "", requiresPassword: true, password: "adhin123" }
+  ],
+
+  // Akun Akses Administrator / Guru Penguji (Terpisah & Terisolasi)
+  adminAccounts: [
+    {
+      id: "admin1",
+      name: "Admin 1 (Utama)",
+      role: "admin",
+      password: "adminesd1",
+      description: "Akun Admin Utama / Guru Penguji ESD V-Lab"
+    },
+    {
+      id: "admin2",
+      name: "Admin 2 (Adhin)",
+      role: "admin",
+      password: "adhin123",
+      description: "Akun Admin Kedua / Guru Pendamping (Prasetyo Adhi)"
+    }
   ],
 
   // Google Sheets Webhook Configuration

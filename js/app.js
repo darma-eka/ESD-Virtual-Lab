@@ -246,30 +246,101 @@ const App = (function () {
     }
   }
 
+  function checkStudentRequiresPassword(name) {
+    if (!name) return null;
+    const clean = name.trim().toLowerCase();
+    if (typeof AppData !== "undefined" && AppData.students) {
+      const found = AppData.students.find((s) => s.name.toLowerCase() === clean);
+      if (found && found.requiresPassword) {
+        return found;
+      }
+    }
+    if (clean === "siswa") {
+      return { name: "Siswa", password: "sesd1", requiresPassword: true };
+    }
+    if (clean === "prasetyo adhi nurcahyo") {
+      return { name: "PRASETYO ADHI NURCAHYO", password: "adhin123", requiresPassword: true };
+    }
+    return null;
+  }
+
   function onStudentNameInput(val) {
     const badge = document.getElementById("login-student-badge");
     const nisText = document.getElementById("badge-nis-text");
     const groupText = document.getElementById("badge-group-text");
     const classSelect = document.getElementById("login-class");
+    const pwdContainer = document.getElementById("student-password-container");
+    const pwdInput = document.getElementById("login-student-password");
+    const pwdError = document.getElementById("student-password-error");
+
+    if (pwdError) pwdError.classList.add("hidden");
 
     if (!val || !val.trim() || typeof AppData === "undefined" || !AppData.students) {
       if (badge) badge.classList.add("hidden");
+      if (pwdContainer) pwdContainer.classList.add("hidden");
       return;
     }
 
     const trimmed = val.trim().toLowerCase();
     const found = AppData.students.find((s) => s.name.toLowerCase() === trimmed);
+    const isAdhin = trimmed.includes("prasetyo adhi nurcahyo");
+
     if (found) {
-      if (badge && nisText && groupText) {
-        nisText.textContent = `NIS: ${found.nis}`;
-        groupText.textContent = `Kelompok: ${found.group}`;
-        badge.classList.remove("hidden");
+      if (isAdhin || (!found.nis && !found.group)) {
+        if (badge) badge.classList.add("hidden");
+      } else {
+        if (badge && nisText && groupText) {
+          nisText.textContent = `NIS: ${found.nis || '-'}`;
+          groupText.textContent = `Kelompok: ${found.group || '-'}`;
+          badge.classList.remove("hidden");
+        }
       }
       if (classSelect) {
         classSelect.value = "11 TP A";
       }
+
+      // Check if student account requires password
+      const reqPwd = checkStudentRequiresPassword(val);
+      if (reqPwd) {
+        if (pwdContainer) {
+          pwdContainer.classList.remove("hidden");
+          if (pwdInput && !pwdInput.value) {
+            setTimeout(() => pwdInput.focus(), 80);
+          }
+        }
+      } else {
+        if (pwdContainer) {
+          pwdContainer.classList.add("hidden");
+          if (pwdInput) pwdInput.value = "";
+        }
+      }
     } else {
       if (badge) badge.classList.add("hidden");
+      const reqPwd = checkStudentRequiresPassword(val);
+      if (reqPwd) {
+        if (pwdContainer) pwdContainer.classList.remove("hidden");
+      } else {
+        if (pwdContainer) pwdContainer.classList.add("hidden");
+      }
+    }
+
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
+  }
+
+  function toggleStudentPasswordVisibility() {
+    try { SoundEngine.playClick(); } catch (e) {}
+    const pwdInput = document.getElementById("login-student-password");
+    const icon = document.getElementById("icon-reveal-student-password");
+    if (!pwdInput) return;
+    const isPwd = pwdInput.type === "password";
+    pwdInput.type = isPwd ? "text" : "password";
+    if (icon) {
+      icon.setAttribute("data-lucide", isPwd ? "eye-off" : "eye");
+      if (window.lucide) {
+        try { lucide.createIcons(); } catch (e) {}
+      }
     }
   }
 
@@ -280,14 +351,74 @@ const App = (function () {
     datalist.innerHTML = AppData.students
       .map((s) => {
         if (s.name.toLowerCase() === "siswa") {
-          return `<option value="Siswa">Siswa (Akun Pengujian Laboratorium)</option>`;
+          return `<option value="Siswa">Siswa (Akun Uji Coba)</option>`;
+        }
+        if (s.name.toUpperCase() === "PRASETYO ADHI NURCAHYO") {
+          return `<option value="${s.name}">${s.name} (Akun Mandiri)</option>`;
         }
         return `<option value="${s.name}">${s.name} (NIS: ${s.nis} | Kelompok ${s.group})</option>`;
       })
       .join("");
   }
 
-  const ADMIN_PASSWORD_HASH = "adminesd1"; // Kata sandi khusus Admin
+  // =========================================================================
+  // SISTEM ADMINISTRATOR: PISAHKAN AKUN ADMIN 1 DAN ADMIN 2
+  // =========================================================================
+  let selectedAdminIndex = 1; // 1 = Admin 1 (Utama), 2 = Admin 2 (Adhin)
+
+  const ADMIN_ACCOUNTS = {
+    1: {
+      id: "admin1",
+      name: "Admin 1 (Utama)",
+      role: "admin",
+      password: "adminesd1",
+      description: "Akun Admin Utama / Guru Penguji ESD V-Lab"
+    },
+    2: {
+      id: "admin2",
+      name: "Admin 2 (Adhin)",
+      role: "admin",
+      password: "adhin123",
+      description: "Akun Admin Kedua / Guru Pendamping (Prasetyo Adhi)"
+    }
+  };
+
+  function selectAdminAccount(accIdx) {
+    try { SoundEngine.playClick(); } catch (e) {}
+    selectedAdminIndex = accIdx === 2 ? 2 : 1;
+    const btn1 = document.getElementById("btn-admin-tab-1");
+    const btn2 = document.getElementById("btn-admin-tab-2");
+    const descEl = document.getElementById("admin-account-desc");
+    const labelEl = document.getElementById("admin-active-label");
+    const errEl = document.getElementById("admin-password-error");
+    if (errEl) errEl.classList.add("hidden");
+
+    if (selectedAdminIndex === 1) {
+      if (btn1) {
+        btn1.className = "py-1.5 px-2 rounded-lg font-bold text-xs bg-amber-600 text-white shadow-xs transition-all cursor-pointer text-center flex items-center justify-center gap-1.5";
+      }
+      if (btn2) {
+        btn2.className = "py-1.5 px-2 rounded-lg font-semibold text-xs text-amber-800 dark:text-amber-300 hover:bg-amber-200/50 dark:hover:bg-amber-900/50 transition-all cursor-pointer text-center flex items-center justify-center gap-1.5";
+      }
+      if (descEl) descEl.textContent = "Akun Admin Utama / Guru Penguji ESD V-Lab";
+      if (labelEl) labelEl.textContent = "Admin 1 (Utama)";
+    } else {
+      if (btn1) {
+        btn1.className = "py-1.5 px-2 rounded-lg font-semibold text-xs text-amber-800 dark:text-amber-300 hover:bg-amber-200/50 dark:hover:bg-amber-900/50 transition-all cursor-pointer text-center flex items-center justify-center gap-1.5";
+      }
+      if (btn2) {
+        btn2.className = "py-1.5 px-2 rounded-lg font-bold text-xs bg-amber-600 text-white shadow-xs transition-all cursor-pointer text-center flex items-center justify-center gap-1.5";
+      }
+      if (descEl) descEl.textContent = "Akun Admin Kedua / Guru Pendamping (Prasetyo Adhi)";
+      if (labelEl) labelEl.textContent = "Admin 2 (Adhin)";
+    }
+
+    const pwdInput = document.getElementById("admin-password-input");
+    if (pwdInput) {
+      pwdInput.value = "";
+      setTimeout(() => pwdInput.focus(), 50);
+    }
+  }
 
   function showAdminPasswordSection() {
     try { SoundEngine.playClick(); } catch (e) {}
@@ -298,6 +429,7 @@ const App = (function () {
     if (errEl) errEl.classList.add("hidden");
     if (section) section.classList.remove("hidden");
     if (btn) btn.classList.add("hidden");
+    selectAdminAccount(selectedAdminIndex);
     if (pwdInput) {
       pwdInput.value = "";
       setTimeout(() => pwdInput.focus(), 100);
@@ -337,19 +469,38 @@ const App = (function () {
   function verifyAdminPassword() {
     const pwdInput = document.getElementById("admin-password-input");
     const errEl = document.getElementById("admin-password-error");
+    const errTextEl = document.getElementById("admin-password-error-text");
     const yearSelect = document.getElementById("login-year");
     const currentYear = yearSelect ? yearSelect.value : "2026/2027";
     const entered = pwdInput ? pwdInput.value.trim() : "";
 
-    if (entered === ADMIN_PASSWORD_HASH) {
+    if (!entered) {
+      if (errEl) errEl.classList.remove("hidden");
+      if (errTextEl) errTextEl.textContent = "Silakan masukkan kata sandi Admin!";
+      if (pwdInput) pwdInput.focus();
+      return;
+    }
+
+    // Smart detection: cek apakah cocok dengan Admin 1 atau Admin 2
+    let targetAdmin = ADMIN_ACCOUNTS[selectedAdminIndex];
+    if (entered === ADMIN_ACCOUNTS[1].password) {
+      targetAdmin = ADMIN_ACCOUNTS[1];
+      selectedAdminIndex = 1;
+    } else if (entered === ADMIN_ACCOUNTS[2].password) {
+      targetAdmin = ADMIN_ACCOUNTS[2];
+      selectedAdminIndex = 2;
+    }
+
+    if (entered === targetAdmin.password) {
       if (errEl) errEl.classList.add("hidden");
       if (pwdInput) pwdInput.value = "";
       hideAdminPasswordSection();
-      login("Admin ESDVLab", "11 TP A", currentYear);
+      login(targetAdmin.name, "11 TP A", currentYear);
     } else {
       if (errEl) errEl.classList.remove("hidden");
+      if (errTextEl) errTextEl.textContent = `Kata sandi salah untuk ${targetAdmin.name}! Akses ditolak.`;
       try { SoundEngine.playAlarm(); } catch (e) {}
-      showToast("Kata sandi salah! Akses Admin ditolak.", "danger");
+      showToast(`Kata sandi salah untuk ${targetAdmin.name}! Akses Admin ditolak.`, "danger");
       if (pwdInput) {
         pwdInput.value = "";
         pwdInput.focus();
@@ -371,14 +522,15 @@ const App = (function () {
     const cleanName = name.trim();
     const isAdmin = cleanName.toLowerCase().includes("admin");
     const role = isAdmin ? "admin" : "student";
+    const isAdhin = cleanName.toLowerCase().includes("prasetyo adhi nurcahyo");
 
     let nis = "";
     let group = "";
-    if (typeof AppData !== "undefined" && AppData.students) {
+    if (!isAdhin && typeof AppData !== "undefined" && AppData.students) {
       const match = AppData.students.find((s) => s.name.toLowerCase() === cleanName.toLowerCase());
       if (match) {
-        nis = match.nis;
-        group = match.group;
+        nis = match.nis || "";
+        group = match.group || "";
       }
     }
 
@@ -406,10 +558,10 @@ const App = (function () {
         ...defaultUser,
         ...targetAccData,
         name: cleanName,
-        class: classVal || targetAccData.class || "11 TP A",
+        class: isAdhin ? "" : (classVal || targetAccData.class || "11 TP A"),
         academicYear: yearVal || targetAccData.academicYear || "2026/2027",
-        nis: nis || targetAccData.nis || "",
-        group: group || targetAccData.group || "",
+        nis: isAdhin ? "" : (nis || targetAccData.nis || ""),
+        group: isAdhin ? "" : (group || targetAccData.group || ""),
         role: role,
         isLoggedIn: true
       };
@@ -423,10 +575,10 @@ const App = (function () {
       userData = {
         ...defaultUser,
         name: cleanName,
-        class: classVal || "11 TP A",
+        class: isAdhin ? "" : (classVal || "11 TP A"),
         academicYear: yearVal || "2026/2027",
-        nis: nis,
-        group: group,
+        nis: isAdhin ? "" : nis,
+        group: isAdhin ? "" : group,
         role: role,
         isLoggedIn: true,
         level: 1,
@@ -473,7 +625,7 @@ const App = (function () {
     if (isAdmin) {
       showToast(`Akses Admin Diterima! Selamat datang, ${cleanName}.`, "success");
     } else {
-      const infoKelompok = group ? ` (${group})` : "";
+      const infoKelompok = (!isAdhin && group) ? ` (${group})` : "";
       showToast(`Selamat datang di ESD V-Lab, ${cleanName}${infoKelompok}!`, "success");
       if (!isDiagnosticCompleted(cleanName, nis)) {
         setTimeout(() => {
@@ -488,7 +640,12 @@ const App = (function () {
     if (type === "admin") {
       showAdminPasswordSection();
     } else if (type === "siswa") {
-      login("Siswa", "11 TP A", "2026/2027");
+      const nameInput = document.getElementById("login-name");
+      if (nameInput) {
+        nameInput.value = "Siswa";
+        onStudentNameInput("Siswa");
+      }
+      showToast("Akun Siswa (Uji Coba) memerlukan kata sandi.", "info");
     }
   }
 
@@ -497,6 +654,9 @@ const App = (function () {
     const nameInput = document.getElementById("login-name");
     const classSelect = document.getElementById("login-class");
     const yearSelect = document.getElementById("login-year");
+    const pwdInput = document.getElementById("login-student-password");
+    const pwdContainer = document.getElementById("student-password-container");
+    const pwdError = document.getElementById("student-password-error");
 
     const name = nameInput ? nameInput.value.trim() : "";
     const classVal = classSelect ? classSelect.value : "11 TP A";
@@ -504,6 +664,7 @@ const App = (function () {
 
     if (!name) {
       showToast("Silakan masukkan nama siswa terlebih dahulu!", "danger");
+      if (nameInput) nameInput.focus();
       return;
     }
 
@@ -512,6 +673,50 @@ const App = (function () {
       showAdminPasswordSection();
       showToast("Akses Admin memerlukan verifikasi kata sandi guru.", "info");
       return;
+    }
+
+    // Cek apakah akun siswa ini dilindungi kata sandi
+    const req = checkStudentRequiresPassword(name);
+    if (req) {
+      if (!pwdContainer || pwdContainer.classList.contains("hidden")) {
+        if (pwdContainer) pwdContainer.classList.remove("hidden");
+        if (pwdInput) {
+          pwdInput.value = "";
+          setTimeout(() => pwdInput.focus(), 100);
+        }
+        showToast(`Akun ${req.name} dilindungi kata sandi. Silakan masukkan kata sandi Anda.`, "info");
+        return;
+      }
+
+      const enteredPwd = pwdInput ? pwdInput.value.trim() : "";
+      if (!enteredPwd) {
+        if (pwdError) pwdError.classList.remove("hidden");
+        try { SoundEngine.playAlarm(); } catch (e) {}
+        showToast(`Silakan masukkan kata sandi untuk akun ${req.name}!`, "danger");
+        if (pwdInput) {
+          pwdInput.focus();
+          pwdInput.classList.add("ring-2", "ring-red-500");
+          setTimeout(() => pwdInput.classList.remove("ring-2", "ring-red-500"), 1200);
+        }
+        return;
+      }
+
+      if (enteredPwd !== req.password) {
+        if (pwdError) pwdError.classList.remove("hidden");
+        try { SoundEngine.playAlarm(); } catch (e) {}
+        showToast("Kata sandi akun siswa salah! Silakan coba lagi.", "danger");
+        if (pwdInput) {
+          pwdInput.value = "";
+          pwdInput.focus();
+          pwdInput.classList.add("ring-2", "ring-red-500");
+          setTimeout(() => pwdInput.classList.remove("ring-2", "ring-red-500"), 1200);
+        }
+        return;
+      }
+
+      // Kata sandi benar! Sembunyikan error
+      if (pwdError) pwdError.classList.add("hidden");
+      if (pwdInput) pwdInput.value = "";
     }
 
     login(name, classVal, yearVal);
@@ -628,8 +833,13 @@ const App = (function () {
     const displayName = userData.name || (userData.role === "admin" ? "Admin ESDVLab" : "Siswa");
     if (nameEl) nameEl.textContent = displayName;
     if (classEl) {
-      const yearInfo = userData.academicYear ? ` • TA ${userData.academicYear}` : "";
-      classEl.textContent = `${userData.class || "11 TP A"}${yearInfo}`;
+      const isAdhin = (userData.name || "").toLowerCase().includes("prasetyo adhi nurcahyo");
+      if (isAdhin) {
+        classEl.textContent = "Akun Siswa Mandiri";
+      } else {
+        const yearInfo = userData.academicYear ? ` • TA ${userData.academicYear}` : "";
+        classEl.textContent = `${userData.class || "11 TP A"}${yearInfo}`;
+      }
     }
     if (levelEl) levelEl.textContent = `Level ${userData.level}`;
     const xpPct = Math.min(100, Math.round((userData.xp / userData.xpMax) * 100));
@@ -684,7 +894,8 @@ const App = (function () {
         roleBadgeEl.className = "hidden sm:inline-flex px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-700 select-none shadow-xs";
         roleBadgeEl.style.display = "";
       } else {
-        roleBadgeEl.textContent = `🎓 Siswa (${userData.class || "11 TP A"})`;
+        const isAdhin = (userData.name || "").toLowerCase().includes("prasetyo adhi nurcahyo");
+        roleBadgeEl.textContent = isAdhin ? "🎓 Siswa Mandiri" : `🎓 Siswa (${userData.class || "11 TP A"})`;
         roleBadgeEl.className = "hidden sm:inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-200 dark:border-blue-800 select-none";
         roleBadgeEl.style.display = "";
       }
@@ -3449,7 +3660,12 @@ const App = (function () {
     const footerStatusEl = document.getElementById("quiz2-modal-footer-status");
 
     if (infoEl) {
-      infoEl.textContent = `Siswa: ${userData.name || 'Siswa SMK'} • NIS: ${userData.nis || '-'} • Paket Acak Mandiri`;
+      const isAdhin = (userData.name || "").toLowerCase().includes("prasetyo adhi nurcahyo");
+      if (isAdhin) {
+        infoEl.textContent = `Siswa: ${userData.name} • Akun Mandiri • Paket Acak Mandiri`;
+      } else {
+        infoEl.textContent = `Siswa: ${userData.name || 'Siswa SMK'} • NIS: ${userData.nis || '-'} • Paket Acak Mandiri`;
+      }
     }
     if (badgeEl) {
       badgeEl.textContent = isPg ? "Bagian A: Pilihan Ganda (10 Poin)" : "Bagian B: Esai Hitungan (10 Poin)";
@@ -3632,7 +3848,7 @@ const App = (function () {
                 <button type="button" onclick="App.insertSymbolToQuiz2('Vf')" class="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-mono text-xs font-bold hover:bg-blue-100 transition-all cursor-pointer">Vf</button>
                 <button type="button" onclick="App.insertSymbolToQuiz2('fz')" class="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-mono text-xs font-bold hover:bg-blue-100 transition-all cursor-pointer">fz</button>
                 <button type="button" onclick="App.insertSymbolToQuiz2('ap')" class="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-mono text-xs font-bold hover:bg-blue-100 transition-all cursor-pointer">ap</button>
-                <button type="button" onclick="App.insertSymbolToQuiz2('tc')" class="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-mono text-xs font-bold hover:bg-blue-100 transition-all cursor-pointer">tc</button>
+                <button type="button" onclick="App.insertSymbolToQuiz2('tm')" class="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-mono text-xs font-bold hover:bg-blue-100 transition-all cursor-pointer">tm</button>
                 <button type="button" onclick="App.insertSymbolToQuiz2('MRR')" class="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-mono text-xs font-bold hover:bg-blue-100 transition-all cursor-pointer">MRR</button>
               </div>
             </div>
@@ -3776,7 +3992,9 @@ const App = (function () {
                   Paket Acak Mandiri
                 </span>
                 <span class="text-xs font-mono text-slate-500 dark:text-slate-400">
-                  NIS: <strong>${userData.nis || '-'}</strong> &bull; Siswa: <strong>${userData.name || 'Siswa'}</strong>
+                  ${(userData.name || '').toLowerCase().includes('prasetyo adhi nurcahyo') 
+                    ? `Siswa: <strong>${userData.name}</strong> &bull; <em>Akun Mandiri</em>` 
+                    : `NIS: <strong>${userData.nis || '-'}</strong> &bull; Siswa: <strong>${userData.name || 'Siswa'}</strong>`}
                 </span>
               </div>
               <h3 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
@@ -4496,10 +4714,32 @@ const App = (function () {
     const progressWrapper = document.getElementById("diag-progress-wrapper");
 
     const displayName = userData.name || (userData.role === "admin" ? "Admin Guru" : "Siswa");
+    const isAdhin = (displayName || "").toLowerCase().includes("prasetyo adhi nurcahyo");
     if (nameEl) nameEl.textContent = `Nama: ${displayName}`;
-    if (nisEl) nisEl.textContent = `NIS: ${userData.nis || "-"}`;
-    if (classEl) classEl.textContent = `Kelas: ${userData.class || "11 TP A"}`;
-    if (groupEl) groupEl.textContent = `Kelompok: ${userData.group || "-"}`;
+    if (nisEl) {
+      if (isAdhin) {
+        nisEl.classList.add("hidden");
+      } else {
+        nisEl.classList.remove("hidden");
+        nisEl.textContent = `NIS: ${userData.nis || "-"}`;
+      }
+    }
+    if (classEl) {
+      if (isAdhin) {
+        classEl.classList.add("hidden");
+      } else {
+        classEl.classList.remove("hidden");
+        classEl.textContent = `Kelas: ${userData.class || "11 TP A"}`;
+      }
+    }
+    if (groupEl) {
+      if (isAdhin) {
+        groupEl.classList.add("hidden");
+      } else {
+        groupEl.classList.remove("hidden");
+        groupEl.textContent = `Kelompok: ${userData.group || "-"}`;
+      }
+    }
 
     // Admin or manual retake controls
     const isTeacher = userData.role === "admin";
@@ -4903,13 +5143,14 @@ const App = (function () {
     unlockBadge("badge-diagnostic", "Diagnostik Tuntas");
 
     // Sync to Google Spreadsheet
+    const isAdhin = (userData.name || "").toLowerCase().includes("prasetyo adhi nurcahyo");
     const payload = {
       action: "submit_diagnostic",
       name: userData.name,
-      nis: userData.nis,
-      class: userData.class,
-      group: userData.group,
-      academicYear: userData.academicYear,
+      nis: isAdhin ? "-" : (userData.nis || "-"),
+      class: "11 TP A", // Digabungkan ke spreadsheet kelas 11 TP A
+      group: isAdhin ? "-" : (userData.group || "-"),
+      academicYear: userData.academicYear || "2026/2027",
       diagnosticScore: score,
       diagnosticCorrect: correctCount,
       diagnosticTotal: 10,
@@ -5359,12 +5600,15 @@ const App = (function () {
         <div class="grid grid-cols-2 gap-4 mb-6 text-sm border p-4 rounded bg-gray-50">
           <div>
             <p><strong>Nama Peserta Didik:</strong> ${userData.name}</p>
-            <p><strong>Kelas / Rombel:</strong> ${userData.class}</p>
-            <p><strong>Tahun Ajaran:</strong> ${userData.academicYear || "2024/2025"}</p>
+            ${(userData.name || '').toLowerCase().includes('prasetyo adhi nurcahyo') 
+              ? `<p><strong>Status Akun:</strong> Akun Siswa Mandiri (Terhubung ke 11 TP A)</p>` 
+              : `<p><strong>Kelas / Rombel:</strong> ${userData.class || '11 TP A'}</p>`}
+            <p><strong>Tahun Ajaran:</strong> ${userData.academicYear || "2026/2027"}</p>
           </div>
           <div>
-            <p><strong>NIS:</strong> ${userData.nis || "-"}</p>
-            <p><strong>Kelompok Praktik:</strong> ${userData.group || "-"}</p>
+            ${(userData.name || '').toLowerCase().includes('prasetyo adhi nurcahyo')
+              ? `<p><strong>Integrasi Nilai:</strong> Tergabung Rekap Spreadsheet 11 TP A</p>`
+              : `<p><strong>NIS:</strong> ${userData.nis || "-"}</p><p><strong>Kelompok Praktik:</strong> ${userData.group || "-"}</p>`}
             <p><strong>Level Kompetensi:</strong> Level ${userData.level} (${userData.xp} XP)</p>
           </div>
         </div>
@@ -5407,8 +5651,8 @@ const App = (function () {
             <tr>
               <td class="border border-gray-400 p-2 font-semibold">Gerak Pemakanan (f)</td>
               <td class="border border-gray-400 p-2">${sim.feedRate} mm/put</td>
-              <td class="border border-gray-400 p-2"><strong>tc = ${sim.evaluation.cuttingTimeMin} menit</strong></td>
-              <td class="border border-gray-400 p-2">tc = L / (f × n)</td>
+              <td class="border border-gray-400 p-2"><strong>tm = ${sim.evaluation.cuttingTimeMin} menit</strong></td>
+              <td class="border border-gray-400 p-2">tm = L / (f × n)</td>
             </tr>
             <tr>
               <td class="border border-gray-400 p-2 font-semibold">Kualitas Permukaan (Ra)</td>
@@ -5436,7 +5680,7 @@ const App = (function () {
             <p>Peserta Didik,</p>
             <div class="h-16"></div>
             <p class="font-bold underline">${userData.name}</p>
-            <p>NIS: ${userData.nis || ".................................."}</p>
+            ${(userData.name || '').toLowerCase().includes('prasetyo adhi nurcahyo') ? '<p>Akun Siswa Mandiri</p>' : `<p>NIS: ${userData.nis || ".................................."}</p>`}
           </div>
           <div>
             <p>Guru Pembimbing / Penguji,</p>
@@ -5534,15 +5778,22 @@ const App = (function () {
         if (typeof AppData !== "undefined" && AppData.students) {
           const match = AppData.students.find((s) => s.name.toLowerCase() === cleanName.toLowerCase());
           if (match) {
-            userData.nis = match.nis;
-            userData.group = match.group;
+            userData.nis = match.nis || "";
+            userData.group = match.group || "";
           }
+        }
+        if (cleanName.toLowerCase().includes("prasetyo adhi nurcahyo")) {
+          userData.nis = "";
+          userData.group = "";
+          userData.class = "";
         }
         isDiagnosticCompleted(userData.name, userData.nis);
       }
     }
     if (classInput && classInput.value.trim()) {
-      userData.class = classInput.value.trim();
+      if (!userData.name.toLowerCase().includes("prasetyo adhi nurcahyo")) {
+        userData.class = classInput.value.trim();
+      }
     }
     saveUserData();
     try { SoundEngine.playSuccess(); } catch (e) {}
@@ -5711,7 +5962,9 @@ const App = (function () {
     showAdminPasswordSection,
     hideAdminPasswordSection,
     toggleAdminPasswordVisibility,
+    selectAdminAccount,
     verifyAdminPassword,
+    toggleStudentPasswordVisibility,
     getUserData: () => ({ ...userData }),
     sendGradesToSpreadsheet,
     startSimulation: () => {

@@ -146,7 +146,7 @@ const OperationsTools = (function () {
         </g>
 
         <!-- ============================================================== -->
-        <!-- 1. PANDANGAN ATAS (TOP VIEW) - SUDUT 80Â° & SISI SAMPING 12Â°-15Â° -->
+        <!-- 1. PANDANGAN ATAS (TOP VIEW) - SUDUT 80° & SISI SAMPING 12°-15° -->
         <!-- ============================================================== -->
         <g id="view-2d-top">
           <text x="100" y="18" fill="#38bdf8" font-size="8.5" font-family="sans-serif" font-weight="bold" text-anchor="middle">1. PANDANGAN ATAS (TOP VIEW)</text>
@@ -155,27 +155,27 @@ const OperationsTools = (function () {
           <rect x="25" y="32" width="90" height="42" fill="url(#g-steel-2d)" stroke="#64748b" stroke-width="1.2" />
           <text x="65" y="56" fill="#0f172a" font-size="6.5" font-family="monospace" font-weight="bold">BATANG 12x12</text>
 
-          <!-- Kepala Asahan (Mata Potong Sisi 12Â°-15Â° & Sudut Puncak Baji 80Â°) -->
+          <!-- Kepala Asahan (Mata Potong Sisi 12°-15° & Sudut Puncak Baji 80°) -->
           <polygon points="115,32 165,46 142,74 115,74" fill="url(#g-chrome-2d)" stroke="#38bdf8" stroke-width="1.2" />
           <line x1="115" y1="32" x2="165" y2="46" stroke="#38bdf8" stroke-width="2.5" />
           <circle cx="165" cy="46" r="3" fill="#f8fafc" stroke="#0284c7" stroke-width="1.2" />
 
-          <!-- Anotasi Sudut Potong Sisi Samping 12Â° - 15Â° -->
+          <!-- Anotasi Sudut Potong Sisi Samping 12° - 15° -->
           <line x1="115" y1="32" x2="175" y2="32" stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="2 2" />
           <path d="M 148 32 A 25 25 0 0 1 154 43" stroke="#facc15" stroke-width="1.2" fill="none" />
-          <text x="162" y="36" fill="#facc15" font-size="7.5" font-family="sans-serif" font-weight="bold">12Â°-15Â°</text>
+          <text x="162" y="36" fill="#facc15" font-size="7.5" font-family="sans-serif" font-weight="bold">12°-15°</text>
 
-          <!-- Anotasi Sudut 80Â° (Sudut Ujung / Baji Pahat Îµ_r = 80Â°) -->
+          <!-- Anotasi Sudut 80° (Sudut Ujung / Baji Pahat ε_r = 80°) -->
           <path d="M 156 49 A 12 12 0 0 1 150 63" stroke="#38bdf8" stroke-width="1.5" fill="none" />
           <polyline points="152,56 140,68 120,68" stroke="#38bdf8" stroke-width="1" fill="none" />
-          <text x="116" y="65" fill="#38bdf8" font-size="8.5" font-family="sans-serif" font-weight="bold" text-anchor="end">80Â°</text>
-          <text x="116" y="74" fill="#94a3b8" font-size="6.5" font-family="sans-serif" text-anchor="end">(Sudut Ujung Îµ_r)</text>
+          <text x="116" y="65" fill="#38bdf8" font-size="8.5" font-family="sans-serif" font-weight="bold" text-anchor="end">80°</text>
+          <text x="116" y="74" fill="#94a3b8" font-size="6.5" font-family="sans-serif" text-anchor="end">(Sudut Ujung ε_r)</text>
 
           <!-- Panah Gerak Sayat Pemakanan -->
           <g transform="translate(65, 88)">
             <line x1="30" y1="0" x2="5" y2="0" stroke="#facc15" stroke-width="1.8" />
             <polygon points="7,-3 0,0 7,3" fill="#facc15" />
-            <text x="18" y="9" fill="#facc15" font-size="6.5" font-family="sans-serif" font-weight="bold" text-anchor="middle">Arah Sayat (â‡¦)</text>
+            <text x="18" y="9" fill="#facc15" font-size="6.5" font-family="sans-serif" font-weight="bold" text-anchor="middle">Arah Sayat (←)</text>
           </g>
         </g>
 
@@ -188,15 +188,15 @@ const OperationsTools = (function () {
           <!-- Batang Pahat Tampak Depan -->
           <rect x="235" y="32" width="70" height="42" fill="url(#g-steel-2d)" stroke="#64748b" stroke-width="1.2" />
           
-          <!-- Muka Asahan Depan dengan Sudut Bebas Muka (Î±_e = 10Â°-13Â°) -->
+          <!-- Muka Asahan Depan dengan Sudut Bebas Muka (α_e = 10°-13°) -->
           <polygon points="305,32 355,32 342,74 305,74" fill="url(#g-chrome-2d)" stroke="#38bdf8" stroke-width="1.2" />
           <line x1="355" y1="32" x2="342" y2="74" stroke="#fb923c" stroke-width="2.2" />
           
-          <!-- Garis Vertikal Acuan 90Â° -->
+          <!-- Garis Vertikal Acuan 90° -->
           <line x1="355" y1="28" x2="355" y2="82" stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="2 2" />
           <path d="M 355 60 A 28 28 0 0 1 346 68" stroke="#fb923c" stroke-width="1.2" fill="none" />
           <polyline points="350,65 365,65 378,65" stroke="#fb923c" stroke-width="1" fill="none" />
-          <text x="382" y="63" fill="#fb923c" font-size="7.5" font-family="sans-serif" font-weight="bold">Î±_e = 10Â°-13Â°</text>
+          <text x="382" y="63" fill="#fb923c" font-size="7.5" font-family="sans-serif" font-weight="bold">α_e = 10°-13°</text>
           <text x="382" y="73" fill="#fdba74" font-size="6.5" font-family="sans-serif">(Bebas Muka)</text>
 
           <text x="270" y="56" fill="#0f172a" font-size="6.5" font-family="monospace" font-weight="bold">MUKA DEPAN</text>
@@ -206,35 +206,35 @@ const OperationsTools = (function () {
         <!-- 3. PANDANGAN SAMPING (SIDE VIEW) - SUDUT TATAL & BEBAS SAMPING -->
         <!-- ============================================================== -->
         <g id="view-2d-side" transform="translate(0, 105)">
-          <text x="200" y="16" fill="#38bdf8" font-size="8.5" font-family="sans-serif" font-weight="bold" text-anchor="middle">3. PANDANGAN SAMPING (SIDE VIEW) - SUDUT TATAL (Î³) &amp; BEBAS SAMPING (Î±_s)</text>
+          <text x="200" y="16" fill="#38bdf8" font-size="8.5" font-family="sans-serif" font-weight="bold" text-anchor="middle">3. PANDANGAN SAMPING (SIDE VIEW) - SUDUT TATAL (γ) &amp; BEBAS SAMPING (α_s)</text>
           
           <!-- Batang Samping -->
           <rect x="120" y="26" width="120" height="40" fill="url(#g-steel-2d)" stroke="#64748b" stroke-width="1.2" />
           
-          <!-- Kepala Asahan Miring: Bidang Tatal (Î³ = 12Â°-20Â°) & Bebas Samping (Î±_s = 8Â°-10Â°) -->
+          <!-- Kepala Asahan Miring: Bidang Tatal (γ = 12°-20°) & Bebas Samping (α_s = 8°-10°) -->
           <polygon points="120,26 75,34 85,66 120,66" fill="url(#g-chrome-2d)" stroke="#38bdf8" stroke-width="1.2" />
           
-          <!-- Anotasi Sudut Tatal Î³ = 12Â°-20Â° -->
+          <!-- Anotasi Sudut Tatal γ = 12°-20° -->
           <line x1="50" y1="26" x2="120" y2="26" stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="2 2" />
           <path d="M 102 26 A 20 20 0 0 1 96 31" stroke="#34d399" stroke-width="1.2" fill="none" />
           <polyline points="99,29 88,18 45,18" stroke="#34d399" stroke-width="1" fill="none" />
-          <text x="42" y="15" fill="#34d399" font-size="7.5" font-family="sans-serif" font-weight="bold" text-anchor="end">Î³ = 12Â°-20Â° (Sudut Tatal)</text>
+          <text x="42" y="15" fill="#34d399" font-size="7.5" font-family="sans-serif" font-weight="bold" text-anchor="end">γ = 12°-20° (Sudut Tatal)</text>
 
-          <!-- Anotasi Sudut Bebas Samping Î±_s = 8Â°-10Â° -->
+          <!-- Anotasi Sudut Bebas Samping α_s = 8°-10° -->
           <line x1="75" y1="26" x2="75" y2="72" stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="2 2" />
           <path d="M 75 52 A 20 20 0 0 0 81 58" stroke="#f59e0b" stroke-width="1.2" fill="none" />
           <polyline points="78,55 65,62 30,62" stroke="#f59e0b" stroke-width="1" fill="none" />
-          <text x="28" y="59" fill="#f59e0b" font-size="7.5" font-family="sans-serif" font-weight="bold" text-anchor="end">Î±_s = 8Â°-10Â°</text>
+          <text x="28" y="59" fill="#f59e0b" font-size="7.5" font-family="sans-serif" font-weight="bold" text-anchor="end">α_s = 8°-10°</text>
           <text x="28" y="69" fill="#fde68a" font-size="6.5" font-family="sans-serif" text-anchor="end">(Bebas Samping)</text>
 
-          <!-- Sudut Baji Î² = 80Â° -->
-          <text x="270" y="48" fill="#38bdf8" font-size="7.5" font-family="sans-serif" font-weight="bold">Sudut Baji (Î²) = 90Â° - (Î± + Î³) â‰ˆ 60Â°-70Â°</text>
+          <!-- Sudut Baji β = 80° -->
+          <text x="270" y="48" fill="#38bdf8" font-size="7.5" font-family="sans-serif" font-weight="bold">Sudut Baji (β) = 90° - (α + γ) ≈ 60°-70°</text>
           <text x="270" y="59" fill="#94a3b8" font-size="6.5" font-family="sans-serif">Standar Geometri Pahat Bubut DIN 4971 / ISO 1</text>
         </g>
 
         <!-- Footer Standar -->
         <rect x="15" y="180" width="370" height="15" rx="3" fill="rgba(15, 23, 42, 0.95)" stroke="#334155" stroke-width="0.8" />
-        <text x="200" y="191" fill="#94a3b8" font-size="6.5" font-family="monospace" text-anchor="middle">Proyeksi Ortogonal 2D: Pandangan Atas (80Â°), Depan (10Â°-13Â°), dan Samping (12Â°-20Â°)</text>
+        <text x="200" y="191" fill="#94a3b8" font-size="6.5" font-family="monospace" text-anchor="middle">Proyeksi Ortogonal 2D: Pandangan Atas (80°), Depan (10°-13°), dan Samping (12°-20°)</text>
       </svg>
     `,
 
@@ -249,7 +249,7 @@ const OperationsTools = (function () {
             </svg>
           </div>
           <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 mb-1.5">
-            ðŸ“· Menunggu Unggahan Foto Asli
+            📷 Menunggu Unggahan Foto Asli
           </span>
           <h4 class="text-xs font-bold text-slate-200 mb-1">
             Slot Dokumentasi Foto Fisik Pahat HSS Rata Kanan

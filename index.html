@@ -103,6 +103,42 @@
             <span id="badge-nis-text">NIS: -</span>
             <span id="badge-group-text" class="font-bold">Kelompok: -</span>
           </div>
+
+          <!-- Student Password Container (Displayed if selected student requires password) -->
+          <div id="student-password-container" class="hidden mt-2 p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 space-y-1.5 transition-all">
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+              <span class="flex items-center gap-1.5 text-blue-900 dark:text-blue-200">
+                <i data-lucide="lock" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"></i>
+                <span>Kata Sandi Akses Siswa:</span>
+              </span>
+              <span class="text-[10px] text-amber-700 dark:text-amber-400 font-bold bg-amber-100/80 dark:bg-amber-950/70 px-1.5 py-0.5 rounded">
+                Akun Terlindungi
+              </span>
+            </label>
+            <div class="relative">
+              <i data-lucide="key" class="w-4 h-4 text-blue-600 dark:text-blue-400 absolute left-3 top-2.5 pointer-events-none"></i>
+              <input 
+                id="login-student-password" 
+                type="password" 
+                autocomplete="current-password"
+                placeholder="Masukkan kata sandi akun..." 
+                class="w-full pl-9 pr-10 py-2 rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-xs font-mono outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              >
+              <button 
+                type="button" 
+                id="btn-reveal-student-password"
+                onclick="App.toggleStudentPasswordVisibility()" 
+                class="absolute right-2 top-2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                title="Lihat / Sembunyikan Kata Sandi"
+              >
+                <i data-lucide="eye" id="icon-reveal-student-password" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div id="student-password-error" class="hidden text-[11px] text-red-600 dark:text-red-400 font-semibold flex items-center gap-1 mt-0.5">
+              <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+              <span>Kata sandi salah! Silakan periksa kembali.</span>
+            </div>
+          </div>
         </div>
 
         <!-- Row: Kelas & Tahun Ajaran -->
@@ -169,16 +205,47 @@
         <div id="admin-password-section" class="hidden mt-3 p-3.5 rounded-xl border border-amber-300 dark:border-amber-700/70 bg-amber-50/90 dark:bg-amber-950/50 space-y-2.5 transition-all">
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
-              <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
-              <span>Verifikasi Kata Sandi Admin</span>
+              <i data-lucide="shield" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
+              <span>Verifikasi Masuk Administrator</span>
             </span>
             <button type="button" onclick="App.hideAdminPasswordSection()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5" title="Batal">
               <i data-lucide="x" class="w-3.5 h-3.5"></i>
             </button>
           </div>
+
+          <!-- Pemilih Akun Admin: Pisahkan Akun Admin 1 vs Admin 2 -->
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-[11px] font-bold text-amber-900 dark:text-amber-200">
+              <span>Pilih Akun Admin:</span>
+              <span id="admin-active-label" class="text-[10px] text-amber-700 dark:text-amber-400 font-semibold font-mono">Akun Terpisah</span>
+            </div>
+            <div class="grid grid-cols-2 gap-1.5 p-1 bg-amber-100/80 dark:bg-amber-900/40 rounded-xl border border-amber-200 dark:border-amber-800/60">
+              <button 
+                type="button" 
+                id="btn-admin-tab-1" 
+                onclick="App.selectAdminAccount(1)" 
+                class="py-1.5 px-2 rounded-lg font-bold text-xs bg-amber-600 text-white shadow-xs transition-all cursor-pointer text-center flex items-center justify-center gap-1.5"
+              >
+                <span>👑</span>
+                <span>Admin 1 (Utama)</span>
+              </button>
+              <button 
+                type="button" 
+                id="btn-admin-tab-2" 
+                onclick="App.selectAdminAccount(2)" 
+                class="py-1.5 px-2 rounded-lg font-semibold text-xs text-amber-800 dark:text-amber-300 hover:bg-amber-200/50 dark:hover:bg-amber-900/50 transition-all cursor-pointer text-center flex items-center justify-center gap-1.5"
+              >
+                <span>👑</span>
+                <span>Admin 2 (Adhin)</span>
+              </button>
+            </div>
+            <div id="admin-account-desc" class="text-[10px] text-amber-800/80 dark:text-amber-300/80 italic px-1 pt-0.5">
+              Akun Admin Utama / Guru Penguji ESD V-Lab
+            </div>
+          </div>
           
           <p class="text-[11px] text-amber-800 dark:text-amber-300">
-            Masukkan kata sandi guru untuk membuka hak akses Lab Admin:
+            Masukkan kata sandi guru untuk membuka hak akses Admin:
           </p>
 
           <div class="relative">
@@ -204,7 +271,7 @@
 
           <div id="admin-password-error" class="hidden text-[11px] text-red-600 dark:text-red-400 font-semibold flex items-center gap-1">
             <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
-            <span>Kata sandi salah! Akses ditolak.</span>
+            <span id="admin-password-error-text">Kata sandi salah! Akses ditolak.</span>
           </div>
 
           <div class="flex items-center gap-2 pt-1">
@@ -1551,9 +1618,9 @@
               </div>
 
               <div class="mat-card p-2.5 sm:p-3">
-                <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Durasi Sayat (tc)</div>
+                <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Durasi Sayat (tm)</div>
                 <div id="display-machining-time" class="text-lg sm:text-xl font-bold text-amber-600 font-mono mt-0.5">1m 01s</div>
-                <div class="text-[10px] text-slate-400">tc = L / (f · n)</div>
+                <div class="text-[10px] text-slate-400">tm = L / (f · n)</div>
               </div>
 
               <div class="mat-card p-2.5 sm:p-3">
@@ -1720,8 +1787,8 @@
               <span class="text-[10.5px] text-slate-500">Satuan: mm/gigi</span>
             </div>
             <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-              <span class="text-[10px] font-bold text-slate-400 block uppercase">5. Waktu Pemesinan Frais (tc)</span>
-              <div class="font-mono font-bold text-rose-700 dark:text-rose-400 text-sm mt-0.5">tc = (la + l + lu) / Vf</div>
+              <span class="text-[10px] font-bold text-slate-400 block uppercase">5. Waktu Pemesinan Frais (tm)</span>
+              <div class="font-mono font-bold text-rose-700 dark:text-rose-400 text-sm mt-0.5">tm = (la + l + lu) / Vf</div>
               <span class="text-[10.5px] text-slate-500">Satuan: menit (L = la + l + lu dalam mm)</span>
             </div>
             <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
@@ -1923,7 +1990,7 @@
               <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('d')">d</button>
               <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('ap')">ap</button>
               <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('L')">L</button>
-              <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('tc')">tc</button>
+              <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('tm')">tm</button>
               <button type="button" class="symbol-chip-btn param-chip" onclick="App.insertSymbol('MRR')">MRR</button>
             </div>
           </div>
@@ -2306,7 +2373,7 @@
             <span class="text-amber-600 font-bold text-sm mt-0.5">TP 03</span>
             <div>
               <strong class="text-slate-800 text-xs">Kalkulasi Parameter Pemotongan:</strong>
-              <p class="text-slate-500 text-xs mt-0.5">Menghitung putaran spindle (n) dan waktu pemesinan (tc) berdasarkan tabel acuan Cs industri.</p>
+              <p class="text-slate-500 text-xs mt-0.5">Menghitung putaran spindle (n) dan waktu pemesinan (tm) berdasarkan tabel acuan Cs industri.</p>
             </div>
           </div>
           <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-start space-x-3">
@@ -2664,7 +2731,7 @@
               <strong class="text-amber-600">fz</strong> = Vf / (z · n)
             </div>
             <div class="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-              <strong class="text-rose-600">tc</strong> = L / Vf
+              <strong class="text-rose-600">tm</strong> = L / Vf
             </div>
             <div class="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
               <strong class="text-purple-600">MRR</strong> = (w·ap·Vf) / 1000

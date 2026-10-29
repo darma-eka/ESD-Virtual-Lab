@@ -156,7 +156,7 @@ const SimEngine = (function () {
     const csActual = (Math.PI * effectiveDia * state.rpm) / 1000;
     state.csActual = Math.round(csActual * 10) / 10;
 
-    // Machining time tc = L / (f * n)
+    // Machining time tm = L / (f * n)
     const feedPerMin = isMilling ? (state.feedRate * (state.numTeeth || 4) * state.rpm) : (state.feedRate * state.rpm);
     let tcMin = feedPerMin > 0 ? effectiveLength / feedPerMin : 0;
     state.cuttingTimeMin = Math.round(tcMin * 100) / 100;

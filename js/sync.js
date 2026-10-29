@@ -68,13 +68,14 @@ const SyncManager = (function () {
     const simRa = sim.evaluation ? sim.evaluation.ra : "-";
     const simTitle = sim.evaluation ? sim.evaluation.title : "-";
 
+    const isAdhin = (user.name || "").toLowerCase().includes("prasetyo adhi nurcahyo");
     return {
       action: "submit_grade",
       name: user.name || "Siswa Belum Terdaftar",
-      nis: user.nis || "-",
-      class: user.class || "11 TP A",
-      group: user.group || "-",
-      academicYear: user.academicYear || "2024/2025",
+      nis: isAdhin ? "-" : (user.nis || "-"),
+      class: "11 TP A", // Digabungkan ke tab & Spreadsheet Siswa Kelas 11 TP A
+      group: isAdhin ? "-" : (user.group || "-"),
+      academicYear: user.academicYear || "2026/2027",
       quizName: activeQuizName,
       quizScore: activeQuizScore,
       quizCorrect: activeQuizCorrect,
@@ -147,12 +148,13 @@ const SyncManager = (function () {
       };
     }
 
+    const isAdhin = (user.name || "").toLowerCase().includes("prasetyo adhi nurcahyo");
     return {
       action: "submit_quiz1",
       name: user.name || "Siswa Belum Terdaftar",
-      nis: user.nis || "-",
-      class: user.class || "11 TP A",
-      group: user.group || "-",
+      nis: isAdhin ? "-" : (user.nis || "-"),
+      class: "11 TP A", // Digabungkan ke tab & Spreadsheet Siswa Kelas 11 TP A
+      group: isAdhin ? "-" : (user.group || "-"),
       academicYear: user.academicYear || "2026/2027",
       quiz1Score: score,
       quiz1Correct: correctCount,
@@ -258,12 +260,13 @@ const SyncManager = (function () {
     const status = totalScore >= 75 ? "LULUS (KOMPETEN)" : "PERLU PENGAYAAN";
     const pgSummaryStr = pgParts.join(", ");
 
+    const isAdhin = (user.name || "").toLowerCase().includes("prasetyo adhi nurcahyo");
     return {
       action: "submit_quiz2",
-      name: user.name || "Siswa Belterdaftar",
-      nis: user.nis || "-",
-      class: user.class || "11 TP A",
-      group: user.group || "-",
+      name: user.name || "Siswa Belum Terdaftar",
+      nis: isAdhin ? "-" : (user.nis || "-"),
+      class: "11 TP A", // Digabungkan ke tab & Spreadsheet Siswa Kelas 11 TP A
+      group: isAdhin ? "-" : (user.group || "-"),
       academicYear: user.academicYear || "2026/2027",
       totalScore: totalScore,
       pgScore: pgScore,
